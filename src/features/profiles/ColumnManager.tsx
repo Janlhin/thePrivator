@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  type ColumnKey,
   type ColumnLayout,
   columnByKey,
   columnLabel,
@@ -130,5 +129,3 @@ export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) 
     </div>
   );
 }
-
-export type { ColumnKey };

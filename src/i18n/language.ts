@@ -97,6 +97,7 @@ function announce(): void {
   }
 }
 
+/** @public Label helper kept for callers that render the stored preference outside the settings page. */
 export function preferenceLabel(preference: LanguagePreference): string {
   return preference === "system" ? "system" : preference;
 }

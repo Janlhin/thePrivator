@@ -98,7 +98,7 @@ export function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [t]);
   const [search, setSearch] = useState("");
   const preferences = usePreferences();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(preferences?.preferences.sidebarCollapsed ?? false);

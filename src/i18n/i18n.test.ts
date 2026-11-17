@@ -26,7 +26,7 @@ describe("the Chinese dictionary", () => {
     // A handful the interface cannot do without: a Chinese build that fell back
     // to English here would look broken before the vault even opens.
     for (const key of ["Unlock", "Cancel", "Save", "Settings", "Profiles"]) {
-      expect(ZH[key], key).toBeTruthy();
+      expect(ZH[key]).toBeTruthy();
     }
   });
 });
