@@ -26,6 +26,7 @@
     font-size: var(--text-base);
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
+
     /* The whole surface is a desktop chrome, not a document: a stray drag
        selecting half the shell reads as a bug. Inputs opt back in below. */
     user-select: none;
@@ -107,6 +108,9 @@
     background: transparent;
   }
 
+  /* The reduced-motion contract has to beat component-level animation declarations,
+     so these four !important declarations are the only ones in the codebase. */
+  /* stylelint-disable declaration-no-important */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -117,4 +121,5 @@
       scroll-behavior: auto !important;
     }
   }
+  /* stylelint-enable declaration-no-important */
 }
