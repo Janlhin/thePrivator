@@ -46,7 +46,13 @@ export const DEFAULT_COMMAND_TIMEOUT_MS = Number(process.env.VERIFY_M005_S04_COM
 export const DEFAULT_FIXTURE_TIMEOUT_MS = Number(process.env.VERIFY_M005_S04_FIXTURE_TIMEOUT_MS ?? 10_000);
 export const M005_S04_PROFILE_PREFIX = "M005 Packaged Portability Smoke";
 export const DIAGNOSTIC_RELATIVE_LOG_PATH = "profile-store/diagnostics/events.jsonl";
-export const PYTHON = process.env.PYTHON ?? "python3";
+const VENV_PYTHON = process.platform === "win32"
+  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+  : join(ROOT_DIR, ".venv", "bin", "python");
+// Discovery name stays a bare command: the native-dialog preflight asks "is this
+// tool on PATH" on the target machine, which an absolute local venv path cannot answer.
+const PYTHON_DISCOVERY_NAME = process.platform === "win32" ? "python" : "python3";
+export const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : PYTHON_DISCOVERY_NAME);
 
 const STEP_RESULTS = [];
 const VERIFIER_EVENTS = [];
@@ -1322,30 +1328,33 @@ export function planNativeDialogAutomation({ platform = process.platform, env = 
   const hasX11 = Boolean(env.DISPLAY);
   const missing = [];
   const toolOptions = { platform, env, pathEnv: env.PATH ?? "" };
+  // Discovery is scoped to the simulated platform, not the host: a Windows runner
+  // planning a Linux session must still look for `python3` on that Linux PATH.
+  const pythonDiscoveryName = platform === "win32" ? "python" : "python3";
 
   if (!hasWayland && !hasX11) missing.push(missingTool("display", "display", "Run from a visible Linux desktop session with WAYLAND_DISPLAY or DISPLAY."));
 
-  const waylandAtspiPresent = hasWayland && commandExists(PYTHON, toolOptions);
+  const waylandAtspiPresent = hasWayland && commandExists(pythonDiscoveryName, toolOptions);
   const waylandKeyPresent = hasWayland && commandExists(WAYLAND_KEY_TOOL, toolOptions);
   const waylandClipboardPresent = hasWayland && WAYLAND_CLIPBOARD_TOOLS.every((tool) => commandExists(tool, toolOptions));
   if (hasWayland && waylandAtspiPresent) {
-    return { platform, strategy: "wayland", status: "available", display: "wayland", tools: [safeToolStatus(PYTHON, true)], keyboard: ATSPI_KEYBOARD, clipboard: "none", missing: [], dialogs: [{ dialog: "save", selected: true, extension: "json" }, { dialog: "open", selected: true, extension: "tpkg" }] };
+    return { platform, strategy: "wayland", status: "available", display: "wayland", tools: [safeToolStatus(pythonDiscoveryName, true)], keyboard: ATSPI_KEYBOARD, clipboard: "none", missing: [], dialogs: [{ dialog: "save", selected: true, extension: "json" }, { dialog: "open", selected: true, extension: "tpkg" }] };
   }
   if (hasWayland && waylandKeyPresent) {
     return { platform, strategy: "wayland", status: "available", display: "wayland", tools: [safeToolStatus(WAYLAND_KEY_TOOL, true), ...WAYLAND_CLIPBOARD_TOOLS.map((tool) => safeToolStatus(tool, waylandClipboardPresent))], keyboard: "ydotool", clipboard: waylandClipboardPresent ? "wl-clipboard" : "none", missing: [], dialogs: [{ dialog: "save", selected: true, extension: "json" }, { dialog: "open", selected: true, extension: "tpkg" }] };
   }
-  if (hasWayland && !waylandAtspiPresent && !waylandKeyPresent) missing.push(missingTool(`${PYTHON}-or-${WAYLAND_KEY_TOOL}`, "wayland-key", "Install python3 with AT-SPI bindings or ydotool for Wayland native-dialog automation."));
+  if (hasWayland && !waylandAtspiPresent && !waylandKeyPresent) missing.push(missingTool(`${pythonDiscoveryName}-or-${WAYLAND_KEY_TOOL}`, "wayland-key", "Install python3 with AT-SPI bindings or ydotool for Wayland native-dialog automation."));
 
   const x11TypePresent = hasX11 && commandExists(X11_TYPE_TOOL, toolOptions);
   const x11ClipboardTool = hasX11 ? X11_CLIPBOARD_TOOLS.find((tool) => commandExists(tool, toolOptions)) : null;
-  const x11PythonPresent = hasX11 && commandExists(PYTHON, toolOptions);
+  const x11PythonPresent = hasX11 && commandExists(pythonDiscoveryName, toolOptions);
   if (hasX11 && x11PythonPresent) {
-    return { platform, strategy: "x11", status: "available", display: "x11", tools: [safeToolStatus(PYTHON, true)], keyboard: ATSPI_KEYBOARD, clipboard: "none", missing: [], dialogs: [{ dialog: "save", selected: true, extension: "json" }, { dialog: "open", selected: true, extension: "tpkg" }] };
+    return { platform, strategy: "x11", status: "available", display: "x11", tools: [safeToolStatus(pythonDiscoveryName, true)], keyboard: ATSPI_KEYBOARD, clipboard: "none", missing: [], dialogs: [{ dialog: "save", selected: true, extension: "json" }, { dialog: "open", selected: true, extension: "tpkg" }] };
   }
   if (hasX11 && x11TypePresent && x11ClipboardTool) {
     return { platform, strategy: "x11", status: "available", display: "x11", tools: [safeToolStatus(X11_TYPE_TOOL, true), safeToolStatus(x11ClipboardTool, true)], keyboard: "xdotool", clipboard: x11ClipboardTool, missing: [], dialogs: [{ dialog: "save", selected: true, extension: "json" }, { dialog: "open", selected: true, extension: "tpkg" }] };
   }
-  if (hasX11 && !x11PythonPresent && !x11TypePresent) missing.push(missingTool(`${PYTHON}-or-${X11_TYPE_TOOL}`, "x11-key", "Install python3 with python-xlib or xdotool for X11 native-dialog keyboard automation."));
+  if (hasX11 && !x11PythonPresent && !x11TypePresent) missing.push(missingTool(`${pythonDiscoveryName}-or-${X11_TYPE_TOOL}`, "x11-key", "Install python3 with python-xlib or xdotool for X11 native-dialog keyboard automation."));
   if (hasX11 && x11TypePresent && !x11ClipboardTool) missing.push(missingTool("xclip-or-xsel", "x11-clipboard", "Install xclip or xsel for legacy X11 native-dialog clipboard fallback."));
 
   return { platform, strategy: "unavailable", status: "missing", display: hasWayland ? "wayland" : hasX11 ? "x11" : "missing", tools: [], missing, dialogs: [] };
