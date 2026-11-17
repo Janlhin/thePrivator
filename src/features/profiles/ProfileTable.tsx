@@ -85,7 +85,6 @@ function tagHue(tag: string): number {
 }
 
 interface CellProps {
-  onSaveNotes?: (id: string, notes: string) => Promise<boolean>;
   proxyCheck?: ProxyCheckState;
   onCheckProxy?: (id: string) => void;
   row: ProfileRow;
@@ -100,7 +99,7 @@ interface CellProps {
 }
 
 
-function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLaunch, onStop, proxyCheck, onCheckProxy, onSaveNotes }: CellProps) {
+function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLaunch, onStop, proxyCheck, onCheckProxy }: CellProps) {
   const { profile, running } = row;
   const machine = useMachineInfo();
 
@@ -422,7 +421,6 @@ export function ProfileTable({
   onStop,
   onRowMenu,
   emptyMessage,
-  onSaveNotes,
   proxyChecks,
   onCheckProxy,
 }: ProfileTableProps) {
@@ -492,7 +490,6 @@ export function ProfileTable({
             onLaunch={onLaunch}
             onStop={onStop}
             onRowMenu={onRowMenu}
-            onSaveNotes={onSaveNotes}
           />
         ))
       )}
