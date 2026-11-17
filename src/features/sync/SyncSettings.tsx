@@ -65,7 +65,8 @@ export function SyncSettings() {
       if (folder === null) {
         return;
       }
-      setStatus(await configureSync({ enabled: true, folder, deviceLabel: label.trim() || undefined }));
+      const trimmedLabel = label.trim();
+      setStatus(await configureSync({ enabled: true, folder, ...(trimmedLabel ? { deviceLabel: trimmedLabel } : {}) }));
       setPlan(null);
       setLastRun(null);
     });
@@ -169,7 +170,7 @@ export function SyncSettings() {
             onBlur={() => {
               if (status.enabled && label.trim() && label.trim() !== status.deviceLabel) {
                 void withBusy("renaming", async () => {
-                  setStatus(await configureSync({ enabled: true, folder: undefined, deviceLabel: label.trim() }));
+                  setStatus(await configureSync({ enabled: true, deviceLabel: label.trim() }));
                 });
               }
             }}

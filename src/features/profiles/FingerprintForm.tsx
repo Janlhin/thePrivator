@@ -18,7 +18,7 @@ interface FingerprintFormProps {
   draft: IdentityDraftState;
   warnings: readonly IdentityWarning[];
   /** Internal OS-matched templates for fresh API choices; never listed directly. */
-  presets?: readonly ProfileIdentity[];
+  presets?: readonly ProfileIdentity[] | undefined;
   onChange: (draft: IdentityDraftState) => void;
   onApplyPreset?: (presetId: string) => void;
 }

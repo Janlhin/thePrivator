@@ -51,7 +51,7 @@ export async function pickFile(title: string, filters?: FileFilter[]): Promise<s
     if (typeof module.open !== "function") {
       return null;
     }
-    const selection = await module.open({ multiple: false, title, filters });
+    const selection = await module.open({ multiple: false, title, ...(filters ? { filters } : {}) });
     return typeof selection === "string" ? selection : null;
   } catch {
     return null;
@@ -65,7 +65,7 @@ export async function pickSaveTarget(title: string, filters?: FileFilter[]): Pro
     if (typeof module.save !== "function") {
       return null;
     }
-    const selection = await module.save({ title, filters });
+    const selection = await module.save({ title, ...(filters ? { filters } : {}) });
     return typeof selection === "string" ? selection : null;
   } catch {
     return null;
@@ -78,6 +78,6 @@ export type { FileFilter };
 export async function pickFiles(title: string, filters?: FileFilter[]): Promise<string[]> {
   const module = (await import("@tauri-apps/plugin-dialog")) as DialogModule;
   if (!module.open) throw new Error(t("File picker unavailable."));
-  const selection = await module.open({ multiple: true, title, filters });
+  const selection = await module.open({ multiple: true, title, ...(filters ? { filters } : {}) });
   return Array.isArray(selection) ? selection : typeof selection === "string" ? [selection] : [];
 }

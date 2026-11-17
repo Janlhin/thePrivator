@@ -25,7 +25,7 @@ interface ProfileToolsProps {
   profileId: string | null;
   running: boolean;
   /** The saved identity, so the audit can say what each page should report. */
-  identity?: ProfileIdentity;
+  identity?: ProfileIdentity | undefined;
 }
 
 type Note = { tone: "ok" | "warn"; text: string };
@@ -60,7 +60,7 @@ interface AuditPageListProps {
   pages: IdentityAuditPlanResult["pages"];
   disabled: boolean;
   /** The identity to compare against; omitted while a draft is unsaved. */
-  identity?: ProfileIdentity;
+  identity?: ProfileIdentity | undefined;
   onOpen: (pageId: string) => void;
 }
 
