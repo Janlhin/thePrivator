@@ -93,6 +93,7 @@
     inset-inline-end: -3px;
     width: 7px;
     cursor: col-resize;
+
     /* Wider than it looks: a 1px target is unhittable, but a 7px column border
        would be a visible seam. */
     touch-action: none;
@@ -273,15 +274,19 @@
   .tag[data-hue="2"] {
     color: var(--color-tag-2);
   }
+
   .tag[data-hue="3"] {
     color: var(--color-tag-3);
   }
+
   .tag[data-hue="4"] {
     color: var(--color-tag-4);
   }
+
   .tag[data-hue="5"] {
     color: var(--color-tag-5);
   }
+
   .tag[data-hue="6"] {
     color: var(--color-tag-6);
   }
@@ -331,6 +336,7 @@
     min-width: 0;
     width: 100%;
   }
+
   .notePreview > button {
     max-width: 100%;
     overflow: hidden;
@@ -340,6 +346,7 @@
     color: inherit;
     cursor: pointer;
   }
+
   .noteBubble {
     position: fixed;
     z-index: 50;
@@ -353,8 +360,9 @@
     color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    box-shadow: 0 8px 28px #0003;
+    box-shadow: 0 8px 28px rgb(0 0 0 / 20%);
   }
+
   .noteBubble small {
     display: block;
     margin-top: 12px;
@@ -365,9 +373,9 @@
 @layer components {
   .noteText {
     user-select: text;
-    -webkit-user-select: text;
     cursor: text;
   }
+
   .noteActions {
     display: flex;
     align-items: center;
@@ -375,12 +383,14 @@
     margin-top: 12px;
     white-space: normal;
   }
+
   .noteActions button {
     cursor: pointer;
     border: 1px solid var(--color-border);
     border-radius: 4px;
     padding: 4px 8px;
   }
+
   .noteActions [role="status"] {
     font-size: 0.85em;
   }
