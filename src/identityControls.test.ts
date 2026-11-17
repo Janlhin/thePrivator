@@ -541,7 +541,7 @@ describe("descriptor and parser bounds", () => {
     // The guard for the vacuity above: a value far outside every range must be
     // rejected for every field this suite covers.
     for (const field of numericFields) {
-      expect(draftWithField(field, "-999999999").errors[field.path], field.path).toBeDefined();
+      expect(draftWithField(field, "-999999999").errors[field.path]).toBeDefined();
     }
   });
 

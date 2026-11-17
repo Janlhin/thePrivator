@@ -157,7 +157,7 @@ describe("ProfileEditor, editing an existing profile", () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(PROFILE_ID));
     for (const command of ["profiles_organization_update", "profiles_launch_update", "profiles_identity_update"]) {
-      expect(mockInvoke, command).toHaveBeenCalledWith(command, expect.anything());
+      expect(mockInvoke).toHaveBeenCalledWith(command, expect.anything());
     }
   });
 

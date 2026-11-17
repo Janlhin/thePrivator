@@ -65,7 +65,7 @@ export function DesktopSession({ children }: { children: ReactNode }) {
       window.removeEventListener(VAULT_CHANGED, changed);
       off();
     };
-  }, [refresh]);
+  }, [refresh, t]);
   const save = useCallback((patch: Pick<Preferences, "tableLayout" | "sidebarCollapsed">) => {
     setPreferences((current) => ({ ...current, ...patch }));
     void saveInterfacePreferences(patch).catch((caught) => setError(normalizeSidecarError(caught).message));

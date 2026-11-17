@@ -157,7 +157,7 @@ describe("menu shape", () => {
   it("gives every entry a non-empty label", () => {
     for (const each of cases) {
       for (const item of buildRowMenu(each)) {
-        expect(item.label.trim().length, item.action).toBeGreaterThan(0);
+        expect(item.label.trim().length).toBeGreaterThan(0);
       }
     }
   });
@@ -172,7 +172,7 @@ describe("menu shape", () => {
     for (const each of cases) {
       for (const item of buildRowMenu(each)) {
         if (item.danger === true) {
-          expect(requiresConfirmation(item.action), item.action).toBe(true);
+          expect(requiresConfirmation(item.action)).toBe(true);
         }
       }
     }
@@ -181,7 +181,7 @@ describe("menu shape", () => {
   it("does not demand a confirmation for a reversible action", () => {
     // Confirming a launch trains the user to click through the delete dialog too.
     for (const action of ["launch", "stop", "open", "favorite", "restore"] as const) {
-      expect(requiresConfirmation(action), action).toBe(false);
+      expect(requiresConfirmation(action)).toBe(false);
     }
   });
 });

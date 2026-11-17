@@ -19,7 +19,11 @@ function scope(profile: ProfileRecord): string {
 export function useProxyChecks(rows: readonly ProfileRow[]) {
   const scopes = useMemo(() => new Map(rows.map(({ profile }) => [profile.id, scope(profile)])), [rows]);
   const latest = useRef(scopes);
-  latest.current = scopes;
+  // Written in an effect, not during render: the callbacks that read it run after
+  // a commit, so they see the same value the render pass produced.
+  useEffect(() => {
+    latest.current = scopes;
+  }, [scopes]);
   const [cache, setCache] = useState(new Map<string, { scope: string; state: ProxyCheckState }>());
   const inFlight = useRef(new Set<string>());
   useEffect(() => {
