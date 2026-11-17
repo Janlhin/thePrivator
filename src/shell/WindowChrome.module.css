@@ -14,6 +14,7 @@
     flex: 1;
     min-width: 0;
     padding-inline: var(--space-3);
+
     /* Tall enough to actually grab. A thin strip is technically a drag region
        and practically unusable. */
     min-height: var(--chrome-height);
@@ -24,6 +25,7 @@
     width: 20px;
     height: 20px;
     flex-shrink: 0;
+
     /* Keep native title-bar dragging on the enclosing region. */
     pointer-events: none;
     user-select: none;
@@ -59,6 +61,6 @@
 
   .close:hover {
     background: var(--color-danger);
-    color: #ffffff;
+    color: var(--color-on-danger);
   }
 }

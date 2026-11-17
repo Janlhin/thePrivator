@@ -8,5 +8,5 @@
  */
 @layer tokens, base, components, utilities;
 
-@import "./tokens.css";
-@import "./reset.css";
+@import url("./tokens.css");
+@import url("./reset.css");
