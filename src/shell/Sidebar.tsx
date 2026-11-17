@@ -1,4 +1,5 @@
 import { type ProfileView, type Route, routeToHash } from "../app/routes";
+import { t as translate, useT } from "../i18n";
 import styles from "./Sidebar.module.css";
 
 export interface SidebarFolder {
@@ -34,7 +35,8 @@ const VIEW_ITEMS: ViewItem[] = [
  * of the spoken one, so voice control still matches what is on screen.
  */
 function describeCount(label: string, count: number): string {
-  return `${label}, ${count} ${count === 1 ? "profile" : "profiles"}`;
+  const plural = count === 1 ? "{label}, {count} profile" : "{label}, {count} profiles";
+  return translate(plural, { label, count });
 }
 
 interface SidebarProps {
@@ -48,11 +50,12 @@ interface SidebarProps {
 export function Sidebar({ route, folders, counts, collapsed, onToggleCollapsed }: SidebarProps) {
   const activeView = route.name === "profiles" && route.folderId === null ? route.view : null;
   const activeFolderId = route.name === "profiles" ? route.folderId : null;
+  const t = useT();
 
   return (
     <nav
       className={collapsed ? `${styles.sidebar} ${styles.collapsed}` : styles.sidebar}
-      aria-label="Profile folders and views"
+      aria-label={t("Profile folders and views")}
     >
       <ul className={styles.group}>
         {VIEW_ITEMS.map((item) => (
@@ -66,18 +69,17 @@ export function Sidebar({ route, folders, counts, collapsed, onToggleCollapsed }
               <span className={styles.glyph} aria-hidden="true">
                 {item.glyph}
               </span>
-              <span className={styles.label}>{item.label}</span>
-              <span className={styles.count}>{counts[item.view]}</span>
+              <span className={styles.label}>{t(item.label)}</span>              <span className={styles.count}>{counts[item.view]}</span>
             </a>
           </li>
         ))}
       </ul>
 
       <div className={styles.sectionTitle} id="sidebar-folders-heading">
-        Folders
+        {t("Folders")}
       </div>
       {folders.length === 0 ? (
-        <p className={styles.empty}>No folders yet</p>
+        <p className={styles.empty}>{t("No folders yet")}</p>
       ) : (
         <ul className={styles.group} role="tree" aria-labelledby="sidebar-folders-heading">
           {folders.map((folder) => (
@@ -106,7 +108,7 @@ export function Sidebar({ route, folders, counts, collapsed, onToggleCollapsed }
         className={styles.collapseToggle}
         onClick={onToggleCollapsed}
         aria-expanded={!collapsed}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
       >
         <span aria-hidden="true">{collapsed ? "»" : "«"}</span>
       </button>

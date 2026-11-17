@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { t } from "../../i18n";
 import { getSidecarHealth, lookupDiagnosticDetail, normalizeSidecarError } from "../../sidecar/client";
 import type { DiagnosticLookupResult, SidecarHealthSnapshot } from "../../sidecar/types";
 import styles from "./SettingsPage.module.css";
@@ -55,15 +56,14 @@ export function DiagnosticsSettings() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Diagnostics</h1>
+        <h1>{t("Diagnostics")}</h1>
         <p className={styles.lede}>
-          When something fails, ThePrivator shows a short reference instead of the full detail. Paste one
-          here to see what was recorded.
+          {t("When something fails, ThePrivator shows a short reference instead of the full detail. Paste one here to see what was recorded.")}
         </p>
       </header>
 
       <section className={styles.card} aria-labelledby="health-heading">
-        <h2 id="health-heading">Sidecar</h2>
+        <h2 id="health-heading">{t("Sidecar")}</h2>
 
         {healthError !== null ? (
           <p className={styles.error} role="alert">
@@ -72,19 +72,19 @@ export function DiagnosticsSettings() {
         ) : (
           <dl className={styles.facts}>
             <div>
-              <dt>Status</dt>
-              <dd>{health?.health.status ?? "Checking…"}</dd>
+              <dt>{t("Status")}</dt>
+              <dd>{health?.health.status ?? t("Checking…")}</dd>
             </div>
             <div>
-              <dt>Version</dt>
+              <dt>{t("Version")}</dt>
               <dd>{health?.health.product.version ?? "—"}</dd>
             </div>
             <div>
-              <dt>Protocol</dt>
+              <dt>{t("Protocol")}</dt>
               <dd>{health?.protocolVersion ?? "—"}</dd>
             </div>
             <div>
-              <dt>Round trip</dt>
+              <dt>{t("Round trip")}</dt>
               <dd>{health === null ? "—" : `${Math.round(health.bridgeDurationMs)} ms`}</dd>
             </div>
           </dl>
@@ -92,17 +92,17 @@ export function DiagnosticsSettings() {
 
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} onClick={() => void refresh()}>
-            Check again
+            {t("Check again")}
           </button>
         </div>
       </section>
 
       <section className={styles.card} aria-labelledby="lookup-heading">
-        <h2 id="lookup-heading">Look up a reference</h2>
+        <h2 id="lookup-heading">{t("Look up a reference")}</h2>
 
         <div className={styles.inline}>
           <label className={styles.field}>
-            <span>Diagnostic reference</span>
+            <span>{t("Diagnostic reference")}</span>
             <input
               type="text"
               value={reference}
@@ -122,7 +122,7 @@ export function DiagnosticsSettings() {
             disabled={busy || reference.trim().length === 0}
             onClick={look}
           >
-            {busy ? "Looking up…" : "Look up"}
+            {busy ? t("Looking up…") : t("Look up")}
           </button>
         </div>
 
@@ -134,14 +134,14 @@ export function DiagnosticsSettings() {
 
         {lookup !== null ? (
           lookup.entries.length === 0 ? (
-            <p className={styles.hint}>Nothing was recorded under that reference.</p>
+            <p className={styles.hint}>{t("Nothing was recorded under that reference.")}</p>
           ) : (
-            <ul className={styles.list} aria-label="Diagnostic entries">
+            <ul className={styles.list} aria-label={t("Diagnostic entries")}>
               {lookup.entries.map((entry, index) => (
                 <li key={`${entry.detailRef}-${index}`}>
                   <strong>{entry.errorCode}</strong>
                   <span className={styles.hint}>
-                    {entry.method ?? "no method"} · {entry.event} · {entry.status}
+                    {entry.method ?? t("no method")} · {entry.event} · {entry.status}
                   </span>
                   <span className={styles.mono}>{entry.ts}</span>
                 </li>

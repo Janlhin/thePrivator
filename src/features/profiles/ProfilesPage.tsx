@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import { pickFile, pickSaveTarget } from "../../dialogs";
+import { useT } from "../../i18n";
 import type { ProfileView } from "../../app/routes";
 import {
   bulkLaunchChromiumProfiles,
@@ -116,6 +117,7 @@ export function ProfilesPage({
   onNewProfile,
 }: ProfilesPageProps) {
   const { rows, trashed, loading, error, refresh } = data;
+  const t = useT();
 
   const localChecks = useProxyChecks(data.proxyChecks ? [] : rows);
   const { states: proxyChecks, check: onCheckProxy } = data.proxyChecks ?? localChecks;
@@ -187,7 +189,7 @@ export function ProfilesPage({
   const onSaveNotes = useCallback(async (id: string, notes: string) => {
     return (await runFor([id], async () => {
       const profile = rows.find((row) => row.profile.id === id)?.profile;
-      if (!profile) throw new Error("That profile no longer exists.");
+      if (!profile) throw new Error(t("That profile no longer exists."));
       await updateProfileOrganization(id, { ...profile.organization, notes });
     })) === true;
   }, [rows, runFor]);
@@ -235,19 +237,19 @@ export function ProfilesPage({
           return onCheckProxy(ids[0]);
         case "cookies-export-json":
           return runFor(ids, async () => {
-            const destination = await pickSaveTarget("Export cookies as JSON", [
-              { name: "Browser cookies JSON", extensions: ["json"] },
+            const destination = await pickSaveTarget(t("Export cookies as JSON"), [
+              { name: t("Browser cookies JSON"), extensions: ["json"] },
             ]);
             if (destination === null) return;
             const result = await exportProfileCookies(ids[0], destination, "theprivator-json");
-            setActionNote(`Exported ${result.exportedCount} cookies. ${result.skippedCount} skipped.`);
+            setActionNote(t("Exported {exported} cookies. {skipped} skipped.", { exported: result.exportedCount, skipped: result.skippedCount }));
           });
         case "cookies-import":
           return runFor(ids, async () => {
-            const source = await pickFile("Import cookies into this profile", [{ name: "Cookie files", extensions: ["txt", "json"] }]);
+            const source = await pickFile(t("Import cookies into this profile"), [{ name: t("Cookie files"), extensions: ["txt", "json"] }]);
             if (source === null) return;
             const result = await replaceProfileCookies(ids[0], source);
-            setActionNote(`Imported ${result.importedCount} cookies, replacing ${result.replacedCount} previous cookies.`);
+            setActionNote(t("Imported {imported} cookies, replacing {replaced} previous cookies.", { imported: result.importedCount, replaced: result.replacedCount }));
           });
         case "launch":
           return runFor(ids, () => launchChromiumProfile(ids[0]));
@@ -298,25 +300,25 @@ export function ProfilesPage({
 
   const describeConfirmation = useCallback((action: RowAction, ids: string[], name: string): ConfirmState => {
     const count = ids.length;
-    const subject = count === 1 ? `"${name}"` : `${count} profiles`;
-    if (action === "cookies-import") return { action, ids, title: "Import cookies", body: `Importing replaces all existing cookies in ${subject}; it does not merge them. Cookie files contain sensitive login data. Continue only with a trusted file.`, confirmLabel: "Replace cookies" };
+    const subject = count === 1 ? `"${name}"` : t("{count} profiles", { count });
+    if (action === "cookies-import") return { action, ids, title: t("Import cookies"), body: t("Importing replaces all existing cookies in {subject}; it does not merge them. Cookie files contain sensitive login data. Continue only with a trusted file.", { subject }), confirmLabel: t("Replace cookies") };
     if (action === "purge" || action === "bulk-purge") {
       return {
         action,
         ids,
-        title: "Delete permanently",
-        body: `${subject} and all browsing data will be erased. This cannot be undone.`,
-        confirmLabel: "Delete permanently",
+        title: t("Delete permanently"),
+        body: t("{subject} and all browsing data will be erased. This cannot be undone.", { subject }),
+        confirmLabel: t("Delete permanently"),
       };
     }
     return {
       action,
       ids,
-      title: "Move to trash",
-      body: `${subject} will move to the trash. You can restore it from there.`,
-      confirmLabel: "Move to trash",
+      title: t("Move to trash"),
+      body: t("{subject} will move to the trash. You can restore it from there.", { subject }),
+      confirmLabel: t("Move to trash"),
     };
-  }, []);
+  }, [t]);
 
   const chooseAction = useCallback(
     (action: RowAction, ids: string[], name: string) => {
@@ -360,11 +362,11 @@ export function ProfilesPage({
     <div className={styles.page}>
       <div className={styles.toolbar}>
         <button type="button" className={styles.primary} onClick={onNewProfile}>
-          New profile
+          {t("New profile")}
         </button>
 
         <span className={styles.count}>
-          {loading ? "Loading…" : `${shown.length} ${shown.length === 1 ? "profile" : "profiles"}`}
+          {loading ? t("Loading…") : t(shown.length === 1 ? "{count} profile" : "{count} profiles", { count: shown.length })}
         </span>
 
         <span className={styles.spacer} />
@@ -377,7 +379,7 @@ export function ProfilesPage({
             aria-haspopup="dialog"
             onClick={() => setColumnsOpen((open) => !open)}
           >
-            Columns
+            {t("Columns")}
           </button>
           {columnsOpen ? (
             <div className={styles.columnsPopover}>
@@ -419,13 +421,13 @@ export function ProfilesPage({
         onStop={onStop}
         onRowMenu={onRowMenu}
         onSaveNotes={onSaveNotes}
-        emptyMessage={loading ? "Loading profiles…" : EMPTY_MESSAGES[view]}
+        emptyMessage={loading ? t("Loading profiles…") : t(EMPTY_MESSAGES[view])}
       />
 
       {selectedIds.length > 1 ? (
-        <div className={styles.bulkBar} role="region" aria-label="Bulk actions">
+        <div className={styles.bulkBar} role="region" aria-label={t("Bulk actions")}>
           <span>
-            {selectedIds.length} selected
+            {t("{count} selected", { count: selectedIds.length })}
           </span>
           {buildRowMenu({
             profile: shown[0].profile,
@@ -446,7 +448,7 @@ export function ProfilesPage({
             </button>
           ))}
           <button type="button" className={styles.bulkAction} onClick={() => setSelection(EMPTY_SELECTION)}>
-            Clear selection
+            {t("Clear selection")}
           </button>
         </div>
       ) : null}
@@ -470,7 +472,7 @@ export function ProfilesPage({
 
       {organizationEdit !== null ? (
         <div className={styles.overlay} role="presentation">
-          <form className={styles.dialog} role="dialog" aria-modal="true" aria-label={organizationEdit.kind === "tags" ? "Edit tags" : "Move to folder"}
+          <form className={styles.dialog} role="dialog" aria-modal="true" aria-label={organizationEdit.kind === "tags" ? t("Edit tags") : t("Move to folder")}
             onKeyDown={(event) => { if (event.key === "Escape" && !organizationEdit.ids.some((id) => busyIds.has(id))) setOrganizationEdit(null); }}
             onSubmit={(event) => {
               event.preventDefault();
@@ -479,11 +481,11 @@ export function ProfilesPage({
               const tags = edit.value.split(",").map((tag) => tag.trim()).filter(Boolean)
                 .filter((tag, index, all) => all.findIndex((other) => other.toLocaleLowerCase() === tag.toLocaleLowerCase()) === index);
               void runFor(edit.ids, async () => {
-                if (edit.kind === "tags" && tags.length > 10) throw new Error("Use at most 10 tags.");
-                if (edit.kind === "folder" && edit.newFolder?.trim() && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(edit.newFolder.trim())) throw new Error("Folder names must be 1–64 letters, numbers, underscores or hyphens, starting with a letter or number.");
+                if (edit.kind === "tags" && tags.length > 10) throw new Error(t("Use at most 10 tags."));
+                if (edit.kind === "folder" && edit.newFolder?.trim() && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(edit.newFolder.trim())) throw new Error(t("Folder names must be 1–64 letters, numbers, underscores or hyphens, starting with a letter or number."));
                 for (const id of edit.ids) {
                   const profile = rows.find((row) => row.profile.id === id)?.profile;
-                  if (!profile) throw new Error("That profile no longer exists.");
+                  if (!profile) throw new Error(t("That profile no longer exists."));
                   await updateProfileOrganization(id, { ...profile.organization,
                     ...(edit.kind === "tags" ? { tags } : { folderId }),
                   });
@@ -491,24 +493,24 @@ export function ProfilesPage({
                 setOrganizationEdit(null);
               });
             }}>
-            <h2>{organizationEdit.kind === "tags" ? "Edit tags" : "Move to folder"}</h2>
+            <h2>{organizationEdit.kind === "tags" ? t("Edit tags") : t("Move to folder")}</h2>
             {actionError !== null ? <p role="alert" className={styles.error}>{actionError.message}</p> : null}
-            {organizationEdit.ids.length > 1 ? <p>Replaces {organizationEdit.kind} on all {organizationEdit.ids.length} selected profiles.</p> : null}
-            {organizationEdit.kind === "tags" ? <label>Tags (comma separated)
+            {organizationEdit.ids.length > 1 ? <p>{t("Replaces {kind} on all {count} selected profiles.", { kind: organizationEdit.kind === "tags" ? t("tags") : t("folder"), count: organizationEdit.ids.length })}</p> : null}
+            {organizationEdit.kind === "tags" ? <label>{t("Tags (comma separated)")}
               <input autoFocus value={organizationEdit.value} onChange={(event) => setOrganizationEdit({ ...organizationEdit, value: event.target.value })} />
-            </label> : <><label>Folder
+            </label> : <><label>{t("Folder")}
               <select autoFocus value={organizationEdit.value} onChange={(event) => setOrganizationEdit({ ...organizationEdit, value: event.target.value })}>
-                <option value="">No folder</option>
+                <option value="">{t("No folder")}</option>
                 {[...folderNames].map(([id, name]) => <option key={id} value={id}>{name}</option>)}
               </select>
             </label>
-              <label>New folder
-                <input value={organizationEdit.newFolder ?? ""} maxLength={64} placeholder="e.g. Work_2026" onChange={(event) => setOrganizationEdit({ ...organizationEdit, newFolder: event.target.value })} />
+              <label>{t("New folder")}
+                <input value={organizationEdit.newFolder ?? ""} maxLength={64} placeholder={t("e.g. Work_2026")} onChange={(event) => setOrganizationEdit({ ...organizationEdit, newFolder: event.target.value })} />
               </label>
             </>}
             <div className={styles.dialogActions}>
-              <button type="button" className={styles.secondary} disabled={organizationEdit.ids.some((id) => busyIds.has(id))} onClick={() => setOrganizationEdit(null)}>Cancel</button>
-              <button type="submit" className={styles.primary} disabled={organizationEdit.ids.some((id) => busyIds.has(id))}>Save</button>
+              <button type="button" className={styles.secondary} disabled={organizationEdit.ids.some((id) => busyIds.has(id))} onClick={() => setOrganizationEdit(null)}>{t("Cancel")}</button>
+              <button type="submit" className={styles.primary} disabled={organizationEdit.ids.some((id) => busyIds.has(id))}>{t("Save")}</button>
             </div>
           </form>
         </div>
@@ -530,7 +532,7 @@ export function ProfilesPage({
             <p>{confirm.body}</p>
             <div className={styles.dialogActions}>
               <button type="button" className={styles.secondary} onClick={() => setConfirm(null)}>
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"

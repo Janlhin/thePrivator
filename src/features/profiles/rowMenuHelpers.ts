@@ -1,3 +1,4 @@
+import { t as translate } from "../../i18n";
 import type { ProfileRecord } from "../../sidecar/types";
 
 /**
@@ -8,6 +9,10 @@ import type { ProfileRecord } from "../../sidecar/types";
  * exactly where a menu grows a "Delete" that fires on a running browser. Building
  * the list as data means those combinations are enumerable in a test instead of
  * reachable only by right-clicking the right row in the right state.
+ *
+ * Labels are translated where the menu is built, not where it is stored: the
+ * table is rebuilt on every render, so a language change reaches it without a
+ * separate cache to invalidate.
  */
 
 export type RowAction =
@@ -59,9 +64,15 @@ export interface RowMenuContext {
   runningInSelection: number;
 }
 
-/** Bulk labels say how many rows they hit, so a click is never a surprise. */
-function plural(count: number): string {
-  return count === 1 ? "profile" : "profiles";
+/**
+ * Bulk labels say how many rows they hit, so a click is never a surprise.
+ *
+ * Chinese has no plural form, so the dictionary maps both halves of a pair onto
+ * one sentence; the source English keeps the distinction where the noun carries
+ * it.
+ */
+function count(one: string, many: string, value: number): string {
+  return translate(value === 1 ? one : many, { count: value });
 }
 
 function bulkMenu(context: RowMenuContext): MenuItem[] {
@@ -70,10 +81,10 @@ function bulkMenu(context: RowMenuContext): MenuItem[] {
 
   if (trashed) {
     return [
-      { action: "bulk-restore", label: `Restore ${selectionSize} ${plural(selectionSize)}` },
+      { action: "bulk-restore", label: count("Restore {count} profile", "Restore {count} profiles", selectionSize) },
       {
         action: "bulk-purge",
-        label: `Delete ${selectionSize} ${plural(selectionSize)} permanently`,
+        label: count("Delete {count} profile permanently", "Delete {count} profiles permanently", selectionSize),
         danger: true,
         separatorBefore: true,
       },
@@ -83,24 +94,24 @@ function bulkMenu(context: RowMenuContext): MenuItem[] {
   return [
     {
       action: "bulk-launch",
-      label: `Launch ${stopped} ${plural(stopped)}`,
-      disabledReason: stopped === 0 ? "Every selected profile is already running" : undefined,
+      label: count("Launch {count} profile", "Launch {count} profiles", stopped),
+      disabledReason: stopped === 0 ? translate("Every selected profile is already running") : undefined,
     },
     {
       action: "bulk-stop",
-      label: `Stop ${runningInSelection} ${plural(runningInSelection)}`,
-      disabledReason: runningInSelection === 0 ? "No selected profile is running" : undefined,
+      label: count("Stop {count} profile", "Stop {count} profiles", runningInSelection),
+      disabledReason: runningInSelection === 0 ? translate("No selected profile is running") : undefined,
     },
-    { action: "bulk-move", label: "Move to folder…", separatorBefore: true },
-    { action: "bulk-tag", label: "Edit tags…" },
+    { action: "bulk-move", label: translate("Move to folder…"), separatorBefore: true },
+    { action: "bulk-tag", label: translate("Edit tags…") },
     {
       action: "bulk-delete",
-      label: `Move ${selectionSize} ${plural(selectionSize)} to trash`,
+      label: count("Move {count} profile to trash", "Move {count} profiles to trash", selectionSize),
       danger: true,
       separatorBefore: true,
       disabledReason:
         runningInSelection > 0
-          ? `Stop ${runningInSelection} running ${plural(runningInSelection)} first`
+          ? count("Stop {count} running profile first", "Stop {count} running profiles first", runningInSelection)
           : undefined,
     },
   ];
@@ -113,8 +124,8 @@ export function buildRowMenu(context: RowMenuContext): MenuItem[] {
 
   if (context.trashed) {
     return [
-      { action: "restore", label: "Restore" },
-      { action: "purge", label: "Delete permanently", danger: true, separatorBefore: true },
+      { action: "restore", label: translate("Restore") },
+      { action: "purge", label: translate("Delete permanently"), danger: true, separatorBefore: true },
     ];
   }
 
@@ -122,30 +133,38 @@ export function buildRowMenu(context: RowMenuContext): MenuItem[] {
 
   return [
     running
-      ? { action: "stop", label: "Stop" }
-      : { action: "launch", label: "Launch" },
-    { action: "open", label: "Edit profile" },
-    { action: "check-proxy", label: context.checkingProxy ? "Checking proxy…" : "Check proxy", disabledReason: context.checkingProxy ? "A proxy check is already running" : undefined },
-    { action: "duplicate", label: "Duplicate", separatorBefore: true },
+      ? { action: "stop", label: translate("Stop") }
+      : { action: "launch", label: translate("Launch") },
+    { action: "open", label: translate("Edit profile") },
+    {
+      action: "check-proxy",
+      label: context.checkingProxy ? translate("Checking proxy…") : translate("Check proxy"),
+      disabledReason: context.checkingProxy ? translate("A proxy check is already running") : undefined,
+    },
+    { action: "duplicate", label: translate("Duplicate"), separatorBefore: true },
     profile.organization.favorite
-      ? { action: "unfavorite", label: "Remove from favorites" }
-      : { action: "favorite", label: "Add to favorites" },
-    { action: "move", label: "Move to folder…" },
-    { action: "tag", label: "Edit tags…" },
-    { action: "export", label: "Export…", separatorBefore: true },
-    { action: "cookies", label: "Cookies", children: [
-      { action: "cookies-export-json", label: "Export (JSON)…", disabledReason: running ? "Stop the profile first" : undefined },
-      { action: "cookies-import", label: "Import…", disabledReason: running ? "Stop the profile first" : undefined },
-    ] },
-    { action: "cookie-bot", label: "Run Cookie Bot…" },
+      ? { action: "unfavorite", label: translate("Remove from favorites") }
+      : { action: "favorite", label: translate("Add to favorites") },
+    { action: "move", label: translate("Move to folder…") },
+    { action: "tag", label: translate("Edit tags…") },
+    { action: "export", label: translate("Export…"), separatorBefore: true },
+    {
+      action: "cookies",
+      label: translate("Cookies"),
+      children: [
+        { action: "cookies-export-json", label: translate("Export (JSON)…"), disabledReason: running ? translate("Stop the profile first") : undefined },
+        { action: "cookies-import", label: translate("Import…"), disabledReason: running ? translate("Stop the profile first") : undefined },
+      ],
+    },
+    { action: "cookie-bot", label: translate("Run Cookie Bot…") },
     {
       action: "delete",
-      label: "Move to trash",
+      label: translate("Move to trash"),
       danger: true,
       separatorBefore: true,
       // Deleting a profile whose browser is live would pull the user-data
       // directory out from under a running Chromium.
-      disabledReason: running ? "Stop the profile first" : undefined,
+      disabledReason: running ? translate("Stop the profile first") : undefined,
     },
   ];
 }

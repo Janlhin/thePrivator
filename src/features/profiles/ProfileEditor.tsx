@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 
 import type { EditorSection } from "../../app/routes";
+import { t } from "../../i18n";
 import {
   type IdentityDraftState,
   createIdentityDraftState,
@@ -135,7 +136,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
         const found = snapshot.profiles.find((candidate) => candidate.id === profileId) ?? null;
         setProfile(found);
         setDraft(draftFrom(found));
-        setError(found === null ? "That profile no longer exists." : null);
+        setError(found === null ? t("That profile no longer exists.") : null);
       } catch (caught) {
         if (!cancelled) {
           setError(normalizeSidecarError(caught).message);
@@ -231,7 +232,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
   const save = useCallback(async () => {
     const trimmed = draft.name.trim();
     if (trimmed.length === 0) {
-      setNameError("A profile needs a name.");
+      setNameError(t("A profile needs a name."));
       setSection("general");
       return;
     }
@@ -282,7 +283,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
         const created = await createProfile(trimmed);
         id = created.profile?.id ?? null;
         if (id === null) {
-          throw new Error("The sidecar created a profile without returning it.");
+          throw new Error(t("The sidecar created a profile without returning it."));
         }
       } else if (changed.name) {
         await updateProfile(id, trimmed);
@@ -313,13 +314,13 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
   return (
     <div className={styles.editor}>
       <header className={styles.header}>
-        <h1>{profileId === null ? "New profile" : draft.name || "Profile"}</h1>
+        <h1>{profileId === null ? t("New profile") : draft.name || t("Profile")}</h1>
         <span className={styles.spacer} />
         <button type="button" className={styles.secondary} onClick={onClose} disabled={saving}>
-          Cancel
+          {t("Cancel")}
         </button>
         <button type="button" className={styles.primary} onClick={() => void save()} disabled={saving || loading}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("Saving…") : t("Save")}
         </button>
       </header>
 
@@ -329,7 +330,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
         </p>
       ) : null}
 
-      <nav className={styles.tabs} aria-label="Profile sections">
+      <nav className={styles.tabs} aria-label={t("Profile sections")}>
         {SECTIONS.map((entry) => (
           <button
             key={entry.id}
@@ -339,11 +340,11 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
             className={styles.tab}
             onClick={() => setSection(entry.id)}
           >
-            {entry.label}
+            {t(entry.label)}
             {sectionErrorCount[entry.id] > 0 ? (
               // Errors are counted per section so a save blocked on a field two
               // tabs away says where to look instead of appearing to do nothing.
-              <span className={styles.tabBadge} aria-label={`${sectionErrorCount[entry.id]} problems`}>
+              <span className={styles.tabBadge} aria-label={t("{count} problems", { count: sectionErrorCount[entry.id] })}>
                 {sectionErrorCount[entry.id]}
               </span>
             ) : null}
@@ -353,7 +354,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
 
       <div className={styles.body}>
         {loading ? (
-          <p className={styles.loading}>Loading profile…</p>
+          <p className={styles.loading}>{t("Loading profile…")}</p>
         ) : section === "general" ? (
           <GeneralForm
             name={draft.name}
@@ -400,7 +401,7 @@ function StartupForm({ launch, onChange }: StartupFormProps) {
   return (
     <div className={styles.startup}>
       <fieldset className={styles.fieldset}>
-        <legend>On launch</legend>
+        <legend>{t("On launch")}</legend>
         <label>
           <input
             type="radio"
@@ -408,7 +409,7 @@ function StartupForm({ launch, onChange }: StartupFormProps) {
             checked={launch.startupBehavior === "customUrls"}
             onChange={() => onChange({ ...launch, startupBehavior: "customUrls" })}
           />
-          Open these pages
+          {t("Open these pages")}
         </label>
         <label>
           <input
@@ -417,14 +418,14 @@ function StartupForm({ launch, onChange }: StartupFormProps) {
             checked={launch.startupBehavior === "restoreSession"}
             onChange={() => onChange({ ...launch, startupBehavior: "restoreSession" })}
           />
-          Restore the previous session
+          {t("Restore the previous session")}
         </label>
       </fieldset>
 
       {/* The hint is described, not labelled: folding it into the label would
           make a screen reader announce the whole sentence as the field's name. */}
       <div className={styles.stacked}>
-        <label htmlFor={urlsId}>Start pages</label>
+        <label htmlFor={urlsId}>{t("Start pages")}</label>
         <textarea
           id={urlsId}
           rows={4}
@@ -442,12 +443,12 @@ function StartupForm({ launch, onChange }: StartupFormProps) {
           }
         />
         <span className={styles.hint} id={`${urlsId}-hint`}>
-          One address per line. Each must start with https:// or http://, or be about:blank.
+          {t("One address per line. Each must start with https:// or http://, or be about:blank.")}
         </span>
       </div>
 
       <div className={styles.stacked}>
-        <label htmlFor={argsId}>Command line switches</label>
+        <label htmlFor={argsId}>{t("Command line switches")}</label>
         <textarea
           id={argsId}
           rows={3}
@@ -465,8 +466,7 @@ function StartupForm({ launch, onChange }: StartupFormProps) {
           }
         />
         <span className={styles.hint} id={`${argsId}-hint`}>
-          One switch per line, from the supported list. Anything that would undo the proxy or the fingerprint
-          is refused when you save.
+          {t("One switch per line, from the supported list. Anything that would undo the proxy or the fingerprint is refused when you save.")}
         </span>
       </div>
     </div>

@@ -4,11 +4,13 @@ import {
   type ColumnKey,
   type ColumnLayout,
   columnByKey,
+  columnLabel,
   defaultLayout,
   moveColumn,
   setColumnVisible,
   visibleColumns,
 } from "./columns";
+import { useT } from "../../i18n";
 import styles from "./ColumnManager.module.css";
 
 interface ColumnManagerProps {
@@ -26,6 +28,7 @@ interface ColumnManagerProps {
  * from four toggles ago.
  */
 export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) {
+  const t = useT();
   const [draft, setDraft] = useState<ColumnLayout>(layout);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -56,12 +59,12 @@ export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) 
       ref={panelRef}
       className={styles.panel}
       role="dialog"
-      aria-label="Choose columns"
+      aria-label={t("Choose columns")}
       aria-modal="false"
       tabIndex={-1}
     >
       <p className={styles.hint}>
-        {visibleColumns(draft).length} of {draft.length} columns shown
+        {t("{shown} of {total} columns shown", { shown: visibleColumns(draft).length, total: draft.length })}
       </p>
 
       <ul className={styles.list}>
@@ -78,13 +81,13 @@ export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) 
                   checked={entry.visible}
                   onChange={(event) => setDraft(setColumnVisible(draft, entry.key, event.target.checked))}
                 />
-                <span>{column.label}</span>
+                <span>{columnLabel(column)}</span>
               </label>
 
               <span className={styles.reorder}>
                 <button
                   type="button"
-                  aria-label={`Move ${column.label} up`}
+                  aria-label={t("Move {column} up", { column: columnLabel(column) })}
                   disabled={indexInMovable === 0}
                   onClick={() => setDraft(moveColumn(draft, entry.key, positionInLayout - 1))}
                 >
@@ -92,7 +95,7 @@ export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) 
                 </button>
                 <button
                   type="button"
-                  aria-label={`Move ${column.label} down`}
+                  aria-label={t("Move {column} down", { column: columnLabel(column) })}
                   disabled={indexInMovable === movable.length - 1}
                   onClick={() => setDraft(moveColumn(draft, entry.key, positionInLayout + 1))}
                 >
@@ -106,11 +109,11 @@ export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) 
 
       <div className={styles.actions}>
         <button type="button" className={styles.secondary} onClick={() => setDraft(defaultLayout())}>
-          Reset
+          {t("Reset")}
         </button>
         <span className={styles.spacer} />
         <button type="button" className={styles.secondary} onClick={onClose}>
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="button"
@@ -121,7 +124,7 @@ export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) 
             onClose();
           }}
         >
-          Apply
+          {t("Apply")}
         </button>
       </div>
     </div>

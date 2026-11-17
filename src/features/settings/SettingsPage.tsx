@@ -1,5 +1,6 @@
 import type { SettingsSection } from "../../app/routes";
 import { routeToHash } from "../../app/routes";
+import { t } from "../../i18n";
 import { SyncSettings } from "../sync/SyncSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { DiagnosticsSettings } from "./DiagnosticsSettings";
@@ -20,7 +21,7 @@ const SECTIONS: Array<{ id: SettingsSection; label: string }> = [
 export function SettingsPage({ section }: { section: SettingsSection }) {
   return (
     <div className={styles.layout}>
-      <nav className={styles.sections} aria-label="Settings sections">
+      <nav className={styles.sections} aria-label={t("Settings sections")}>
         {SECTIONS.map((entry) => (
           <a
             key={entry.id}
@@ -28,7 +29,7 @@ export function SettingsPage({ section }: { section: SettingsSection }) {
             href={routeToHash({ name: "settings", section: entry.id })}
             aria-current={entry.id === section ? "page" : undefined}
           >
-            {entry.label}
+            {t(entry.label)}
           </a>
         ))}
       </nav>

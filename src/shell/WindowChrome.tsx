@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 
 import { closeWindow, minimizeWindow, startDragging, toggleMaximizeWindow } from "../windowControls";
+import { useT } from "../i18n";
 import styles from "./WindowChrome.module.css";
 
 /**
@@ -12,6 +13,7 @@ import styles from "./WindowChrome.module.css";
  * it explicitly.
  */
 export function WindowChrome() {
+  const t = useT();
   const handleDragStart = (event: MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || event.defaultPrevented) {
       return;
@@ -20,11 +22,11 @@ export function WindowChrome() {
   };
 
   return (
-    <header className={styles.chrome} aria-label="ThePrivator window chrome">
+    <header className={styles.chrome} aria-label={t("ThePrivator window chrome")}>
       <div
         className={styles.dragRegion}
         data-tauri-drag-region
-        aria-label="Window drag region"
+        aria-label={t("Window drag region")}
         onMouseDown={handleDragStart}
         onDoubleClick={() => void toggleMaximizeWindow()}
       >
@@ -35,7 +37,7 @@ export function WindowChrome() {
         <button
           type="button"
           className={styles.control}
-          aria-label="Minimize window"
+          aria-label={t("Minimize window")}
           onClick={() => void minimizeWindow()}
         >
           <span aria-hidden="true">&#x2500;</span>
@@ -43,7 +45,7 @@ export function WindowChrome() {
         <button
           type="button"
           className={styles.control}
-          aria-label="Maximize or restore window"
+          aria-label={t("Maximize or restore window")}
           onClick={() => void toggleMaximizeWindow()}
         >
           <span aria-hidden="true">&#x25A1;</span>
@@ -51,7 +53,7 @@ export function WindowChrome() {
         <button
           type="button"
           className={`${styles.control} ${styles.close}`}
-          aria-label="Close window"
+          aria-label={t("Close window")}
           onClick={() => void closeWindow()}
         >
           <span aria-hidden="true">&#x2715;</span>

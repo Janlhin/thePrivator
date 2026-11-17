@@ -10,6 +10,7 @@ import {
 } from "../../sidecar/client";
 import type { SyncConflictResolution, SyncPlanEntry, SyncRunResult, SyncStatusResult } from "../../sidecar/types";
 import { pickDirectory } from "../../dialogs";
+import { t } from "../../i18n";
 import styles from "./SyncSettings.module.css";
 
 /**
@@ -60,7 +61,7 @@ export function SyncSettings() {
 
   const chooseFolder = () =>
     void withBusy("choosing", async () => {
-      const folder = await pickDirectory("Choose the folder your sync app keeps up to date");
+      const folder = await pickDirectory(t("Choose the folder your sync app keeps up to date"));
       if (folder === null) {
         return;
       }
@@ -103,10 +104,9 @@ export function SyncSettings() {
   const header = (
     <>
       <header className={styles.header}>
-        <h1>Profile synchronization</h1>
+        <h1>{t("Profile synchronization")}</h1>
         <p className={styles.lede}>
-          Point ThePrivator at a folder that Google Drive, Syncthing or rclone already keeps up to date.
-          Profiles travel through that folder; nothing is sent to us.
+          {t("Point ThePrivator at a folder that Google Drive, Syncthing or rclone already keeps up to date. Profiles travel through that folder; nothing is sent to us.")}
         </p>
       </header>
 
@@ -122,7 +122,7 @@ export function SyncSettings() {
     return (
       <div className={styles.page}>
         {header}
-        {error === null ? <p className={styles.muted}>Loading…</p> : null}
+        {error === null ? <p className={styles.muted}>{t("Loading…")}</p> : null}
       </div>
     );
   }
@@ -132,24 +132,24 @@ export function SyncSettings() {
       {header}
 
       <section className={styles.card} aria-labelledby="sync-state-heading">
-        <h2 id="sync-state-heading">This device</h2>
+        <h2 id="sync-state-heading">{t("This device")}</h2>
 
         <dl className={styles.facts}>
           <div>
-            <dt>Status</dt>
-            <dd>{status.enabled ? "Synchronized" : "This device only"}</dd>
+            <dt>{t("Status")}</dt>
+            <dd>{status.enabled ? t("Synchronized") : t("This device only")}</dd>
           </div>
           <div>
-            <dt>Folder</dt>
-            <dd>{status.folderName ?? "Not chosen yet"}</dd>
+            <dt>{t("Folder")}</dt>
+            <dd>{status.folderName ?? t("Not chosen yet")}</dd>
           </div>
           <div>
-            <dt>Profiles tracked</dt>
+            <dt>{t("Profiles tracked")}</dt>
             <dd>{status.trackedProfiles}</dd>
           </div>
           <div>
-            <dt>Last run</dt>
-            <dd>{status.lastRunAt === null ? "Never" : new Date(status.lastRunAt).toLocaleString()}</dd>
+            <dt>{t("Last run")}</dt>
+            <dd>{status.lastRunAt === null ? t("Never") : new Date(status.lastRunAt).toLocaleString()}</dd>
           </div>
         </dl>
 
@@ -160,7 +160,7 @@ export function SyncSettings() {
         ) : null}
 
         <label className={styles.field}>
-          <span>Device name</span>
+          <span>{t("Device name")}</span>
           <input
             type="text"
             value={label}
@@ -177,17 +177,17 @@ export function SyncSettings() {
           {/* Not the hostname: the label is shown to your other machines, and
               typing it back is what confirms taking a profile from one of them. */}
           <span className={styles.hint}>
-            Shown on your other devices. Pick something you will recognise, not your computer&apos;s name.
+            {t("Shown on your other devices. Pick something you will recognise, not your computer's name.")}
           </span>
         </label>
 
         <div className={styles.actions}>
           <button type="button" className={styles.primary} disabled={busy !== null} onClick={chooseFolder}>
-            {status.enabled ? "Choose a different folder" : "Choose a folder"}
+            {status.enabled ? t("Choose a different folder") : t("Choose a folder")}
           </button>
           {status.enabled ? (
             <button type="button" className={styles.secondary} disabled={busy !== null} onClick={disable}>
-              Turn synchronization off
+              {t("Turn synchronization off")}
             </button>
           ) : null}
         </div>
@@ -195,25 +195,25 @@ export function SyncSettings() {
 
       {status.enabled ? (
         <section className={styles.card} aria-labelledby="sync-run-heading">
-          <h2 id="sync-run-heading">Synchronize now</h2>
+          <h2 id="sync-run-heading">{t("Synchronize now")}</h2>
           <p className={styles.muted}>
-            Checking is read-only: it tells you what would change before anything does.
+            {t("Checking is read-only: it tells you what would change before anything does.")}
           </p>
 
           <div className={styles.actions}>
             <button type="button" className={styles.secondary} disabled={busy !== null} onClick={check}>
-              {busy === "checking" ? "Checking…" : "Check for changes"}
+              {busy === "checking" ? t("Checking…") : t("Check for changes")}
             </button>
             <button type="button" className={styles.primary} disabled={busy !== null} onClick={sync}>
-              {busy === "syncing" ? "Synchronizing…" : "Synchronize"}
+              {busy === "syncing" ? t("Synchronizing…") : t("Synchronize")}
             </button>
           </div>
 
           {plan !== null ? (
             plan.length === 0 ? (
-              <p className={styles.muted}>Everything is already up to date.</p>
+              <p className={styles.muted}>{t("Everything is already up to date.")}</p>
             ) : (
-              <ul className={styles.list} aria-label="Pending changes">
+              <ul className={styles.list} aria-label={t("Pending changes")}>
                 {plan.map((entry) => (
                   <li key={entry.profileId}>
                     <strong>{entry.name}</strong>
@@ -228,19 +228,20 @@ export function SyncSettings() {
             <div className={styles.results}>
               <p className={styles.muted}>
                 {lastRun.applied.length === 0
-                  ? "Nothing needed changing."
-                  : `${lastRun.applied.length} ${lastRun.applied.length === 1 ? "profile" : "profiles"} updated.`}
+                  ? t("Nothing needed changing.")
+                  : lastRun.applied.length === 1
+                    ? t("{count} profile updated.", { count: lastRun.applied.length })
+                    : t("{count} profiles updated.", { count: lastRun.applied.length })}
               </p>
 
               {lastRun.applied.some((entry) => entry.keptCopyAs !== null) ? (
                 <p className={styles.warning} role="status">
-                  Replaced browsing data was kept in the <code>conflicts</code> folder inside your profile
-                  store. Nothing was deleted.
+                  {t("Replaced browsing data was kept in the conflicts folder inside your profile store. Nothing was deleted.")}
                 </p>
               ) : null}
 
               {lastRun.failures.length > 0 ? (
-                <ul className={styles.list} aria-label="Profiles that could not be synchronized">
+                <ul className={styles.list} aria-label={t("Profiles that could not be synchronized")}>
                   {lastRun.failures.map((failure) => (
                     <li key={failure.profileId}>
                       <strong>{failure.name}</strong>
@@ -256,10 +257,9 @@ export function SyncSettings() {
 
       {lastRun !== null && lastRun.conflicts.length > 0 ? (
         <section className={styles.card} aria-labelledby="sync-conflicts-heading">
-          <h2 id="sync-conflicts-heading">Needs your decision</h2>
+          <h2 id="sync-conflicts-heading">{t("Needs your decision")}</h2>
           <p className={styles.muted}>
-            These profiles changed in two places. ThePrivator will not guess which one you meant, and
-            whichever you choose, the data it replaces is moved aside rather than deleted.
+            {t("These profiles changed in two places. ThePrivator will not guess which one you meant, and whichever you choose, the data it replaces is moved aside rather than deleted.")}
           </p>
 
           <ul className={styles.conflicts}>
@@ -276,7 +276,7 @@ export function SyncSettings() {
                     disabled={busy !== null}
                     onClick={() => resolve(entry.profileId, "keepLocal")}
                   >
-                    Keep this device&apos;s
+                    {t("Keep this device's")}
                   </button>
                   <button
                     type="button"
@@ -284,7 +284,7 @@ export function SyncSettings() {
                     disabled={busy !== null}
                     onClick={() => resolve(entry.profileId, "keepRemote")}
                   >
-                    Keep the other device&apos;s
+                    {t("Keep the other device's")}
                   </button>
                   <button
                     type="button"
@@ -292,7 +292,7 @@ export function SyncSettings() {
                     disabled={busy !== null}
                     onClick={() => resolve(entry.profileId, "keepBoth")}
                   >
-                    Keep both
+                    {t("Keep both")}
                   </button>
                 </div>
               </li>
@@ -308,12 +308,12 @@ export function SyncSettings() {
 function describeFailure(code: string): string {
   switch (code) {
     case "SYNC_PROFILE_BUSY":
-      return "Stop this profile's browser and synchronize again.";
+      return t("Stop this profile's browser and synchronize again.");
     case "SYNC_CONFLICT_UNRESOLVED":
-      return "The other device's copy has not finished uploading yet.";
+      return t("The other device's copy has not finished uploading yet.");
     case "SYNC_LOCK_HELD":
-      return "Another device was writing this profile. Synchronize again in a moment.";
+      return t("Another device was writing this profile. Synchronize again in a moment.");
     default:
-      return "This profile could not be synchronized this time.";
+      return t("This profile could not be synchronized this time.");
   }
 }
