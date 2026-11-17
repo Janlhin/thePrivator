@@ -209,7 +209,9 @@ signing are described in [the release setup guide](docs/releases.md).
 | Desktop shell | Tauri | CLI `3.0.0-alpha.6`, API `3.0.0-alpha.3` (alpha channel) |
 | Rust bridge | `tauri` + `tauri-runtime-wry` | pinned by `src-tauri/Cargo.lock` |
 | Python sidecar | FastAPI + uvicorn | Python 3.11+ (development host: 3.12) |
-| Unit tests | Vitest | 5.1.0 |
+| Unit tests | Vitest | 5.1.0, v8 coverage provider |
+| Gates | oxlint, oxfmt, stylelint, knip, jscpd | oxlint 1.94, oxfmt 0.79, stylelint 18 (standard config), knip 6, jscpd 5 |
+| Git hooks | husky + lint-staged + commitlint | husky 9, lint-staged 17, commitlint 21 (conventional) |
 | Task runner | Deno | 2.9.8 |
 | Node runtime | — | `engines.node`: `^22.18 \|\| ^24.11 \|\| >=26` |
 | Automation shell | PowerShell | 7.4+ (`pwsh` only, no `.cmd`/`.bat`) |
@@ -235,19 +237,38 @@ Run from the repository root; each command must exit `0`.
 
 ```bash
 npm ci               # lockfile is the only source of truth
-npm run verify       # format:check, lint, stylelint, typecheck, test with coverage, deadcode, dupes
+npm run verify       # format, lint, stylelint, typecheck, test+coverage, deadcode, dupes
 npm run build        # production frontend build
-npm run test:e2e     # packaged UI path
 ```
 
 A change is not "done" until `npm run verify` exits `0`. A failing check is fixed, never bypassed.
+
+### Gates
+
+`scripts/verify.ps1` is the only place where gates are chained; every `npm run`
+entry above is a one-line forward to it (`-Only <step>` runs a single gate).
+`scripts/hooks/*.ps1` hold the git-hook logic, and the `.husky/` files are
+single `exec pwsh` lines — no gate logic lives in shell or in `package.json`.
+
+| Gate | Command | Fails when |
+| --- | --- | --- |
+| Format | `npm run format:check` | any file under `src`, `tests`, `scripts` differs from oxfmt |
+| Lint | `npm run lint` | oxlint reports a warning or error (`--deny-warnings`) |
+| Style | `npm run stylelint` | a hex colour, `!important` or nesting depth rule is broken |
+| Types | `npm run typecheck` | `tsc --noEmit` finds an error |
+| Tests | `npm test` | a test fails or coverage drops below 80% statements / 70% branches |
+| Dead code | `npm run deadcode` | knip finds an unused file, export, type or dependency |
+| Duplication | `npm run dupes` | jscpd finds more than 3% duplicated lines |
+
 
 ### Known limits
 
 - Tauri 3 is still on the alpha channel; a break in an alpha API is fixed forward, not pinned away.
 - One build produces one platform: PyInstaller bundles the host interpreter and has no cross-compilation mode.
+- There is no Playwright suite and no `test:e2e` command; the packaged-UI path is still covered by `scripts/verify-s06.mjs`, which drives Chromium over WebDriver and needs a real browser.
 - Coverage is a necessary condition, not a proof of quality — it measures what executed, not what was asserted.
 - The local `pwsh` is the 7.7 preview channel while CI runs the stable channel; scripts must not rely on preview-only syntax.
+- `scripts/*.mjs` are not linted yet (`TASKS.md` T-017): they predate the oxlint profile and carry legacy warnings.
 - Chromium is supplied by your environment; the app launches what you already have.
 - With vault protection off, proxy credentials are stored as plaintext with restricted file permissions.
 

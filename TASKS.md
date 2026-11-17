@@ -15,14 +15,26 @@
 | T-005 | 严格类型：未使用与语义检查 | `tsconfig.json` 开启 `noUnusedLocals`、`noUnusedParameters`、`noImplicitOverride`、`noFallthroughCasesInSwitch`、`verbatimModuleSyntax`，并清掉 4 处未使用绑定（含一条从未接线的 `onSaveNotes` prop 链） | T-003 | 中 | `tsc --noEmit` 退出 0；`tsconfig.json` 上述五项均为 `true` | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-014 | 严格类型：可空索引访问 | 开启 `noUncheckedIndexedAccess` 并修完实测 82 处错误 | T-005 | 中 | `tsc --noEmit` 退出 0；`noUncheckedIndexedAccess` 为 `true` | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-015 | 严格类型：精确可选属性 | 开启 `exactOptionalPropertyTypes` 并修完实测 32 处错误 | T-014 | 中 | `tsc --noEmit` 退出 0；`exactOptionalPropertyTypes` 为 `true` | TASK_DONE | 2026-11-17 | 2026-11-17 |
-| T-006 | Lint 与格式门禁 | 以 `vp lint`、`vp fmt --check` 作为通道，接入 `npm run lint` / `format:check` | T-003 | 高 | 两条命令均退出 0，且 `vp lint` 零警告 | TASK_BACKLOG | 2026-11-17 | — |
-| T-007 | 样式门禁 | 装 `stylelint` 与 `stylelint-config-standard`，`color-no-hex` 仅对 `tokens.css` 放行 | T-006 | 高 | `stylelint "src/**/*.css"` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
-| T-008 | 覆盖率门禁 | 装 `@vitest/coverage-v8`，测基线后设语句 ≥80%、分支 ≥70% | T-001 | 中 | `npm run test` 在覆盖率不达标时退出非零，达标时退出 0 | TASK_BACKLOG | 2026-11-17 | — |
-| T-009 | 死代码与重复检查 | 装 `knip`、`jscpd`，接入 `npm run deadcode` / `dupes`；`knip --fix` 不开 `--allow-remove-files` | T-008 | 高 | 两条命令退出 0；`knip.json` 无 `--allow-remove-files` | TASK_BACKLOG | 2026-11-17 | — |
-| T-010 | PowerShell 单入口 | 新增 `scripts/verify.ps1`、`scripts/hooks/pre-commit.ps1`、`scripts/hooks/commit-msg.ps1`、husky 薄壳（LF）、`commitlint.config.js`、`lint-staged` 配置、`.npmrc` | T-006 | 中 | `pwsh -NoLogo -NoProfile -File scripts/verify.ps1` 退出 0；`git commit` 触发两条钩子；hooks 文件字节为 LF | TASK_BACKLOG | 2026-11-17 | — |
+| T-006 | Lint 与格式门禁 | `vp lint` 因缺 `tsrs-lint` 的 `.bin` shim 不可用，改由 `scripts/verify.ps1` 直接调用 `node_modules/.bin/oxlint.ps1 --deny-warnings`；格式仍走 `vp fmt --check`（D-010） | T-003 | 高 | `npm run lint` 退出 0 且输出 `Found 0 warnings and 0 errors.`；`npm run format:check` 退出 0 | TASK_DONE | 2026-11-17 | 2026-11-17 |
+| T-007 | 样式门禁 | 装 `stylelint` 与 `stylelint-config-standard`，`color-no-hex` 仅对 `tokens.css` 放行，`!important` 只在 reduced-motion 块内以注释豁免 | T-006 | 高 | `npm run stylelint` 退出 0 | TASK_DONE | 2026-11-17 | 2026-11-17 |
+| T-008 | 覆盖率门禁 | 装 `@vitest/coverage-v8`，把 `coverage.include` 收窄到交付源码后测基线（语句 87.51%、分支 82.08%），阈值取语句 80%、分支 70%（D-012） | T-001 | 中 | `npm test` 在覆盖率不达标时退出非零，达标时退出 0 | TASK_DONE | 2026-11-17 | 2026-11-17 |
+| T-009 | 死代码与重复检查 | 装 `knip`、`jscpd`，排除项写进 `knip.json` 与 `.jscpd.json`（D-014）；`knip --fix` 不开 `--allow-remove-files` | T-008 | 高 | `npm run deadcode` 与 `npm run dupes` 均退出 0；`knip.json` 无 `--allow-remove-files` | TASK_DONE | 2026-11-17 | 2026-11-17 |
+| T-010 | PowerShell 单入口 | 新增 `scripts/verify.ps1`、`scripts/format.ps1`、`scripts/hooks/*.ps1`、husky 薄壳（LF）、`commitlint.config.js`、`lint-staged` 配置、`.npmrc` | T-006 | 中 | `npm run verify` 退出 0；`git commit` 触发两条钩子；两个 husky 文件行尾为 LF | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-011 | CI 统一 pwsh | 工作流加 `defaults.run.shell: pwsh`，全部步骤 `shell: pwsh`，保留 `npm ci` | T-010 | 中 | 工作流文件无 `shell: cmd` / `shell: powershell`；`npm ci` 出现且无 `npm install` | TASK_BACKLOG | 2026-11-17 | — |
 | T-012 | 文档三层校验 | 接入 markdownlint、链接校验、代码块抽取实跑 | T-011 | 高 | 三条命令退出 0；断链数为 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-016 | 消除 `set-state-in-effect` 告警 | 重构 10 处「在 effect 里同步派生状态」的组件，改为在事件处理或 reducer 中派生；完成后撤销 D-013 对该规则的豁免 | T-010 | 低 | `react/set-state-in-effect` 恢复为 error 后 `npm run lint` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-017 | `scripts/` 纳入 lint | 清掉 70 条历史告警（28 处多余转义、26 处未使用变量等）后，从 `.oxlintrc.json` 的 `ignorePatterns` 移除 `scripts/**` | T-006 | 中 | `npm run lint` 覆盖 `scripts/` 且退出 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-018 | E2E 通道 | 二选一：新建 `playwright.config.ts` 与 `test:e2e`，或把 `scripts/verify-s06.mjs` 的 WebDriver 路径登记为等价通道并写入 README | T-010 | 中 | 选定方案后 `npm run test:e2e` 或登记命令退出 0，README 有对应命令 | TASK_BACKLOG | 2026-11-17 | — |
+| T-019 | 根目录白名单比对脚本 | 新增 `scripts/check-root-whitelist.ps1`，用 `git ls-files` 与 README 顶层目录表逐条比对 | T-010 | 高 | 脚本退出 0；根级未登记项数为 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-020 | 脚本基线检查 | 新增 `scripts/check-script-baseline.ps1`：仓库内 `.cmd`/`.bat` 数为 0、项目自写代码中 `cmd.exe`/`powershell.exe` 调用数为 0、入口一律 `pwsh -File` | T-010 | 高 | 脚本退出 0；三项计数均为 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-021 | 双入口收敛 | `deno.json` 的 `deno task` 与 `package.json` 的 `npm run` 目前并存；选定一套为主、另一套降级为别名 | T-010 | 中 | 只保留一套执行 `node node_modules/vite-plus/dist/bin.js` 的定义；另一套为 `pwsh -File` 转发 | TASK_BACKLOG | 2026-11-17 | — |
 
 ## 待裁决清单
 
-当前无待裁决项。
+| 提出时间 | 问题 | 备选与取舍 | 状态 |
+| --- | --- | --- | --- |
+| 2026-11-17 | `formatProxyCredentialMode`（`src/proxyControls.ts`）与 `preferenceLabel`（`src/i18n/language.ts`）没有任何调用者，已用 `@public` 标注保住 knip 绿灯 | A. 删除两函数（可逆，需确认没有外部复用）B. 继续保留 `@public` 标注（当前状态）C. 接到设置页与代理面板上 | 未裁决 |
+| 2026-11-17 | `deno.json` 与 `package.json` 各有一套 `dev`/`build`/`test` 定义，违反入口唯一 | A. 以 `npm run` 为唯一入口，`deno task` 改为 `pwsh -File` 转发 B. 以 `deno task` 为主，`package.json` 降级为别名 | 未裁决（T-021） |
+| 2026-11-17 | `src-tauri/icons/generated/`（16 文件）与 `src-tauri/icons/icon.ico` 始终未跟踪 | A. 提交入库（图标是构建输入）B. 加入 `.gitignore` 并在构建时生成 | 未裁决 |
+| 2026-11-17 | `install_chromium_helper.py` 位于根目录，不在白名单六类之内 | A. 移入 `scripts/` 并更新引用 B. 在白名单登记为「源码类」并加注释说明用途 | 未裁决 |
+| 2026-11-17 | 本机 `pwsh` 是 7.7 preview，CI 将用稳定通道；哪些语法属 preview 独有尚未逐条核验 | A. 只使用 7.4 起就稳定的语法，逐条核对三个脚本 B. 在 CI 用 preview 通道对齐本机 | 未裁决 |
