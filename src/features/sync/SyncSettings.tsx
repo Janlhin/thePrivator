@@ -44,20 +44,17 @@ export function SyncSettings() {
     void refresh();
   }, [refresh]);
 
-  const withBusy = useCallback(
-    async (activity: string, work: () => Promise<void>) => {
-      setBusy(activity);
-      setError(null);
-      try {
-        await work();
-      } catch (caught) {
-        setError(normalizeSidecarError(caught).message);
-      } finally {
-        setBusy(null);
-      }
-    },
-    [],
-  );
+  const withBusy = useCallback(async (activity: string, work: () => Promise<void>) => {
+    setBusy(activity);
+    setError(null);
+    try {
+      await work();
+    } catch (caught) {
+      setError(normalizeSidecarError(caught).message);
+    } finally {
+      setBusy(null);
+    }
+  }, []);
 
   const chooseFolder = () =>
     void withBusy("choosing", async () => {
@@ -107,7 +104,9 @@ export function SyncSettings() {
       <header className={styles.header}>
         <h1>{t("Profile synchronization")}</h1>
         <p className={styles.lede}>
-          {t("Point ThePrivator at a folder that Google Drive, Syncthing or rclone already keeps up to date. Profiles travel through that folder; nothing is sent to us.")}
+          {t(
+            "Point ThePrivator at a folder that Google Drive, Syncthing or rclone already keeps up to date. Profiles travel through that folder; nothing is sent to us.",
+          )}
         </p>
       </header>
 
@@ -237,7 +236,9 @@ export function SyncSettings() {
 
               {lastRun.applied.some((entry) => entry.keptCopyAs !== null) ? (
                 <p className={styles.warning} role="status">
-                  {t("Replaced browsing data was kept in the conflicts folder inside your profile store. Nothing was deleted.")}
+                  {t(
+                    "Replaced browsing data was kept in the conflicts folder inside your profile store. Nothing was deleted.",
+                  )}
                 </p>
               ) : null}
 
@@ -260,7 +261,9 @@ export function SyncSettings() {
         <section className={styles.card} aria-labelledby="sync-conflicts-heading">
           <h2 id="sync-conflicts-heading">{t("Needs your decision")}</h2>
           <p className={styles.muted}>
-            {t("These profiles changed in two places. ThePrivator will not guess which one you meant, and whichever you choose, the data it replaces is moved aside rather than deleted.")}
+            {t(
+              "These profiles changed in two places. ThePrivator will not guess which one you meant, and whichever you choose, the data it replaces is moved aside rather than deleted.",
+            )}
           </p>
 
           <ul className={styles.conflicts}>

@@ -35,7 +35,11 @@ export function SettingsPage({ section }: { section: SettingsSection }) {
       </nav>
 
       <div className={styles.panel}>
-        {section === "security" ? <SecuritySettings /> : section === "storage" ? <StorageSettings /> : section === "sync" ? (
+        {section === "security" ? (
+          <SecuritySettings />
+        ) : section === "storage" ? (
+          <StorageSettings />
+        ) : section === "sync" ? (
           <SyncSettings />
         ) : section === "diagnostics" ? (
           <DiagnosticsSettings />

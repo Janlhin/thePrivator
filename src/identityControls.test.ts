@@ -24,7 +24,16 @@ import {
 import type { IdentityDraftFieldValues, IdentityDraftState } from "./identityControls";
 import type { IdentitySurface, ProfileIdentity, ProfileRecord } from "./sidecar/types";
 
-const maskingSurfaces: IdentitySurface[] = ["browser", "navigator", "screen", "locale", "webgl", "webrtc", "mediaDevices", "ports"];
+const maskingSurfaces: IdentitySurface[] = [
+  "browser",
+  "navigator",
+  "screen",
+  "locale",
+  "webgl",
+  "webrtc",
+  "mediaDevices",
+  "ports",
+];
 const noiseSurfaces: IdentitySurface[] = ["canvas", "audio"];
 
 // identity.surfaces.describe reports exactly this table: its surface ids are the
@@ -63,7 +72,9 @@ function readSidecarTextFieldBounds(): Map<string, number> {
     constants.set(name, Number(value.replace(/_/g, "")));
   }
   const bounds = new Map<string, number>();
-  for (const [, path = "", constant = ""] of source.matchAll(/_require_string\([^,]+,\s*"([^"]+)"[^)]*max_length=(MAX_[A-Z_]+)/g)) {
+  for (const [, path = "", constant = ""] of source.matchAll(
+    /_require_string\([^,]+,\s*"([^"]+)"[^)]*max_length=(MAX_[A-Z_]+)/g,
+  )) {
     const value = constants.get(constant);
     if (value !== undefined) {
       bounds.set(path, value);
@@ -177,7 +188,11 @@ function profileRecord(savedIdentity = identity()): ProfileRecord {
 describe("identity control helpers", () => {
   it("exposes masking mode options for browser-like identity surfaces only", () => {
     for (const surface of maskingSurfaces) {
-      expect(getSupportedIdentityModeOptions(surface).map((option) => option.value)).toEqual(["real", "masked", "custom"]);
+      expect(getSupportedIdentityModeOptions(surface).map((option) => option.value)).toEqual([
+        "real",
+        "masked",
+        "custom",
+      ]);
     }
   });
 
@@ -205,7 +220,11 @@ describe("identity control helpers", () => {
     expect([...contract.modesBySurface.keys()].sort()).toEqual([...IDENTITY_SURFACE_ORDER].sort());
 
     for (const [surface, modes] of contract.modesBySurface) {
-      expect(getSupportedIdentityModeOptions(surface as IdentitySurface).map((option) => option.value).sort()).toEqual(modes);
+      expect(
+        getSupportedIdentityModeOptions(surface as IdentitySurface)
+          .map((option) => option.value)
+          .sort(),
+      ).toEqual(modes);
     }
   });
 
@@ -264,7 +283,11 @@ describe("identity control helpers", () => {
   });
 
   it("clears preset identity and seeds a labeled custom override when an advanced mode changes", () => {
-    const draft = updateIdentityDraftSurfaceMode(createIdentityDraftState(profileRecord(identity({ browser: { mode: "real" } }))), "browser", "custom");
+    const draft = updateIdentityDraftSurfaceMode(
+      createIdentityDraftState(profileRecord(identity({ browser: { mode: "real" } }))),
+      "browser",
+      "custom",
+    );
 
     const parsed = parseIdentityDraftState(draft);
 
@@ -278,7 +301,10 @@ describe("identity control helpers", () => {
 
   it("preserves an intentionally edited label while clearing preset identity", () => {
     const profile = profileRecord(identity());
-    let draft = updateIdentityDraftLabel({ identity: profile.identity, values: seedValues(profile.identity), errors: {}, labelEdited: false }, "Lab override");
+    let draft = updateIdentityDraftLabel(
+      { identity: profile.identity, values: seedValues(profile.identity), errors: {}, labelEdited: false },
+      "Lab override",
+    );
     draft = updateIdentityDraftField(draft, "navigator.hardwareConcurrency", "12");
 
     const parsed = parseIdentityDraftState(draft);
@@ -296,7 +322,12 @@ describe("identity control helpers", () => {
 
   it("guards unsupported modes and malformed local fields before a sidecar payload is built", () => {
     const profile = profileRecord(identity({ webrtc: { mode: "real", policy: "real" } }));
-    let draft: IdentityDraftState = { identity: profile.identity, values: seedValues(profile.identity), errors: {}, labelEdited: false };
+    let draft: IdentityDraftState = {
+      identity: profile.identity,
+      values: seedValues(profile.identity),
+      errors: {},
+      labelEdited: false,
+    };
 
     draft = updateIdentityDraftSurfaceMode(draft, "canvas", "custom");
     expect(draft.errors["canvas.mode"]).toMatch(/does not support custom mode/i);
@@ -361,7 +392,12 @@ describe("identity control helpers", () => {
     const savedIdentity = identity();
     const futureSurface = { mode: "masked", futureField: 7 };
     const withFutureSurface = { ...savedIdentity, futureSurface } as ProfileIdentity;
-    const draft: IdentityDraftState = { identity: withFutureSurface, values: seedValues(savedIdentity), errors: {}, labelEdited: false };
+    const draft: IdentityDraftState = {
+      identity: withFutureSurface,
+      values: seedValues(savedIdentity),
+      errors: {},
+      labelEdited: false,
+    };
 
     const parsed = parseIdentityDraftState(draft);
 
@@ -416,11 +452,15 @@ function seedValues(savedIdentity: ProfileIdentity): IdentityDraftFieldValues {
     "browser.clientHints.model": "",
     "browser.clientHints.mobile": "false",
     "navigator.platform": savedIdentity.navigator.mode === "real" ? "Linux x86_64" : savedIdentity.navigator.platform,
-    "navigator.hardwareConcurrency": savedIdentity.navigator.mode === "real" ? "8" : String(savedIdentity.navigator.hardwareConcurrency),
-    "navigator.deviceMemory": savedIdentity.navigator.mode === "real" ? "8" : String(savedIdentity.navigator.deviceMemory),
+    "navigator.hardwareConcurrency":
+      savedIdentity.navigator.mode === "real" ? "8" : String(savedIdentity.navigator.hardwareConcurrency),
+    "navigator.deviceMemory":
+      savedIdentity.navigator.mode === "real" ? "8" : String(savedIdentity.navigator.deviceMemory),
     "navigator.uaPlatform": savedIdentity.navigator.mode === "real" ? "Linux" : savedIdentity.navigator.uaPlatform,
-    "navigator.uaPlatformVersion": savedIdentity.navigator.mode === "real" ? "" : savedIdentity.navigator.uaPlatformVersion,
-    "navigator.uaArchitecture": savedIdentity.navigator.mode === "real" ? "x86" : savedIdentity.navigator.uaArchitecture,
+    "navigator.uaPlatformVersion":
+      savedIdentity.navigator.mode === "real" ? "" : savedIdentity.navigator.uaPlatformVersion,
+    "navigator.uaArchitecture":
+      savedIdentity.navigator.mode === "real" ? "x86" : savedIdentity.navigator.uaArchitecture,
     "navigator.uaMobile": savedIdentity.navigator.mode === "real" ? "false" : String(savedIdentity.navigator.uaMobile),
     "screen.width": savedIdentity.screen.mode === "real" ? "1920" : String(savedIdentity.screen.width),
     "screen.height": savedIdentity.screen.mode === "real" ? "1080" : String(savedIdentity.screen.height),
@@ -435,17 +475,30 @@ function seedValues(savedIdentity: ProfileIdentity): IdentityDraftFieldValues {
     "audio.noiseSeed": savedIdentity.audio.mode === "real" ? "2001" : String(savedIdentity.audio.noiseSeed),
     "webgl.vendor": savedIdentity.webgl.mode === "real" ? "Intel Inc." : savedIdentity.webgl.vendor,
     "webgl.renderer": savedIdentity.webgl.mode === "real" ? "Mesa Intel" : savedIdentity.webgl.renderer,
-    "webgl.noiseSeed": savedIdentity.webgl.mode === "real" || savedIdentity.webgl.noiseSeed === undefined ? "" : String(savedIdentity.webgl.noiseSeed),
+    "webgl.noiseSeed":
+      savedIdentity.webgl.mode === "real" || savedIdentity.webgl.noiseSeed === undefined
+        ? ""
+        : String(savedIdentity.webgl.noiseSeed),
     "webrtc.policy": String(savedIdentity.webrtc.policy),
     "geolocation.permission": savedIdentity.geolocation.permission,
-    "geolocation.latitude": savedIdentity.geolocation.mode === "real" ? "0" : String(savedIdentity.geolocation.latitude),
-    "geolocation.longitude": savedIdentity.geolocation.mode === "real" ? "0" : String(savedIdentity.geolocation.longitude),
-    "geolocation.accuracy": savedIdentity.geolocation.mode === "real" ? "100" : String(savedIdentity.geolocation.accuracy),
-    "geolocation.altitude": savedIdentity.geolocation.mode === "real" || savedIdentity.geolocation.altitude === null ? "" : String(savedIdentity.geolocation.altitude),
-    "mediaDevices.noiseSeed": savedIdentity.mediaDevices.mode === "masked" ? String(savedIdentity.mediaDevices.noiseSeed) : "3001",
-    "mediaDevices.videoInputs": savedIdentity.mediaDevices.mode === "custom" ? String(savedIdentity.mediaDevices.videoInputs) : "1",
-    "mediaDevices.audioInputs": savedIdentity.mediaDevices.mode === "custom" ? String(savedIdentity.mediaDevices.audioInputs) : "1",
-    "mediaDevices.audioOutputs": savedIdentity.mediaDevices.mode === "custom" ? String(savedIdentity.mediaDevices.audioOutputs) : "1",
+    "geolocation.latitude":
+      savedIdentity.geolocation.mode === "real" ? "0" : String(savedIdentity.geolocation.latitude),
+    "geolocation.longitude":
+      savedIdentity.geolocation.mode === "real" ? "0" : String(savedIdentity.geolocation.longitude),
+    "geolocation.accuracy":
+      savedIdentity.geolocation.mode === "real" ? "100" : String(savedIdentity.geolocation.accuracy),
+    "geolocation.altitude":
+      savedIdentity.geolocation.mode === "real" || savedIdentity.geolocation.altitude === null
+        ? ""
+        : String(savedIdentity.geolocation.altitude),
+    "mediaDevices.noiseSeed":
+      savedIdentity.mediaDevices.mode === "masked" ? String(savedIdentity.mediaDevices.noiseSeed) : "3001",
+    "mediaDevices.videoInputs":
+      savedIdentity.mediaDevices.mode === "custom" ? String(savedIdentity.mediaDevices.videoInputs) : "1",
+    "mediaDevices.audioInputs":
+      savedIdentity.mediaDevices.mode === "custom" ? String(savedIdentity.mediaDevices.audioInputs) : "1",
+    "mediaDevices.audioOutputs":
+      savedIdentity.mediaDevices.mode === "custom" ? String(savedIdentity.mediaDevices.audioOutputs) : "1",
     "ports.allowedPorts": savedIdentity.ports.mode === "custom" ? savedIdentity.ports.allowedPorts.join(", ") : "",
   };
 }
@@ -476,11 +529,7 @@ describe("descriptor and parser bounds", () => {
     if (firstMode === undefined) {
       throw new Error(`Numeric field ${field.path} declares no modes to switch to.`);
     }
-    const withMode = updateIdentityDraftSurfaceMode(
-      createIdentityDraftState(identity()),
-      field.surface,
-      firstMode,
-    );
+    const withMode = updateIdentityDraftSurfaceMode(createIdentityDraftState(identity()), field.surface, firstMode);
     return updateIdentityDraftField(withMode, field.path, value);
   }
 
@@ -508,10 +557,7 @@ describe("descriptor and parser bounds", () => {
     for (const field of numericFields) {
       const step = field.kind === "integer" ? 1 : 0.01;
       for (const outside of [(field.min as number) - step, (field.max as number) + step]) {
-        expect(
-          draftWithField(field, String(outside)).errors[field.path],
-          `${field.path} at ${outside}`,
-        ).toBeDefined();
+        expect(draftWithField(field, String(outside)).errors[field.path], `${field.path} at ${outside}`).toBeDefined();
       }
     }
   });

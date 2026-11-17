@@ -53,18 +53,18 @@ const NEGATIVE_RULE_EXEMPTIONS: Record<string, readonly string[]> = {
   "../i18n/language.ts": ["browser storage or file bypass"],
 };
 
-const uiSourceEntries = () =>
-  Object.entries(uiSourceModules).filter(([path]) => !TEST_SOURCE_PATTERN.test(path));
+const uiSourceEntries = () => Object.entries(uiSourceModules).filter(([path]) => !TEST_SOURCE_PATTERN.test(path));
 
 /** Union of every UI source: for "the UI must use wrapper X somewhere" rules. */
-const appSource = () => uiSourceEntries().map(([, text]) => text).join("\n");
+const appSource = () =>
+  uiSourceEntries()
+    .map(([, text]) => text)
+    .join("\n");
 
 /** Per-file sources subject to the negative rules, so a failure names the offender. */
-const guardedUiSources = () =>
-  uiSourceEntries().filter(([path]) => path !== INVOKE_BOUNDARY_MODULE);
+const guardedUiSources = () => uiSourceEntries().filter(([path]) => path !== INVOKE_BOUNDARY_MODULE);
 
-const isExemptFromRule = (path: string, rule: string) =>
-  NEGATIVE_RULE_EXEMPTIONS[path]?.includes(rule) ?? false;
+const isExemptFromRule = (path: string, rule: string) => NEGATIVE_RULE_EXEMPTIONS[path]?.includes(rule) ?? false;
 
 describe("UI source guard", () => {
   it("does not add direct browser or Tauri filesystem bypasses for legacy import, cookie portability, and package portability", () => {
@@ -97,17 +97,32 @@ describe("UI source guard", () => {
     // Negative rules run per file so a failure names the offending module rather
     // than the whole tree, and so they keep applying to components added later.
     const forbidden: Array<[string, RegExp]> = [
-      ["PAC/system proxy vocabulary", /value=\"pac\"|value='pac'|value=\"system\"|value='system'|value=\"directFallback\"|value='directFallback'/],
-      ["PAC/system proxy copy", /PAC proxy|Proxy Auto-Config|System proxy|Direct fallback|autoConfigUrl|proxyAutoConfig/],
+      [
+        "PAC/system proxy vocabulary",
+        /value=\"pac\"|value='pac'|value=\"system\"|value='system'|value=\"directFallback\"|value='directFallback'/,
+      ],
+      [
+        "PAC/system proxy copy",
+        /PAC proxy|Proxy Auto-Config|System proxy|Direct fallback|autoConfigUrl|proxyAutoConfig/,
+      ],
       ["filesystem or shell plugin", /@tauri-apps\/plugin-(fs|shell)/],
       ["direct window API", /@tauri-apps\/api\/window/],
       ["direct event API", /@tauri-apps\/api\/event/],
       ["raw invoke outside the client", /\binvoke\s*\(/],
-      ["browser storage or file bypass", /showOpenFilePicker|webkitdirectory|readTextFile|writeTextFile|localStorage|sessionStorage/],
+      [
+        "browser storage or file bypass",
+        /showOpenFilePicker|webkitdirectory|readTextFile|writeTextFile|localStorage|sessionStorage/,
+      ],
       ["DOM escape hatch", /type=\"file\"|type='file'|<iframe|window\.open|document\.querySelector|\.innerHTML/],
       ["direct network request", /\bfetch\s*\(/],
-      ["internal artifact vocabulary", /manifest\.json|package member|raw manifest|debug endpoint|launch args|raw diagnostics|stack trace/i],
-      ["credential or guarantee copy", /Authorization|Bearer|guaranteed undetectability|universal green|universal pass/i],
+      [
+        "internal artifact vocabulary",
+        /manifest\.json|package member|raw manifest|debug endpoint|launch args|raw diagnostics|stack trace/i,
+      ],
+      [
+        "credential or guarantee copy",
+        /Authorization|Bearer|guaranteed undetectability|universal green|universal pass/i,
+      ],
     ];
     const violations: string[] = [];
     for (const [path, text] of guardedUiSources()) {

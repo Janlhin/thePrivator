@@ -15,13 +15,7 @@ interface GeneralFormProps {
 const MAX_TAGS = 10;
 const MAX_NOTES = 1500;
 
-export function GeneralForm({
-  name,
-  nameError,
-  organization,
-  onNameChange,
-  onOrganizationChange,
-}: GeneralFormProps) {
+export function GeneralForm({ name, nameError, organization, onNameChange, onOrganizationChange }: GeneralFormProps) {
   const nameId = useId();
   const notesId = useId();
   const tagId = useId();
@@ -131,7 +125,10 @@ export function GeneralForm({
           onChange={(event) => onOrganizationChange({ ...organization, notes: event.target.value })}
         />
         <span className={styles.hint}>
-          {t("{used} of {total} characters. Notes stay on this device unless you sync it.", { used: organization.notes.length, total: MAX_NOTES })}
+          {t("{used} of {total} characters. Notes stay on this device unless you sync it.", {
+            used: organization.notes.length,
+            total: MAX_NOTES,
+          })}
         </span>
       </div>
     </div>

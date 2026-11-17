@@ -165,9 +165,10 @@ function authError(code = AUTOMATION_AUTH_REQUIRED, requestId = "automation-1234
   return {
     error: {
       code,
-      message: code === AUTOMATION_AUTH_REQUIRED
-        ? "Local automation API token is required."
-        : "Local automation API token is invalid.",
+      message:
+        code === AUTOMATION_AUTH_REQUIRED
+          ? "Local automation API token is required."
+          : "Local automation API token is invalid.",
       details: { phase: "auth" },
       detailRef: "sidecar-123456789abc",
       requestId,
@@ -218,22 +219,26 @@ describe("verify-m004-s02 validator guardrails", () => {
   it("accepts safe profile list payloads including empty and fixed-proxy pages", () => {
     const { context } = makeContext();
 
-    expect(assertProfilesResponse({
-      statusCode: 200,
-      body: profilesBody([], "automation-empty-page"),
-      requestId: headers("automation-empty-page"),
-      context,
-      phase: "profiles-empty",
-    })).toMatchObject({ count: 0, profileIds: [] });
+    expect(
+      assertProfilesResponse({
+        statusCode: 200,
+        body: profilesBody([], "automation-empty-page"),
+        requestId: headers("automation-empty-page"),
+        context,
+        phase: "profiles-empty",
+      }),
+    ).toMatchObject({ count: 0, profileIds: [] });
 
-    expect(assertProfilesResponse({
-      statusCode: 200,
-      body: profilesBody([directProfile("profile-a"), fixedProfile("profile-b")], "automation-populated"),
-      requestId: headers("automation-populated"),
-      expectedProfileIds: ["profile-a", "profile-b"],
-      context,
-      phase: "profiles-populated",
-    })).toMatchObject({
+    expect(
+      assertProfilesResponse({
+        statusCode: 200,
+        body: profilesBody([directProfile("profile-a"), fixedProfile("profile-b")], "automation-populated"),
+        requestId: headers("automation-populated"),
+        expectedProfileIds: ["profile-a", "profile-b"],
+        context,
+        phase: "profiles-populated",
+      }),
+    ).toMatchObject({
       count: 2,
       profileIds: ["profile-a", "profile-b"],
       proxyModes: ["direct", "fixedServer"],
@@ -251,7 +256,10 @@ describe("verify-m004-s02 validator guardrails", () => {
     ];
 
     for (const body of unsafeProfiles) {
-      const error = expectThrowsSafely(() => assertProfilesResponse({ statusCode: 200, body, requestId: headers(), context }), [storeRoot, token, "credentialState", "userDataDir", "profileDir"]);
+      const error = expectThrowsSafely(
+        () => assertProfilesResponse({ statusCode: 200, body, requestId: headers(), context }),
+        [storeRoot, token, "credentialState", "userDataDir", "profileDir"],
+      );
       expect(error.details.fieldPath).toMatch(/^\$/);
     }
   });
@@ -259,124 +267,189 @@ describe("verify-m004-s02 validator guardrails", () => {
   it("accepts safe runtime and selected-profile status payloads", () => {
     const { context } = makeContext();
 
-    expect(assertRuntimeStatusResponse({
-      statusCode: 200,
-      body: runtimeBody({}, "automation-runtime"),
-      requestId: headers("automation-runtime"),
-      expectedRunningProfileIds: ["profile-fixed"],
-      context,
-    })).toMatchObject({ runningCount: 1, runningProfileIds: ["profile-fixed"] });
+    expect(
+      assertRuntimeStatusResponse({
+        statusCode: 200,
+        body: runtimeBody({}, "automation-runtime"),
+        requestId: headers("automation-runtime"),
+        expectedRunningProfileIds: ["profile-fixed"],
+        context,
+      }),
+    ).toMatchObject({ runningCount: 1, runningProfileIds: ["profile-fixed"] });
 
-    expect(assertRuntimeStatusResponse({
-      statusCode: 200,
-      body: runtimeBody({ runningCount: 0, profiles: [], reconciled: [] }, "automation-runtime-empty"),
-      requestId: headers("automation-runtime-empty"),
-      context,
-    })).toMatchObject({ runningCount: 0, runningProfileIds: [] });
+    expect(
+      assertRuntimeStatusResponse({
+        statusCode: 200,
+        body: runtimeBody({ runningCount: 0, profiles: [], reconciled: [] }, "automation-runtime-empty"),
+        requestId: headers("automation-runtime-empty"),
+        context,
+      }),
+    ).toMatchObject({ runningCount: 0, runningProfileIds: [] });
 
-    expect(assertSelectedProfileStatusResponse({
-      statusCode: 200,
-      body: selectedStatusBody({}, "automation-selected"),
-      requestId: headers("automation-selected"),
-      expectedProfileId: "profile-fixed",
-      expectedRuntimeStatus: "running",
-      context,
-    })).toMatchObject({ profileId: "profile-fixed", runtimeStatus: "running" });
+    expect(
+      assertSelectedProfileStatusResponse({
+        statusCode: 200,
+        body: selectedStatusBody({}, "automation-selected"),
+        requestId: headers("automation-selected"),
+        expectedProfileId: "profile-fixed",
+        expectedRuntimeStatus: "running",
+        context,
+      }),
+    ).toMatchObject({ profileId: "profile-fixed", runtimeStatus: "running" });
 
-    expect(assertSelectedProfileStatusResponse({
-      statusCode: 200,
-      body: selectedStatusBody({ runtime: { profileId: "profile-fixed", status: "stopped" } }, "automation-selected-stopped"),
-      requestId: headers("automation-selected-stopped"),
-      expectedProfileId: "profile-fixed",
-      expectedRuntimeStatus: "stopped",
-      context,
-    })).toMatchObject({ profileId: "profile-fixed", runtimeStatus: "stopped" });
+    expect(
+      assertSelectedProfileStatusResponse({
+        statusCode: 200,
+        body: selectedStatusBody(
+          { runtime: { profileId: "profile-fixed", status: "stopped" } },
+          "automation-selected-stopped",
+        ),
+        requestId: headers("automation-selected-stopped"),
+        expectedProfileId: "profile-fixed",
+        expectedRuntimeStatus: "stopped",
+        context,
+      }),
+    ).toMatchObject({ profileId: "profile-fixed", runtimeStatus: "stopped" });
   });
 
   it("rejects unsafe runtime and selected-profile fixtures", () => {
     const { context, storeRoot, fakeChromiumPath } = makeContext();
     const unsafeBodies = [
-      runtimeBody({ profiles: [{ profileId: "profile-fixed", status: "running", startedAt: "2026-05-14T20:01:00.000Z", pid: 424242 }] }),
-      runtimeBody({ profiles: [{ profileId: "profile-fixed", status: "running", startedAt: "2026-05-14T20:01:00.000Z", userDataDir: "profile-store/profiles/profile-fixed/user-data" }] }),
+      runtimeBody({
+        profiles: [
+          { profileId: "profile-fixed", status: "running", startedAt: "2026-05-14T20:01:00.000Z", pid: 424242 },
+        ],
+      }),
+      runtimeBody({
+        profiles: [
+          {
+            profileId: "profile-fixed",
+            status: "running",
+            startedAt: "2026-05-14T20:01:00.000Z",
+            userDataDir: "profile-store/profiles/profile-fixed/user-data",
+          },
+        ],
+      }),
       runtimeBody({ debugPort: 9222 }),
       runtimeBody({ webSocketDebuggerUrl: "ws://127.0.0.1:9222/devtools/browser/secret" }),
-      selectedStatusBody({ runtime: { profileId: "profile-fixed", status: "running", startedAt: "2026-05-14T20:01:00.000Z", ownerToken: "owner-token-should-not-leak" } }),
+      selectedStatusBody({
+        runtime: {
+          profileId: "profile-fixed",
+          status: "running",
+          startedAt: "2026-05-14T20:01:00.000Z",
+          ownerToken: "owner-token-should-not-leak",
+        },
+      }),
       selectedStatusBody({ profile: { ...fixedProfile(), profileDir: storeRoot } }),
-      selectedStatusBody({ runtime: { profileId: "profile-fixed", status: "running", startedAt: "2026-05-14T20:01:00.000Z", executable: fakeChromiumPath } }),
+      selectedStatusBody({
+        runtime: {
+          profileId: "profile-fixed",
+          status: "running",
+          startedAt: "2026-05-14T20:01:00.000Z",
+          executable: fakeChromiumPath,
+        },
+      }),
     ];
 
     for (const body of unsafeBodies.slice(0, 4)) {
-      expectThrowsSafely(() => assertRuntimeStatusResponse({ statusCode: 200, body, requestId: headers(), context }), [storeRoot, fakeChromiumPath, "pid", "userDataDir", "debugPort", "webSocketDebuggerUrl"]);
+      expectThrowsSafely(
+        () => assertRuntimeStatusResponse({ statusCode: 200, body, requestId: headers(), context }),
+        [storeRoot, fakeChromiumPath, "pid", "userDataDir", "debugPort", "webSocketDebuggerUrl"],
+      );
     }
     for (const body of unsafeBodies.slice(4)) {
-      expectThrowsSafely(() => assertSelectedProfileStatusResponse({ statusCode: 200, body, requestId: headers(), expectedProfileId: "profile-fixed", context }), [storeRoot, fakeChromiumPath, "ownerToken", "profileDir"]);
+      expectThrowsSafely(
+        () =>
+          assertSelectedProfileStatusResponse({
+            statusCode: 200,
+            body,
+            requestId: headers(),
+            expectedProfileId: "profile-fixed",
+            context,
+          }),
+        [storeRoot, fakeChromiumPath, "ownerToken", "profileDir"],
+      );
     }
   });
 
   it("validates auth and typed domain error envelopes with header/body request identity", () => {
     const { context } = makeContext();
 
-    expect(assertProtectedAuthErrorResponse({
-      statusCode: 401,
-      body: authError(AUTOMATION_AUTH_REQUIRED, "automation-auth-missing"),
-      requestId: "automation-auth-missing",
-      expectedCode: AUTOMATION_AUTH_REQUIRED,
-      context,
-      phase: "auth-missing",
-    })).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_REQUIRED });
+    expect(
+      assertProtectedAuthErrorResponse({
+        statusCode: 401,
+        body: authError(AUTOMATION_AUTH_REQUIRED, "automation-auth-missing"),
+        requestId: "automation-auth-missing",
+        expectedCode: AUTOMATION_AUTH_REQUIRED,
+        context,
+        phase: "auth-missing",
+      }),
+    ).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_REQUIRED });
 
-    expect(assertProtectedAuthErrorResponse({
-      statusCode: 401,
-      body: authError(AUTOMATION_AUTH_INVALID, "automation-auth-invalid"),
-      requestId: "automation-auth-invalid",
-      expectedCode: AUTOMATION_AUTH_INVALID,
-      context,
-      phase: "auth-invalid",
-    })).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_INVALID });
+    expect(
+      assertProtectedAuthErrorResponse({
+        statusCode: 401,
+        body: authError(AUTOMATION_AUTH_INVALID, "automation-auth-invalid"),
+        requestId: "automation-auth-invalid",
+        expectedCode: AUTOMATION_AUTH_INVALID,
+        context,
+        phase: "auth-invalid",
+      }),
+    ).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_INVALID });
 
-    expect(assertDomainErrorResponse({
-      statusCode: 400,
-      body: domainError(INVALID_REQUEST, "profile", "automation-profile-error"),
-      requestId: "automation-profile-error",
-      expectedCode: INVALID_REQUEST,
-      expectedStatusCode: 400,
-      expectedPhase: "profile",
-      context,
-      phase: "profiles-invalid-pagination",
-    })).toMatchObject({ statusCode: 400, errorCode: INVALID_REQUEST, errorPhase: "profile" });
+    expect(
+      assertDomainErrorResponse({
+        statusCode: 400,
+        body: domainError(INVALID_REQUEST, "profile", "automation-profile-error"),
+        requestId: "automation-profile-error",
+        expectedCode: INVALID_REQUEST,
+        expectedStatusCode: 400,
+        expectedPhase: "profile",
+        context,
+        phase: "profiles-invalid-pagination",
+      }),
+    ).toMatchObject({ statusCode: 400, errorCode: INVALID_REQUEST, errorPhase: "profile" });
 
-    expect(assertDomainErrorResponse({
-      statusCode: 404,
-      body: domainError(PROFILE_NOT_FOUND, "profile", "automation-missing-profile"),
-      requestId: "automation-missing-profile",
-      expectedCode: PROFILE_NOT_FOUND,
-      expectedStatusCode: 404,
-      expectedPhase: "profile",
-      context,
-      phase: "selected-profile-unknown",
-    })).toMatchObject({ statusCode: 404, errorCode: PROFILE_NOT_FOUND, errorPhase: "profile" });
+    expect(
+      assertDomainErrorResponse({
+        statusCode: 404,
+        body: domainError(PROFILE_NOT_FOUND, "profile", "automation-missing-profile"),
+        requestId: "automation-missing-profile",
+        expectedCode: PROFILE_NOT_FOUND,
+        expectedStatusCode: 404,
+        expectedPhase: "profile",
+        context,
+        phase: "selected-profile-unknown",
+      }),
+    ).toMatchObject({ statusCode: 404, errorCode: PROFILE_NOT_FOUND, errorPhase: "profile" });
 
-    expect(() => assertDomainErrorResponse({
-      statusCode: 400,
-      body: domainError(INVALID_REQUEST, "profile", "automation-profile-error"),
-      requestId: "automation-different",
-      expectedCode: INVALID_REQUEST,
-      expectedStatusCode: 400,
-      expectedPhase: "profile",
-      context,
-      phase: "profiles-invalid-pagination",
-    })).toThrow(/X-Request-ID/);
+    expect(() =>
+      assertDomainErrorResponse({
+        statusCode: 400,
+        body: domainError(INVALID_REQUEST, "profile", "automation-profile-error"),
+        requestId: "automation-different",
+        expectedCode: INVALID_REQUEST,
+        expectedStatusCode: 400,
+        expectedPhase: "profile",
+        context,
+        phase: "profiles-invalid-pagination",
+      }),
+    ).toThrow(/X-Request-ID/);
   });
 
   it("rejects malformed HTTP JSON without echoing raw bodies", () => {
     const { context, token } = makeContext();
 
-    const error = expectThrowsSafely(() => parseHttpJsonBody({
-      text: `{not-json ${token} stdout stderr profile-store`,
-      statusCode: 503,
-      phase: "malformed-json",
-      context,
-    }), [token, "{not-json", "stdout", "stderr", "profile-store"]);
+    const error = expectThrowsSafely(
+      () =>
+        parseHttpJsonBody({
+          text: `{not-json ${token} stdout stderr profile-store`,
+          statusCode: 503,
+          phase: "malformed-json",
+          context,
+        }),
+      [token, "{not-json", "stdout", "stderr", "profile-store"],
+    );
 
     expect(error.details).toMatchObject({ phase: "malformed-json", statusCode: 503 });
     expect(error.details.bodyLength).toBeGreaterThan(0);
@@ -391,10 +464,18 @@ describe("verify-m004-s02 redaction and binary discovery", () => {
       [{ event: "verify.m004.s02", value: storeRoot }, "app_root", storeRoot],
       [{ event: "verify.m004.s02", value: fakeChromiumPath }, "extra_value", fakeChromiumPath],
       [{ event: "verify.m004.s02", credentialState: "configured" }, "cred_field", "credentialState"],
-      [{ event: "verify.m004.s02", userDataDir: "profile-store/profiles/profile-a/user-data" }, "app_root", "userDataDir"],
+      [
+        { event: "verify.m004.s02", userDataDir: "profile-store/profiles/profile-a/user-data" },
+        "app_root",
+        "userDataDir",
+      ],
       [{ event: "verify.m004.s02", profileDir: "/tmp/profile-dir" }, "app_root", "profileDir"],
       [{ event: "verify.m004.s02", debugPort: 9222 }, "debug_endpoint", "debugPort"],
-      [{ event: "verify.m004.s02", webSocketDebuggerUrl: "ws://127.0.0.1:9222/devtools" }, "debug_endpoint", "webSocketDebuggerUrl"],
+      [
+        { event: "verify.m004.s02", webSocketDebuggerUrl: "ws://127.0.0.1:9222/devtools" },
+        "debug_endpoint",
+        "webSocketDebuggerUrl",
+      ],
       [{ event: "verify.m004.s02", stdoutTail: "redacted" }, "raw_diag", "stdoutTail"],
       [{ event: "verify.m004.s02", rawBody: "redacted" }, "raw_diag", "rawBody"],
     ];
@@ -402,7 +483,10 @@ describe("verify-m004-s02 redaction and binary discovery", () => {
     for (const [artifact, markerClass, rawMarker] of cases) {
       const marker = findS02ForbiddenPublicMarker(artifact, context);
       expect(marker).toMatchObject({ markerClass });
-      const error = expectThrowsSafely(() => assertS02PublicEvidenceRedacted(artifact, context), [rawMarker, token, storeRoot, fakeChromiumPath]);
+      const error = expectThrowsSafely(
+        () => assertS02PublicEvidenceRedacted(artifact, context),
+        [rawMarker, token, storeRoot, fakeChromiumPath],
+      );
       expect(error.details.markerClass).toBe(markerClass);
       expect(error.details.fieldPath).toMatch(/^\$/);
     }
@@ -412,7 +496,9 @@ describe("verify-m004-s02 redaction and binary discovery", () => {
     const root = makeRoot();
     const binaryPath = targetBinaryPath({ rootDir: root, targetTriple: "x86_64-test-local" });
 
-    expect(() => assertS02TargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath })).toThrow(/Missing target-triple sidecar binary/);
+    expect(() => assertS02TargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath })).toThrow(
+      /Missing target-triple sidecar binary/,
+    );
     try {
       assertS02TargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath });
       throw new Error("expected missing binary to fail");
@@ -432,7 +518,10 @@ describe("verify-m004-s02 redaction and binary discovery", () => {
     chmodSync(binaryPath, 0o755);
 
     const target = assertS02TargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath });
-    expect(target).toMatchObject({ targetTriple: "x86_64-test-local", executableChecked: process.platform !== "win32" });
+    expect(target).toMatchObject({
+      targetTriple: "x86_64-test-local",
+      executableChecked: process.platform !== "win32",
+    });
 
     const summary = buildFinalSummary({
       status: "pass",

@@ -1,12 +1,5 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { createInterface } from "node:readline";
@@ -15,10 +8,12 @@ import { fileURLToPath } from "node:url";
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SIDECAR_NAME = "theprivator-sidecar";
 const EXTENSION = process.platform === "win32" ? ".exe" : "";
-const VENV_PYTHON = process.platform === "win32"
-  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
-  : join(ROOT_DIR, ".venv", "bin", "python");
-const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === "win32" ? "python" : "python3"));
+const VENV_PYTHON =
+  process.platform === "win32"
+    ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+    : join(ROOT_DIR, ".venv", "bin", "python");
+const PYTHON =
+  process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : process.platform === "win32" ? "python" : "python3");
 const PRESET_ID = "ubuntu-linux-chrome-120";
 const SIDECAR_TIMEOUT_MS = 15_000;
 const CHROMIUM_LAUNCH_TIMEOUT_MS = 45_000;
@@ -43,7 +38,8 @@ const SENSITIVE_VALUES = new Set([
   WRONG_PROXY_USERNAME,
   WRONG_PROXY_PASSWORD,
 ]);
-const SENSITIVE_KEY_RE = /(?:authorization|credential|password|proxy[-_ ]?(?:authorization|pass|password|user|username)|username)/i;
+const SENSITIVE_KEY_RE =
+  /(?:authorization|credential|password|proxy[-_ ]?(?:authorization|pass|password|user|username)|username)/i;
 const PUBLIC_FORBIDDEN_MARKERS = [
   "Proxy-Authorization",
   "proxy-authorization",
@@ -315,9 +311,7 @@ function assert(condition, message, details) {
 }
 
 function executable(command) {
-  return process.platform === "win32" && ["npm", "cargo", "rustc"].includes(command)
-    ? `${command}.cmd`
-    : command;
+  return process.platform === "win32" && ["npm", "cargo", "rustc"].includes(command) ? `${command}.cmd` : command;
 }
 
 function rememberSensitive(value) {
@@ -544,7 +538,15 @@ function runSidecarRequest(binaryPath, request, options = {}) {
   const diagnostics = parseNdjsonLines("sidecar stderr", result.stderr, null, sensitiveValues);
   const diagnostic = diagnostics[0];
   assertRequestDiagnostic(diagnostic, request);
-  const transcript = { requestId: request.id, method: request.method, response, diagnostic, diagnostics, stdout: result.stdout, stderr: result.stderr };
+  const transcript = {
+    requestId: request.id,
+    method: request.method,
+    response,
+    diagnostic,
+    diagnostics,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
   ALL_TRANSCRIPTS.push(transcript);
   return transcript;
 }
@@ -572,7 +574,11 @@ function sidecarRequest(id, method, params = {}) {
 function sidecarSuccess(binaryPath, id, method, params = {}, options = {}) {
   const transcript = runSidecarRequest(binaryPath, sidecarRequest(id, method, params), options);
   const { response, diagnostic } = transcript;
-  assert(response.id === id, "Sidecar success response id mismatch.", { method, requestId: id, responseId: response.id });
+  assert(response.id === id, "Sidecar success response id mismatch.", {
+    method,
+    requestId: id,
+    responseId: response.id,
+  });
   assert(response.ok === true, `Expected ${method} to succeed.`, {
     method,
     errorCode: response.error?.code,
@@ -586,7 +592,11 @@ function sidecarSuccess(binaryPath, id, method, params = {}, options = {}) {
   });
   assert(diagnostic.errorCode === null, "Successful diagnostic should not include errorCode.", { method });
   assert(diagnostic.detailRef === null, "Successful diagnostic should not include detailRef.", { method });
-  assert(response.result && typeof response.result === "object" && !Array.isArray(response.result), "Success response result must be an object.", { method });
+  assert(
+    response.result && typeof response.result === "object" && !Array.isArray(response.result),
+    "Success response result must be an object.",
+    { method },
+  );
   return { ...transcript, result: response.result };
 }
 
@@ -596,7 +606,10 @@ function sidecarError(binaryPath, id, method, params = {}, options = {}) {
   assert(response.id === id, "Sidecar error response id mismatch.", { method, requestId: id, responseId: response.id });
   assert(response.ok === false, `Expected ${method} to fail safely.`, { method });
   assert(response.error && typeof response.error === "object", "Sidecar error response is missing error.", { method });
-  assert(diagnostic.status === "error", "Sidecar diagnostic did not report error status.", { method, status: diagnostic.status });
+  assert(diagnostic.status === "error", "Sidecar diagnostic did not report error status.", {
+    method,
+    status: diagnostic.status,
+  });
   assert(diagnostic.errorCode === response.error.code, "Diagnostic errorCode did not match response error code.", {
     method,
     responseCode: response.error.code,
@@ -607,10 +620,14 @@ function sidecarError(binaryPath, id, method, params = {}, options = {}) {
     responseDetailRef: response.error.detailRef,
     diagnosticDetailRef: diagnostic.detailRef,
   });
-  assert(typeof response.error.detailRef === "string" && response.error.detailRef.startsWith("sidecar-"), "Sidecar error did not include an opaque detailRef.", {
-    method,
-    detailRef: response.error.detailRef,
-  });
+  assert(
+    typeof response.error.detailRef === "string" && response.error.detailRef.startsWith("sidecar-"),
+    "Sidecar error did not include an opaque detailRef.",
+    {
+      method,
+      detailRef: response.error.detailRef,
+    },
+  );
   return { ...transcript, error: response.error };
 }
 
@@ -619,7 +636,13 @@ function makeRequestId(label) {
 }
 
 function safeLabel(label) {
-  return String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "case";
+  return (
+    String(label)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 60) || "case"
+  );
 }
 
 function makeTempRoot(prefix) {
@@ -629,11 +652,13 @@ function makeTempRoot(prefix) {
 }
 
 function isSafeRelativeStoragePath(value) {
-  return typeof value === "string"
-    && value.startsWith("profile-store/profiles/")
-    && value.endsWith("/user-data")
-    && !value.startsWith("/")
-    && !value.includes("..");
+  return (
+    typeof value === "string" &&
+    value.startsWith("profile-store/profiles/") &&
+    value.endsWith("/user-data") &&
+    !value.startsWith("/") &&
+    !value.includes("..")
+  );
 }
 
 function assertProfileShape(profile, expectedName) {
@@ -648,30 +673,59 @@ function assertProfileShape(profile, expectedName) {
 }
 
 function assertPresetList(result) {
-  assert(result.identityVersion === 2, "Preset list did not return identityVersion 2.", { identityVersion: result.identityVersion });
+  assert(result.identityVersion === 2, "Preset list did not return identityVersion 2.", {
+    identityVersion: result.identityVersion,
+  });
   assert(Array.isArray(result.presets), "Preset list did not return an array.");
   const preset = result.presets.find((item) => item?.presetId === PRESET_ID);
-  assert(preset, "Preset list did not include the S05 curated CDP proof preset.", { presetId: PRESET_ID, presetCount: result.presets.length });
+  assert(preset, "Preset list did not include the S05 curated CDP proof preset.", {
+    presetId: PRESET_ID,
+    presetCount: result.presets.length,
+  });
   return preset;
 }
 
 function assertAppliedIdentity(result, profile, preset) {
-  assert([4, 5].includes(result.storeVersion), "Identity apply did not preserve store v4.", { storeVersion: result.storeVersion });
-  assert(Array.isArray(result.warnings) && result.warnings.length === 0, "Curated identity preset should apply without warnings.", {
-    warnings: result.warnings,
+  assert([4, 5].includes(result.storeVersion), "Identity apply did not preserve store v4.", {
+    storeVersion: result.storeVersion,
   });
-  assert(result.profile?.id === profile.id, "Identity apply profile id mismatch.", { profileId: result.profile?.id, expectedProfileId: profile.id });
-  assert(result.profile?.identity?.presetId === PRESET_ID, "Identity apply did not persist preset id.", { presetId: result.profile?.identity?.presetId });
-  assert(JSON.stringify(result.profile.identity) === JSON.stringify(preset), "Persisted identity does not match preset payload.", { presetId: PRESET_ID });
+  assert(
+    Array.isArray(result.warnings) && result.warnings.length === 0,
+    "Curated identity preset should apply without warnings.",
+    {
+      warnings: result.warnings,
+    },
+  );
+  assert(result.profile?.id === profile.id, "Identity apply profile id mismatch.", {
+    profileId: result.profile?.id,
+    expectedProfileId: profile.id,
+  });
+  assert(result.profile?.identity?.presetId === PRESET_ID, "Identity apply did not persist preset id.", {
+    presetId: result.profile?.identity?.presetId,
+  });
+  assert(
+    JSON.stringify(result.profile.identity) === JSON.stringify(preset),
+    "Persisted identity does not match preset payload.",
+    { presetId: PRESET_ID },
+  );
   return result.profile.identity;
 }
 
 function assertProxySummary(proxy, expected) {
   assert(proxy?.proxyVersion === 1, "Proxy summary did not report proxyVersion 1.");
   assert(proxy.mode === "fixedServer", "Proxy summary did not report fixedServer mode.", { mode: proxy.mode });
-  assert(proxy.protocol === expected.protocol, "Proxy summary protocol mismatch.", { protocol: proxy.protocol, expectedProtocol: expected.protocol });
-  assert(proxy.host === expected.host, "Proxy summary host mismatch.", { host: proxy.host, expectedHost: expected.host });
-  assert(proxy.port === expected.port, "Proxy summary port mismatch.", { port: proxy.port, expectedPort: expected.port });
+  assert(proxy.protocol === expected.protocol, "Proxy summary protocol mismatch.", {
+    protocol: proxy.protocol,
+    expectedProtocol: expected.protocol,
+  });
+  assert(proxy.host === expected.host, "Proxy summary host mismatch.", {
+    host: proxy.host,
+    expectedHost: expected.host,
+  });
+  assert(proxy.port === expected.port, "Proxy summary port mismatch.", {
+    port: proxy.port,
+    expectedPort: expected.port,
+  });
   assert(proxy.credentialState === expected.credentialState, "Proxy credential state mismatch.", {
     credentialState: proxy.credentialState,
     expectedCredentialState: expected.credentialState,
@@ -682,27 +736,59 @@ function assertProxySummary(proxy, expected) {
 }
 
 function assertRunningPayload(payload, profile) {
-  assert(payload.profileId === profile.id, "Chromium running payload profile id mismatch.", { profileId: payload.profileId, expectedProfileId: profile.id });
+  assert(payload.profileId === profile.id, "Chromium running payload profile id mismatch.", {
+    profileId: payload.profileId,
+    expectedProfileId: profile.id,
+  });
   assert(payload.status === "running", "Chromium payload did not report running.", { status: payload.status });
-  assert(Number.isInteger(payload.pid) && payload.pid > 0, "Chromium running payload is missing positive pid.", { pid: payload.pid });
-  assert(typeof payload.startedAt === "string" && payload.startedAt.endsWith("Z"), "Chromium running payload is missing startedAt.", { startedAt: payload.startedAt });
-  assert(payload.userDataDir === profile.storage.userDataDir, "Chromium running userDataDir mismatch.", { userDataDir: payload.userDataDir, expectedUserDataDir: profile.storage.userDataDir });
+  assert(Number.isInteger(payload.pid) && payload.pid > 0, "Chromium running payload is missing positive pid.", {
+    pid: payload.pid,
+  });
+  assert(
+    typeof payload.startedAt === "string" && payload.startedAt.endsWith("Z"),
+    "Chromium running payload is missing startedAt.",
+    { startedAt: payload.startedAt },
+  );
+  assert(payload.userDataDir === profile.storage.userDataDir, "Chromium running userDataDir mismatch.", {
+    userDataDir: payload.userDataDir,
+    expectedUserDataDir: profile.storage.userDataDir,
+  });
   return payload;
 }
 
 function assertStoppedPayload(payload, profile) {
-  assert(payload.profileId === profile.id, "Chromium stopped payload profile id mismatch.", { profileId: payload.profileId, expectedProfileId: profile.id });
+  assert(payload.profileId === profile.id, "Chromium stopped payload profile id mismatch.", {
+    profileId: payload.profileId,
+    expectedProfileId: profile.id,
+  });
   assert(payload.status === "stopped", "Chromium stop payload did not report stopped.", { status: payload.status });
-  assert(["graceful", "forced", "reconciled", "already-stopped"].includes(payload.termination), "Unexpected Chromium termination kind.", { termination: payload.termination });
-  assert(payload.runningCount === 0, "Chromium stop payload did not clear running count.", { runningCount: payload.runningCount });
-  assert(payload.userDataDir === profile.storage.userDataDir, "Chromium stopped userDataDir mismatch.", { userDataDir: payload.userDataDir, expectedUserDataDir: profile.storage.userDataDir });
+  assert(
+    ["graceful", "forced", "reconciled", "already-stopped"].includes(payload.termination),
+    "Unexpected Chromium termination kind.",
+    { termination: payload.termination },
+  );
+  assert(payload.runningCount === 0, "Chromium stop payload did not clear running count.", {
+    runningCount: payload.runningCount,
+  });
+  assert(payload.userDataDir === profile.storage.userDataDir, "Chromium stopped userDataDir mismatch.", {
+    userDataDir: payload.userDataDir,
+    expectedUserDataDir: profile.storage.userDataDir,
+  });
   return payload;
 }
 
 function assertStatusStopped(payload) {
-  assert(payload.runningCount === 0, "Chromium status did not report zero running profiles.", { runningCount: payload.runningCount });
-  assert(Array.isArray(payload.profiles) && payload.profiles.length === 0, "Chromium status retained running profiles.", { profiles: payload.profiles });
-  assert(Array.isArray(payload.reconciled), "Chromium status reconciled field is not an array.", { reconciled: payload.reconciled });
+  assert(payload.runningCount === 0, "Chromium status did not report zero running profiles.", {
+    runningCount: payload.runningCount,
+  });
+  assert(
+    Array.isArray(payload.profiles) && payload.profiles.length === 0,
+    "Chromium status retained running profiles.",
+    { profiles: payload.profiles },
+  );
+  assert(Array.isArray(payload.reconciled), "Chromium status reconciled field is not an array.", {
+    reconciled: payload.reconciled,
+  });
   return payload;
 }
 
@@ -721,7 +807,10 @@ function readJsonIfExists(path, fallback = null) {
   try {
     return JSON.parse(text);
   } catch (error) {
-    fail("Expected JSON file was malformed.", { path: relative(ROOT_DIR, path), error: error instanceof Error ? error.message : String(error) });
+    fail("Expected JSON file was malformed.", {
+      path: relative(ROOT_DIR, path),
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -745,9 +834,16 @@ function profileStorePath(storeRoot) {
 
 function assertRuntimeRegistryEmpty(storeRoot) {
   const payload = readJsonIfExists(runtimeRegistryPath(storeRoot), { registryVersion: 1, processes: {} });
-  assert(payload.registryVersion === 1, "Runtime registry version mismatch after cleanup.", { registryVersion: payload.registryVersion });
-  assert(payload.processes && typeof payload.processes === "object" && !Array.isArray(payload.processes), "Runtime registry processes field is invalid.");
-  assert(Object.keys(payload.processes).length === 0, "Runtime registry retained processes after cleanup.", { processCount: Object.keys(payload.processes).length });
+  assert(payload.registryVersion === 1, "Runtime registry version mismatch after cleanup.", {
+    registryVersion: payload.registryVersion,
+  });
+  assert(
+    payload.processes && typeof payload.processes === "object" && !Array.isArray(payload.processes),
+    "Runtime registry processes field is invalid.",
+  );
+  assert(Object.keys(payload.processes).length === 0, "Runtime registry retained processes after cleanup.", {
+    processCount: Object.keys(payload.processes).length,
+  });
   return { processCount: 0 };
 }
 
@@ -757,15 +853,32 @@ function assertPrivateProfileStoreSafe(storeRoot, profileId, expectedProxy) {
   const text = readFileSync(path, "utf8");
   assertNoPrivateStoreRuntimeLeaks("profiles.json", text);
   const payload = JSON.parse(text);
-  assert([4, 5].includes(payload.storeVersion), "profiles.json did not remain store v4.", { storeVersion: payload.storeVersion });
+  assert([4, 5].includes(payload.storeVersion), "profiles.json did not remain store v4.", {
+    storeVersion: payload.storeVersion,
+  });
   const profile = payload.profiles.find((item) => item?.id === profileId);
   assert(profile, "profiles.json does not contain the proof profile.", { profileId });
-  assert(profile.proxy?.protocol === expectedProxy.protocol, "Persisted proxy protocol mismatch.", { protocol: profile.proxy?.protocol, expectedProtocol: expectedProxy.protocol });
-  assert(profile.proxy?.host === expectedProxy.host, "Persisted proxy host mismatch.", { host: profile.proxy?.host, expectedHost: expectedProxy.host });
-  assert(profile.proxy?.port === expectedProxy.port, "Persisted proxy port mismatch.", { port: profile.proxy?.port, expectedPort: expectedProxy.port });
+  assert(profile.proxy?.protocol === expectedProxy.protocol, "Persisted proxy protocol mismatch.", {
+    protocol: profile.proxy?.protocol,
+    expectedProtocol: expectedProxy.protocol,
+  });
+  assert(profile.proxy?.host === expectedProxy.host, "Persisted proxy host mismatch.", {
+    host: profile.proxy?.host,
+    expectedHost: expectedProxy.host,
+  });
+  assert(profile.proxy?.port === expectedProxy.port, "Persisted proxy port mismatch.", {
+    port: profile.proxy?.port,
+    expectedPort: expectedProxy.port,
+  });
   const hasCredentials = Boolean(expectedProxy.credentials);
-  assert(Boolean(profile.proxy?.credentials) === hasCredentials, "Persisted proxy credential presence mismatch.", { hasCredentials });
-  const summary = { storeVersion: payload.storeVersion, profileCount: payload.profiles.length, credentialState: hasCredentials ? "private" : "none" };
+  assert(Boolean(profile.proxy?.credentials) === hasCredentials, "Persisted proxy credential presence mismatch.", {
+    hasCredentials,
+  });
+  const summary = {
+    storeVersion: payload.storeVersion,
+    profileCount: payload.profiles.length,
+    credentialState: hasCredentials ? "private" : "none",
+  };
   PROFILE_STORE_SUMMARIES.push(summary);
   return summary;
 }
@@ -787,7 +900,9 @@ function assertLaunchArgsMarkerGuard() {
     failure = error;
   }
   assert(failure instanceof VerifyFailure, "Private store marker guard missed a runtime marker inside launch.args.");
-  assert(failure.details?.marker === marker, "Private store marker guard tripped on an unexpected marker.", { marker: failure.details?.marker });
+  assert(failure.details?.marker === marker, "Private store marker guard tripped on an unexpected marker.", {
+    marker: failure.details?.marker,
+  });
   // Step results are swept against PUBLIC_FORBIDDEN_MARKERS, so the probed marker must not appear in this summary.
   return { guard: "private-store-runtime-markers", probe: "launch.args", tripped: true };
 }
@@ -799,26 +914,47 @@ function parseDiagnosticsLog(storeRoot) {
   }
   const text = readFileSync(path, "utf8");
   assertNoPublicLeaks("diagnostics log", text);
-  return text.split(/\r?\n/).filter(Boolean).map((line, index) => {
-    try {
-      const entry = JSON.parse(line);
-      assertDiagnosticEntrySafe(entry, index + 1);
-      return entry;
-    } catch (error) {
-      if (error instanceof VerifyFailure) {
-        throw error;
+  return text
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line, index) => {
+      try {
+        const entry = JSON.parse(line);
+        assertDiagnosticEntrySafe(entry, index + 1);
+        return entry;
+      } catch (error) {
+        if (error instanceof VerifyFailure) {
+          throw error;
+        }
+        fail("Persisted diagnostic line is not valid JSON.", {
+          lineNumber: index + 1,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
-      fail("Persisted diagnostic line is not valid JSON.", { lineNumber: index + 1, error: error instanceof Error ? error.message : String(error) });
-    }
-  });
+    });
 }
 
 function assertDiagnosticEntrySafe(entry, lineNumber) {
-  const allowedKeys = new Set(["schemaVersion", "ts", "source", "event", "status", "logPath", "requestId", "method", "durationMs", "errorCode", "detailRef"]);
+  const allowedKeys = new Set([
+    "schemaVersion",
+    "ts",
+    "source",
+    "event",
+    "status",
+    "logPath",
+    "requestId",
+    "method",
+    "durationMs",
+    "errorCode",
+    "detailRef",
+  ]);
   for (const key of Object.keys(entry)) {
     assert(allowedKeys.has(key), "Persisted diagnostic contained an unexpected field.", { lineNumber, key });
   }
-  assert(entry.event === "sidecar.request", "Persisted diagnostic event name changed.", { lineNumber, event: entry.event });
+  assert(entry.event === "sidecar.request", "Persisted diagnostic event name changed.", {
+    lineNumber,
+    event: entry.event,
+  });
   assert(!("params" in entry), "Persisted diagnostic leaked params.", { lineNumber });
 }
 
@@ -834,19 +970,37 @@ function lookupDiagnosticDetail(storeRoot, detailRef) {
 function assertDiagnosticLookup(storeRoot, detailRef, expected) {
   const lookup = lookupDiagnosticDetail(storeRoot, detailRef);
   assert(lookup.found === true, "Diagnostic lookup did not find the expected detailRef.", { detailRef, expected });
-  assert(lookup.entries.length === 1, "Diagnostic lookup did not return exactly one matching row.", { detailRef, count: lookup.entries.length });
+  assert(lookup.entries.length === 1, "Diagnostic lookup did not return exactly one matching row.", {
+    detailRef,
+    count: lookup.entries.length,
+  });
   const entry = lookup.entries[0];
-  assert(entry.requestId === expected.requestId, "Diagnostic lookup requestId mismatch.", { requestId: entry.requestId, expectedRequestId: expected.requestId });
-  assert(entry.method === expected.method, "Diagnostic lookup method mismatch.", { method: entry.method, expectedMethod: expected.method });
-  assert(entry.status === expected.status, "Diagnostic lookup status mismatch.", { status: entry.status, expectedStatus: expected.status });
-  assert(entry.errorCode === expected.errorCode, "Diagnostic lookup errorCode mismatch.", { errorCode: entry.errorCode, expectedErrorCode: expected.errorCode });
+  assert(entry.requestId === expected.requestId, "Diagnostic lookup requestId mismatch.", {
+    requestId: entry.requestId,
+    expectedRequestId: expected.requestId,
+  });
+  assert(entry.method === expected.method, "Diagnostic lookup method mismatch.", {
+    method: entry.method,
+    expectedMethod: expected.method,
+  });
+  assert(entry.status === expected.status, "Diagnostic lookup status mismatch.", {
+    status: entry.status,
+    expectedStatus: expected.status,
+  });
+  assert(entry.errorCode === expected.errorCode, "Diagnostic lookup errorCode mismatch.", {
+    errorCode: entry.errorCode,
+    expectedErrorCode: expected.errorCode,
+  });
   return { detailRef, errorCode: entry.errorCode, method: entry.method };
 }
 
 function assertNoPublicLeaks(label, value, extra = []) {
   const text = typeof value === "string" ? value : JSON.stringify(value);
   for (const sensitive of activeSensitiveValues(extra)) {
-    assert(!text.includes(sensitive), `${label} leaked a sensitive value.`, { label, leaked: sensitive === ROOT_DIR ? "repo-root" : "sentinel-or-path" });
+    assert(!text.includes(sensitive), `${label} leaked a sensitive value.`, {
+      label,
+      leaked: sensitive === ROOT_DIR ? "repo-root" : "sentinel-or-path",
+    });
   }
   for (const marker of PUBLIC_FORBIDDEN_MARKERS) {
     assert(!text.includes(marker), `${label} leaked a forbidden public marker.`, { label, marker });
@@ -868,12 +1022,27 @@ function visitPublicPayload(value, visitor, pathParts = []) {
 }
 
 function assertNoRawPublicCheckerContent(value, label) {
-  const rawContentKeys = new Set(["rawTranscript", "responseBody", "html", "content", "bodyText", "pageText", "screenshot", "dom"]);
+  const rawContentKeys = new Set([
+    "rawTranscript",
+    "responseBody",
+    "html",
+    "content",
+    "bodyText",
+    "pageText",
+    "screenshot",
+    "dom",
+  ]);
   visitPublicPayload(value, (nested, pathParts) => {
     const key = pathParts.at(-1) ?? label;
-    assert(!rawContentKeys.has(key), "Public checker surface exposed raw page content.", { label, path: pathParts.join(".") });
+    assert(!rawContentKeys.has(key), "Public checker surface exposed raw page content.", {
+      label,
+      path: pathParts.join("."),
+    });
     if (typeof nested === "string") {
-      assert(!/theprivator proxy proof/i.test(nested), "Verifier surface exposed raw fixture/public checker content.", { label, path: pathParts.join(".") });
+      assert(!/theprivator proxy proof/i.test(nested), "Verifier surface exposed raw fixture/public checker content.", {
+        label,
+        path: pathParts.join("."),
+      });
     }
   });
 }
@@ -882,7 +1051,9 @@ function assertFinalSurfaceRedacted(label, value) {
   assertNoPublicLeaks(label, value);
   assertNoRawPublicCheckerContent(value, label);
   const text = typeof value === "string" ? value : JSON.stringify(value);
-  assert(!/profile-store\/profiles\/[^"\s]+\/user-data/i.test(text), `${label} leaked a profile user-data path.`, { label });
+  assert(!/profile-store\/profiles\/[^"\s]+\/user-data/i.test(text), `${label} leaked a profile user-data path.`, {
+    label,
+  });
   assert(!/profile-store\/runtime\//i.test(text), `${label} leaked a profile runtime path.`, { label });
 }
 
@@ -986,13 +1157,20 @@ class LineProcess {
       if (error instanceof VerifyFailure) {
         throw error;
       }
-      fail(`${this.label} emitted malformed JSON.`, { lineTail: normalizeOutput(line), error: error instanceof Error ? error.message : String(error) });
+      fail(`${this.label} emitted malformed JSON.`, {
+        lineTail: normalizeOutput(line),
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
   send(payload) {
     if (this.exited) {
-      fail(`${this.label} is not running.`, { exitCode: this.exitCode, signal: this.exitSignal, stderrTail: normalizeOutput(this.stderr) });
+      fail(`${this.label} is not running.`, {
+        exitCode: this.exitCode,
+        signal: this.exitSignal,
+        stderrTail: normalizeOutput(this.stderr),
+      });
     }
     this.child.stdin.write(`${JSON.stringify(payload)}\n`);
   }
@@ -1018,7 +1196,10 @@ class LineProcess {
       if (error instanceof VerifyFailure) {
         throw error;
       }
-      fail(`${this.label} cleanup failed.`, { error: error instanceof Error ? error.message : String(error), stderrTail: normalizeOutput(this.stderr) });
+      fail(`${this.label} cleanup failed.`, {
+        error: error instanceof Error ? error.message : String(error),
+        stderrTail: normalizeOutput(this.stderr),
+      });
     }
   }
 }
@@ -1045,7 +1226,11 @@ async function startProxyFixture(config) {
   const lineProcess = new LineProcess(child, `proxy fixture ${config.label}`);
   lineProcess.send(config);
   const ready = await lineProcess.readJson(FIXURE_READY_TIMEOUT_SAFE());
-  assert(ready.ok === true, "Proxy fixture did not become ready.", { label: config.label, error: ready.error, stderrTail: normalizeOutput(lineProcess.stderr) });
+  assert(ready.ok === true, "Proxy fixture did not become ready.", {
+    label: config.label,
+    error: ready.error,
+    stderrTail: normalizeOutput(lineProcess.stderr),
+  });
   assert(ready.proxy?.mode === "fixedServer", "Proxy fixture ready payload was malformed.", { ready });
   return {
     label: config.label,
@@ -1092,9 +1277,17 @@ function runPythonJson(name, code, input, timeoutMs, extraSensitive = []) {
   const sensitive = activeSensitiveValues(extraSensitive);
   if (result.error) {
     if (result.error.code === "ETIMEDOUT") {
-      fail(`${name} timed out.`, { timeoutMs, stdoutTail: normalizeOutput(result.stdout, sensitive), stderrTail: normalizeOutput(result.stderr, sensitive) });
+      fail(`${name} timed out.`, {
+        timeoutMs,
+        stdoutTail: normalizeOutput(result.stdout, sensitive),
+        stderrTail: normalizeOutput(result.stderr, sensitive),
+      });
     }
-    fail(`${name} failed.`, { error: result.error.message, stdoutTail: normalizeOutput(result.stdout, sensitive), stderrTail: normalizeOutput(result.stderr, sensitive) });
+    fail(`${name} failed.`, {
+      error: result.error.message,
+      stdoutTail: normalizeOutput(result.stdout, sensitive),
+      stderrTail: normalizeOutput(result.stderr, sensitive),
+    });
   }
   assertNoPublicLeaks(`${name} stdout/stderr`, `${result.stdout}\n${result.stderr}`, sensitive);
   const [payload] = parseNdjsonLines(`${name} stdout`, result.stdout, 1, sensitive);
@@ -1102,7 +1295,10 @@ function runPythonJson(name, code, input, timeoutMs, extraSensitive = []) {
     return { ...payload, exitCode: result.status, stderr: result.stderr, stdout: result.stdout };
   }
   if (result.status !== 0) {
-    fail(`${name} exited with status ${result.status ?? "unknown"}.`, { stdoutTail: normalizeOutput(result.stdout, sensitive), stderrTail: normalizeOutput(result.stderr, sensitive) });
+    fail(`${name} exited with status ${result.status ?? "unknown"}.`, {
+      stdoutTail: normalizeOutput(result.stdout, sensitive),
+      stderrTail: normalizeOutput(result.stderr, sensitive),
+    });
   }
   return { ...payload, stdout: result.stdout, stderr: result.stderr };
 }
@@ -1131,14 +1327,27 @@ function runIdentityProof(userDataPathValue) {
   });
   if (result.error) {
     if (result.error.code === "ETIMEDOUT") {
-      fail("Identity proof collector timed out.", { timeoutMs: PROOF_TIMEOUT_MS, stdoutTail: normalizeOutput(result.stdout), stderrTail: normalizeOutput(result.stderr) });
+      fail("Identity proof collector timed out.", {
+        timeoutMs: PROOF_TIMEOUT_MS,
+        stdoutTail: normalizeOutput(result.stdout),
+        stderrTail: normalizeOutput(result.stderr),
+      });
     }
-    fail("Identity proof collector failed.", { error: result.error.message, stdoutTail: normalizeOutput(result.stdout), stderrTail: normalizeOutput(result.stderr) });
+    fail("Identity proof collector failed.", {
+      error: result.error.message,
+      stdoutTail: normalizeOutput(result.stdout),
+      stderrTail: normalizeOutput(result.stderr),
+    });
   }
   assertNoPublicLeaks("identity proof stdout/stderr", `${result.stdout}\n${result.stderr}`, [userDataPathValue]);
   const [payload] = parseNdjsonLines("identity proof stdout", result.stdout, 1, [userDataPathValue]);
   if (result.status !== 0 || payload.ok !== true) {
-    fail("Identity proof collector failed.", { exitCode: result.status, errorCode: payload.error?.code, detailRef: payload.error?.detailRef, message: payload.error?.message });
+    fail("Identity proof collector failed.", {
+      exitCode: result.status,
+      errorCode: payload.error?.code,
+      detailRef: payload.error?.detailRef,
+      message: payload.error?.message,
+    });
   }
   assert(payload.proof && typeof payload.proof === "object", "Identity proof collector returned no proof payload.");
   return { proof: payload.proof, stdout: result.stdout, stderr: result.stderr };
@@ -1151,7 +1360,9 @@ function assertRepresentativeIdentityProof(proof, identity) {
   assert(proof.locale?.timezone === identity.locale.timezoneId, "Identity proof timezone mismatch.");
   assert(proof.viewport?.innerWidth === identity.screen.viewportWidth, "Identity proof viewport width mismatch.");
   assert(proof.webgl?.vendor === identity.webgl.vendor, "Identity proof WebGL vendor mismatch.");
-  assert(proof.webrtc?.icePolicy === "relay", "Identity proof did not preserve non-proxied UDP WebRTC policy.", { webrtc: proof.webrtc });
+  assert(proof.webrtc?.icePolicy === "relay", "Identity proof did not preserve non-proxied UDP WebRTC policy.", {
+    webrtc: proof.webrtc,
+  });
   assertNoPublicLeaks("identity proof payload", JSON.stringify(proof));
   return {
     userAgent: "matched",
@@ -1165,7 +1376,9 @@ function assertRepresentativeIdentityProof(proof, identity) {
 
 function findGeneratedExtension(root, requiredFiles) {
   assert(existsSync(root), "Expected extension root was not generated.");
-  const children = readdirSync(root, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.name.startsWith("."));
+  const children = readdirSync(root, { withFileTypes: true }).filter(
+    (entry) => entry.isDirectory() && !entry.name.startsWith("."),
+  );
   assert(children.length >= 1, "Expected extension root did not contain generated extension directories.");
   const extensionDir = join(root, children[0].name);
   rememberSensitive(extensionDir);
@@ -1182,8 +1395,16 @@ function assertCompositeArtifacts(storeRoot, profileId) {
   rememberSensitive(identityRoot);
   rememberSensitive(proxyRoot);
   return {
-    identityExtension: findGeneratedExtension(identityRoot, ["manifest.json", "identity_config.js", "identity_protector.js"]),
-    proxyAuthExtension: findGeneratedExtension(proxyRoot, ["manifest.json", "proxy_auth_config.js", "proxy_auth_worker.js"]),
+    identityExtension: findGeneratedExtension(identityRoot, [
+      "manifest.json",
+      "identity_config.js",
+      "identity_protector.js",
+    ]),
+    proxyAuthExtension: findGeneratedExtension(proxyRoot, [
+      "manifest.json",
+      "proxy_auth_config.js",
+      "proxy_auth_worker.js",
+    ]),
   };
 }
 
@@ -1191,7 +1412,11 @@ function assertNoRuntimeArtifacts(storeRoot, label) {
   const runtimeRoot = join(storeRoot, "profile-store", "runtime");
   const identityRoot = join(runtimeRoot, "identity-extensions");
   const proxyRoot = join(runtimeRoot, "proxy-auth-extensions");
-  assert(!existsSync(runtimeRoot), `${label} created a runtime registry or extension root before the expected pre-spawn failure.`, { label, runtime: "absent" });
+  assert(
+    !existsSync(runtimeRoot),
+    `${label} created a runtime registry or extension root before the expected pre-spawn failure.`,
+    { label, runtime: "absent" },
+  );
   assert(!existsSync(identityRoot), `${label} generated identity artifacts before proxy validation failed.`, { label });
   assert(!existsSync(proxyRoot), `${label} generated proxy-auth artifacts before proxy validation failed.`, { label });
   return { runtimeRoot: "absent", identityArtifacts: "absent", proxyAuthArtifacts: "absent" };
@@ -1205,9 +1430,18 @@ function exactKeys(value, keys, label) {
 }
 
 function assertProxyCheckVocabulary(result, profile, expectedProxy) {
-  exactKeys(result, ["proxyCheckVersion", "profileId", "proxy", "routeProof", "ipHiding", "webRtc", "publicCheckers"], "proxy-check result");
-  assert(result.proxyCheckVersion === 1, "Proxy-check version changed.", { proxyCheckVersion: result.proxyCheckVersion });
-  assert(result.profileId === profile.id, "Proxy-check profile id mismatch.", { profileId: result.profileId, expectedProfileId: profile.id });
+  exactKeys(
+    result,
+    ["proxyCheckVersion", "profileId", "proxy", "routeProof", "ipHiding", "webRtc", "publicCheckers"],
+    "proxy-check result",
+  );
+  assert(result.proxyCheckVersion === 1, "Proxy-check version changed.", {
+    proxyCheckVersion: result.proxyCheckVersion,
+  });
+  assert(result.profileId === profile.id, "Proxy-check profile id mismatch.", {
+    profileId: result.profileId,
+    expectedProfileId: profile.id,
+  });
   assertProxySummary(result.proxy, {
     protocol: expectedProxy.protocol,
     host: expectedProxy.host,
@@ -1215,24 +1449,64 @@ function assertProxyCheckVocabulary(result, profile, expectedProxy) {
     credentialState: expectedProxy.credentials ? "configured" : "none",
   });
 
-  exactKeys(result.routeProof, ["status", "basis", "scope", "protocol", "credentialState", "durationMs", "fixture", "target", "directFallbackDetected", "observationCounts"], "routeProof");
+  exactKeys(
+    result.routeProof,
+    [
+      "status",
+      "basis",
+      "scope",
+      "protocol",
+      "credentialState",
+      "durationMs",
+      "fixture",
+      "target",
+      "directFallbackDetected",
+      "observationCounts",
+    ],
+    "routeProof",
+  );
   assert(result.routeProof.status === "proved", "routeProof status mismatch.", { status: result.routeProof.status });
-  assert(result.routeProof.directFallbackDetected === false, "routeProof detected direct fallback.", { directFallbackDetected: result.routeProof.directFallbackDetected });
-  assert(result.routeProof.credentialState === "configured", "routeProof credential state mismatch.", { credentialState: result.routeProof.credentialState });
-  assert(result.routeProof.protocol === expectedProxy.protocol, "routeProof protocol mismatch.", { protocol: result.routeProof.protocol, expectedProtocol: expectedProxy.protocol });
-  assert(result.routeProof.observationCounts?.proxy > 0 && result.routeProof.observationCounts?.target > 0, "routeProof observation counts must be positive.", { observationCounts: result.routeProof.observationCounts });
+  assert(result.routeProof.directFallbackDetected === false, "routeProof detected direct fallback.", {
+    directFallbackDetected: result.routeProof.directFallbackDetected,
+  });
+  assert(result.routeProof.credentialState === "configured", "routeProof credential state mismatch.", {
+    credentialState: result.routeProof.credentialState,
+  });
+  assert(result.routeProof.protocol === expectedProxy.protocol, "routeProof protocol mismatch.", {
+    protocol: result.routeProof.protocol,
+    expectedProtocol: expectedProxy.protocol,
+  });
+  assert(
+    result.routeProof.observationCounts?.proxy > 0 && result.routeProof.observationCounts?.target > 0,
+    "routeProof observation counts must be positive.",
+    { observationCounts: result.routeProof.observationCounts },
+  );
 
-  exactKeys(result.ipHiding, ["status", "basis", "scope", "publicExitIpClaimed", "publicExitIp", "localFixtureConclusion"], "ipHiding");
+  exactKeys(
+    result.ipHiding,
+    ["status", "basis", "scope", "publicExitIpClaimed", "publicExitIp", "localFixtureConclusion"],
+    "ipHiding",
+  );
   assert(result.ipHiding.status === "proved", "ipHiding status mismatch.", { status: result.ipHiding.status });
-  assert(result.ipHiding.publicExitIpClaimed === false, "ipHiding must not claim a public exit IP.", { publicExitIpClaimed: result.ipHiding.publicExitIpClaimed });
+  assert(result.ipHiding.publicExitIpClaimed === false, "ipHiding must not claim a public exit IP.", {
+    publicExitIpClaimed: result.ipHiding.publicExitIpClaimed,
+  });
 
   exactKeys(result.webRtc, ["status", "basis", "mode", "policy", "localIpExposure"], "webRtc");
   assert(result.webRtc.status === "restricted", "webRtc status mismatch.", { status: result.webRtc.status });
-  assert(result.webRtc.localIpExposure === "non-proxied-udp-disabled", "webRtc local IP exposure mismatch.", { localIpExposure: result.webRtc.localIpExposure });
+  assert(result.webRtc.localIpExposure === "non-proxied-udp-disabled", "webRtc local IP exposure mismatch.", {
+    localIpExposure: result.webRtc.localIpExposure,
+  });
 
   exactKeys(result.publicCheckers, ["status", "basis", "networkDependency", "pages"], "publicCheckers");
-  assert(result.publicCheckers.status === "advisory-only", "publicCheckers status mismatch.", { status: result.publicCheckers.status });
-  assert(Array.isArray(result.publicCheckers.pages) && result.publicCheckers.pages.length >= 1, "publicCheckers pages missing.", { pageCount: result.publicCheckers.pages?.length });
+  assert(result.publicCheckers.status === "advisory-only", "publicCheckers status mismatch.", {
+    status: result.publicCheckers.status,
+  });
+  assert(
+    Array.isArray(result.publicCheckers.pages) && result.publicCheckers.pages.length >= 1,
+    "publicCheckers pages missing.",
+    { pageCount: result.publicCheckers.pages?.length },
+  );
   for (const page of result.publicCheckers.pages) {
     exactKeys(page, ["id", "label", "url", "surfaces", "advisory"], `publicCheckers.${page?.id ?? "page"}`);
   }
@@ -1246,16 +1520,40 @@ function assertProxyCheckVocabulary(result, profile, expectedProxy) {
 }
 
 function assertSuccessfulProxyProof(caseConfig, navigation, observations) {
-  assert(navigation.ok === true, "Proxy navigation failed for a supported case.", { caseLabel: caseConfig.label, navigation });
-  assert(navigation.navigation?.status === "navigated", "Proxy navigation did not report navigated.", { caseLabel: caseConfig.label, navigation: navigation.navigation });
-  assert(navigation.navigation?.marker === "present", "Proxy target marker was not observed through CDP.", { caseLabel: caseConfig.label, navigation: navigation.navigation });
+  assert(navigation.ok === true, "Proxy navigation failed for a supported case.", {
+    caseLabel: caseConfig.label,
+    navigation,
+  });
+  assert(navigation.navigation?.status === "navigated", "Proxy navigation did not report navigated.", {
+    caseLabel: caseConfig.label,
+    navigation: navigation.navigation,
+  });
+  assert(navigation.navigation?.marker === "present", "Proxy target marker was not observed through CDP.", {
+    caseLabel: caseConfig.label,
+    navigation: navigation.navigation,
+  });
   const accepted = observations.proxy.filter((item) => item?.status === "accepted");
-  assert(accepted.length >= 1, "Proxy fixture did not observe an accepted routed request.", { caseLabel: caseConfig.label, observations });
-  assert(observations.target.some((item) => Number(item?.status) === 200), "Target fixture did not observe the proof request.", { caseLabel: caseConfig.label, observations });
+  assert(accepted.length >= 1, "Proxy fixture did not observe an accepted routed request.", {
+    caseLabel: caseConfig.label,
+    observations,
+  });
+  assert(
+    observations.target.some((item) => Number(item?.status) === 200),
+    "Target fixture did not observe the proof request.",
+    { caseLabel: caseConfig.label, observations },
+  );
   if (caseConfig.profileCredentials) {
-    assert(accepted.some((item) => item?.auth === "accepted"), "Credentialed proxy case never observed accepted proxy authentication.", { caseLabel: caseConfig.label, observations });
+    assert(
+      accepted.some((item) => item?.auth === "accepted"),
+      "Credentialed proxy case never observed accepted proxy authentication.",
+      { caseLabel: caseConfig.label, observations },
+    );
   } else {
-    assert(!observations.proxy.some((item) => item?.status === "auth-failed"), "No-auth proxy case unexpectedly observed auth failure.", { caseLabel: caseConfig.label, observations });
+    assert(
+      !observations.proxy.some((item) => item?.status === "auth-failed"),
+      "No-auth proxy case unexpectedly observed auth failure.",
+      { caseLabel: caseConfig.label, observations },
+    );
   }
   return {
     caseLabel: caseConfig.label,
@@ -1268,9 +1566,20 @@ function assertSuccessfulProxyProof(caseConfig, navigation, observations) {
 }
 
 function assertAuthFailureProof(caseConfig, navigation, observations) {
-  assert(navigation.ok === false || navigation.navigation?.marker !== "present", "Wrong credentials unexpectedly navigated to the proof target.", { caseLabel: caseConfig.label, navigation });
-  assert(observations.proxy.some((item) => item?.status === "auth-failed"), "Wrong credentials did not produce proxy auth-failed observation.", { caseLabel: caseConfig.label, observations });
-  assert(observations.target.length === 0, "Wrong credentials should not reach the target fixture.", { caseLabel: caseConfig.label, observations });
+  assert(
+    navigation.ok === false || navigation.navigation?.marker !== "present",
+    "Wrong credentials unexpectedly navigated to the proof target.",
+    { caseLabel: caseConfig.label, navigation },
+  );
+  assert(
+    observations.proxy.some((item) => item?.status === "auth-failed"),
+    "Wrong credentials did not produce proxy auth-failed observation.",
+    { caseLabel: caseConfig.label, observations },
+  );
+  assert(observations.target.length === 0, "Wrong credentials should not reach the target fixture.", {
+    caseLabel: caseConfig.label,
+    observations,
+  });
   return {
     caseLabel: caseConfig.label,
     errorCode: "PROXY_CONNECTIVITY_FAILED",
@@ -1281,9 +1590,20 @@ function assertAuthFailureProof(caseConfig, navigation, observations) {
 }
 
 function assertInvalidMappingProof(caseConfig, navigation, observations) {
-  assert(navigation.ok === false || navigation.navigation?.marker !== "present", "Invalid target mapping unexpectedly navigated to the proof target.", { caseLabel: caseConfig.label, navigation });
-  assert(observations.proxy.some((item) => item?.status === "target-unmapped" || item?.status === "connectivity-failed"), "Invalid target mapping did not produce a proxy connectivity observation.", { caseLabel: caseConfig.label, observations });
-  assert(observations.target.length === 0, "Invalid target mapping should not reach the target fixture.", { caseLabel: caseConfig.label, observations });
+  assert(
+    navigation.ok === false || navigation.navigation?.marker !== "present",
+    "Invalid target mapping unexpectedly navigated to the proof target.",
+    { caseLabel: caseConfig.label, navigation },
+  );
+  assert(
+    observations.proxy.some((item) => item?.status === "target-unmapped" || item?.status === "connectivity-failed"),
+    "Invalid target mapping did not produce a proxy connectivity observation.",
+    { caseLabel: caseConfig.label, observations },
+  );
+  assert(observations.target.length === 0, "Invalid target mapping should not reach the target fixture.", {
+    caseLabel: caseConfig.label,
+    observations,
+  });
   return {
     caseLabel: caseConfig.label,
     errorCode: "PROXY_CONNECTIVITY_FAILED",
@@ -1294,7 +1614,11 @@ function assertInvalidMappingProof(caseConfig, navigation, observations) {
 }
 
 function assertUnreachableProxyProof(caseConfig, navigation) {
-  assert(navigation.ok === false || navigation.navigation?.marker !== "present", "Unreachable proxy unexpectedly navigated to the proof target.", { caseLabel: caseConfig.label, navigation });
+  assert(
+    navigation.ok === false || navigation.navigation?.marker !== "present",
+    "Unreachable proxy unexpectedly navigated to the proof target.",
+    { caseLabel: caseConfig.label, navigation },
+  );
   return {
     caseLabel: caseConfig.label,
     errorCode: "PROXY_CONNECTIVITY_FAILED",
@@ -1305,13 +1629,13 @@ function assertUnreachableProxyProof(caseConfig, navigation) {
 
 async function createProfileWithProxy(binaryPath, storeRoot, caseConfig, proxy, preset) {
   const profileName = `S05 ${caseConfig.label}`.slice(0, 95);
-  const create = sidecarSuccess(
-    binaryPath,
-    makeRequestId(`${safeLabel(caseConfig.label)}-create`),
-    "profiles.create",
-    { storeRoot, name: profileName },
-  ).result;
-  assert([4, 5].includes(create.storeVersion), "Profile create did not return store v4.", { storeVersion: create.storeVersion });
+  const create = sidecarSuccess(binaryPath, makeRequestId(`${safeLabel(caseConfig.label)}-create`), "profiles.create", {
+    storeRoot,
+    name: profileName,
+  }).result;
+  assert([4, 5].includes(create.storeVersion), "Profile create did not return store v4.", {
+    storeVersion: create.storeVersion,
+  });
   const profile = assertProfileShape(create.profile, profileName);
 
   const applied = sidecarSuccess(
@@ -1328,8 +1652,13 @@ async function createProfileWithProxy(binaryPath, storeRoot, caseConfig, proxy, 
     "profiles.proxy.update",
     { storeRoot, profileId: profile.id, proxy },
   ).result;
-  assert([4, 5].includes(updated.storeVersion), "Proxy update did not preserve store v4.", { storeVersion: updated.storeVersion });
-  assert(updated.profile?.id === profile.id, "Proxy update profile id mismatch.", { profileId: updated.profile?.id, expectedProfileId: profile.id });
+  assert([4, 5].includes(updated.storeVersion), "Proxy update did not preserve store v4.", {
+    storeVersion: updated.storeVersion,
+  });
+  assert(updated.profile?.id === profile.id, "Proxy update profile id mismatch.", {
+    profileId: updated.profile?.id,
+    expectedProfileId: profile.id,
+  });
   assertProxySummary(updated.profile.proxy, {
     protocol: proxy.protocol,
     host: proxy.host,
@@ -1380,7 +1709,12 @@ async function runFixtureBackedCase(binaryPath, preset, caseConfig) {
   let launched = false;
   const transcriptsBefore = ALL_TRANSCRIPTS.length;
   try {
-    emit({ phase: "case-start", caseLabel: caseConfig.label, fixtureKind: caseConfig.kind, expectation: caseConfig.expectation });
+    emit({
+      phase: "case-start",
+      caseLabel: caseConfig.label,
+      fixtureKind: caseConfig.kind,
+      expectation: caseConfig.expectation,
+    });
     const targetHost = caseConfig.targetHost ?? TARGET_HOST;
     const targetPort = caseConfig.targetPort ?? 80;
     fixture = await startProxyFixture({
@@ -1401,7 +1735,13 @@ async function runFixtureBackedCase(binaryPath, preset, caseConfig) {
     if (certificateTrust?.spkiSha256) {
       rememberSensitive(certificateTrust.spkiSha256);
     }
-    const { profile: createdProfile, identity } = await createProfileWithProxy(binaryPath, storeRoot, caseConfig, proxy, preset);
+    const { profile: createdProfile, identity } = await createProfileWithProxy(
+      binaryPath,
+      storeRoot,
+      caseConfig,
+      proxy,
+      preset,
+    );
     profile = createdProfile;
     const launchEnv = {};
     if (certificateTrust?.spkiSha256) {
@@ -1433,7 +1773,9 @@ async function runFixtureBackedCase(binaryPath, preset, caseConfig) {
           return items.proxy.some((item) => item?.status === "auth-failed");
         }
         if (caseConfig.expectation === "invalid-mapping") {
-          return items.proxy.some((item) => item?.status === "target-unmapped" || item?.status === "connectivity-failed");
+          return items.proxy.some(
+            (item) => item?.status === "target-unmapped" || item?.status === "connectivity-failed",
+          );
         }
         return items.proxy.length > 0 || items.target.length > 0;
       },
@@ -1452,7 +1794,10 @@ async function runFixtureBackedCase(binaryPath, preset, caseConfig) {
       proof = assertInvalidMappingProof(caseConfig, navigation, observations);
       emit({ phase: "connectivity-failure-observed", ...proof, status: "pass" });
     } else {
-      fail("Unknown fixture-backed proxy case expectation.", { caseLabel: caseConfig.label, expectation: caseConfig.expectation });
+      fail("Unknown fixture-backed proxy case expectation.", {
+        caseLabel: caseConfig.label,
+        expectation: caseConfig.expectation,
+      });
     }
 
     launched = false;
@@ -1468,21 +1813,69 @@ async function runFixtureBackedCase(binaryPath, preset, caseConfig) {
       { timeoutMs: CHROMIUM_LAUNCH_TIMEOUT_MS },
     ).result;
     const proxyVocabulary = assertProxyCheckVocabulary(proxyCheck, profile, proxy);
-    emit({ phase: "routeProof", caseLabel: caseConfig.label, status: "pass", proofStatus: proxyVocabulary.routeProof.status, observationCounts: proxyVocabulary.routeProof.observationCounts });
-    emit({ phase: "ipHiding", caseLabel: caseConfig.label, status: "pass", proofStatus: proxyVocabulary.ipHiding.status, publicExitIpClaimed: proxyVocabulary.ipHiding.publicExitIpClaimed });
-    emit({ phase: "webRtc", caseLabel: caseConfig.label, status: "pass", proofStatus: proxyVocabulary.webRtc.status, localIpExposure: proxyVocabulary.webRtc.localIpExposure });
-    emit({ phase: "publicCheckers", caseLabel: caseConfig.label, status: "pass", proofStatus: proxyVocabulary.publicCheckers.status, pageCount: proxyVocabulary.publicCheckers.pageCount });
+    emit({
+      phase: "routeProof",
+      caseLabel: caseConfig.label,
+      status: "pass",
+      proofStatus: proxyVocabulary.routeProof.status,
+      observationCounts: proxyVocabulary.routeProof.observationCounts,
+    });
+    emit({
+      phase: "ipHiding",
+      caseLabel: caseConfig.label,
+      status: "pass",
+      proofStatus: proxyVocabulary.ipHiding.status,
+      publicExitIpClaimed: proxyVocabulary.ipHiding.publicExitIpClaimed,
+    });
+    emit({
+      phase: "webRtc",
+      caseLabel: caseConfig.label,
+      status: "pass",
+      proofStatus: proxyVocabulary.webRtc.status,
+      localIpExposure: proxyVocabulary.webRtc.localIpExposure,
+    });
+    emit({
+      phase: "publicCheckers",
+      caseLabel: caseConfig.label,
+      status: "pass",
+      proofStatus: proxyVocabulary.publicCheckers.status,
+      pageCount: proxyVocabulary.publicCheckers.pageCount,
+    });
     const profileStore = assertPrivateProfileStoreSafe(storeRoot, profile.id, proxy);
     const diagnostics = parseDiagnosticsLog(storeRoot);
-    assert(diagnostics.some((entry) => entry.requestId === checkRequestId && entry.method === "profiles.proxy.check" && entry.status === "ok"), "Proxy-check success diagnostic was not persisted.", { requestId: checkRequestId, diagnosticCount: diagnostics.length });
+    assert(
+      diagnostics.some(
+        (entry) =>
+          entry.requestId === checkRequestId && entry.method === "profiles.proxy.check" && entry.status === "ok",
+      ),
+      "Proxy-check success diagnostic was not persisted.",
+      { requestId: checkRequestId, diagnosticCount: diagnostics.length },
+    );
     const caseTranscripts = ALL_TRANSCRIPTS.slice(transcriptsBefore);
     assertTranscriptRedaction(caseTranscripts);
     assertVerifierEventsRedacted();
     assertNoPublicLeaks("diagnostics lookup", JSON.stringify(diagnostics));
     const cleanup = { status: "pass", runningCount: status.runningCount, registry, diagnostics: diagnostics.length };
     emit({ phase: "cleanup", caseLabel: caseConfig.label, ...cleanup });
-    emit({ phase: "case-result", caseLabel: caseConfig.label, fixtureKind: caseConfig.kind, status: "pass", proof, identityProof, artifacts, profileStore, proxyVocabulary });
-    return { caseLabel: caseConfig.label, fixtureKind: caseConfig.kind, proof, identityProof, proxyVocabulary, cleanup };
+    emit({
+      phase: "case-result",
+      caseLabel: caseConfig.label,
+      fixtureKind: caseConfig.kind,
+      status: "pass",
+      proof,
+      identityProof,
+      artifacts,
+      profileStore,
+      proxyVocabulary,
+    });
+    return {
+      caseLabel: caseConfig.label,
+      fixtureKind: caseConfig.kind,
+      proof,
+      identityProof,
+      proxyVocabulary,
+      cleanup,
+    };
   } finally {
     if (launched && profile?.id) {
       try {
@@ -1514,7 +1907,12 @@ async function runUnreachableProxyCase(binaryPath, preset) {
   let launched = false;
   const transcriptsBefore = ALL_TRANSCRIPTS.length;
   try {
-    emit({ phase: "case-start", caseLabel: caseConfig.label, fixtureKind: caseConfig.kind, expectation: caseConfig.expectation });
+    emit({
+      phase: "case-start",
+      caseLabel: caseConfig.label,
+      fixtureKind: caseConfig.kind,
+      expectation: caseConfig.expectation,
+    });
     const proxy = {
       proxyVersion: 1,
       mode: "fixedServer",
@@ -1526,7 +1924,11 @@ async function runUnreachableProxyCase(binaryPath, preset) {
     profile = created.profile;
     launchProfile(binaryPath, storeRoot, profile, caseConfig);
     launched = true;
-    const navigation = runProxyNavigation(userDataPath(storeRoot, profile), `http://${TARGET_HOST}${TARGET_PATH}?case=${safeLabel(caseConfig.label)}`, caseConfig.label);
+    const navigation = runProxyNavigation(
+      userDataPath(storeRoot, profile),
+      `http://${TARGET_HOST}${TARGET_PATH}?case=${safeLabel(caseConfig.label)}`,
+      caseConfig.label,
+    );
     const proof = assertUnreachableProxyProof(caseConfig, navigation);
     emit({ phase: "connectivity-failure-observed", ...proof, status: "pass" });
     launched = false;
@@ -1560,12 +1962,10 @@ async function runSocksCredentialUnsupportedCase(binaryPath, preset) {
   try {
     emit({ phase: "case-start", caseLabel, fixtureKind: "socks5", expectation: "typed-pre-spawn-error" });
     const profileName = "S05 SOCKS auth identity unsupported";
-    const create = sidecarSuccess(
-      binaryPath,
-      makeRequestId("socks-auth-identity-create"),
-      "profiles.create",
-      { storeRoot, name: profileName },
-    ).result;
+    const create = sidecarSuccess(binaryPath, makeRequestId("socks-auth-identity-create"), "profiles.create", {
+      storeRoot,
+      name: profileName,
+    }).result;
     const profile = assertProfileShape(create.profile, profileName);
     const applied = sidecarSuccess(
       binaryPath,
@@ -1585,12 +1985,11 @@ async function runSocksCredentialUnsupportedCase(binaryPath, preset) {
         password: PROXY_PASSWORD,
       },
     };
-    sidecarSuccess(
-      binaryPath,
-      makeRequestId("socks-auth-identity-proxy"),
-      "profiles.proxy.update",
-      { storeRoot, profileId: profile.id, proxy },
-    );
+    sidecarSuccess(binaryPath, makeRequestId("socks-auth-identity-proxy"), "profiles.proxy.update", {
+      storeRoot,
+      profileId: profile.id,
+      proxy,
+    });
     const missingChromium = join(storeRoot, "missing-chromium-should-not-mask-proxy-validation");
     rememberSensitive(missingChromium);
     const launch = sidecarError(
@@ -1603,7 +2002,11 @@ async function runSocksCredentialUnsupportedCase(binaryPath, preset) {
         env: { THEPRIVATOR_CHROMIUM_PATH: missingChromium },
       },
     );
-    assert(launch.error.code === "PROXY_SOCKS_AUTH_UNSUPPORTED", "SOCKS credentials did not fail with the typed proxy error before executable discovery.", { errorCode: launch.error.code, detailRef: launch.error.detailRef });
+    assert(
+      launch.error.code === "PROXY_SOCKS_AUTH_UNSUPPORTED",
+      "SOCKS credentials did not fail with the typed proxy error before executable discovery.",
+      { errorCode: launch.error.code, detailRef: launch.error.detailRef },
+    );
     const lookup = assertDiagnosticLookup(storeRoot, launch.error.detailRef, {
       requestId: makeRequestId("socks-auth-identity-launch"),
       method: "chromium.launch",
@@ -1618,9 +2021,32 @@ async function runSocksCredentialUnsupportedCase(binaryPath, preset) {
     assertNoPublicLeaks("negative diagnostics lookup", JSON.stringify(diagnostics));
     assertTranscriptRedaction(ALL_TRANSCRIPTS.slice(transcriptsBefore));
     assertVerifierEventsRedacted();
-    emit({ phase: "typed-negative-diagnostics", caseLabel, status: "pass", method: lookup.method, errorCode: launch.error.code, detailRef: launch.error.detailRef, runtime, runtimeArtifacts, privateStore, runningCount: status.runningCount });
-    emit({ phase: "case-result", caseLabel, fixtureKind: "socks5", status: "pass", proof: { errorCode: launch.error.code, detailRef: launch.error.detailRef } });
-    return { caseLabel, errorCode: launch.error.code, detailRef: launch.error.detailRef, diagnostics: lookup, runtimeArtifacts };
+    emit({
+      phase: "typed-negative-diagnostics",
+      caseLabel,
+      status: "pass",
+      method: lookup.method,
+      errorCode: launch.error.code,
+      detailRef: launch.error.detailRef,
+      runtime,
+      runtimeArtifacts,
+      privateStore,
+      runningCount: status.runningCount,
+    });
+    emit({
+      phase: "case-result",
+      caseLabel,
+      fixtureKind: "socks5",
+      status: "pass",
+      proof: { errorCode: launch.error.code, detailRef: launch.error.detailRef },
+    });
+    return {
+      caseLabel,
+      errorCode: launch.error.code,
+      detailRef: launch.error.detailRef,
+      diagnostics: lookup,
+      runtimeArtifacts,
+    };
   } finally {
     rmSync(storeRoot, { recursive: true, force: true });
   }
@@ -1630,7 +2056,9 @@ async function runHealthAndPresetSetup(binaryPath) {
   const health = await runStep("built-sidecar-health", () => {
     const result = sidecarSuccess(binaryPath, "verify-s05-health", "health.status", {}).result;
     assert(result.status, "Built sidecar health response is missing status.");
-    assert(result.build?.mode === "pyinstaller", "verify:s05 must exercise the built sidecar binary.", { buildMode: result.build?.mode });
+    assert(result.build?.mode === "pyinstaller", "verify:s05 must exercise the built sidecar binary.", {
+      buildMode: result.build?.mode,
+    });
     return { status: result.status, buildMode: result.build.mode };
   });
 
@@ -1661,13 +2089,11 @@ async function main() {
     identityProof: true,
   };
 
-  const compositionProof = await runStep(
-    "composition-success-https-auth-identity",
-    () => runFixtureBackedCase(binaryPath, preset, compositionCase),
+  const compositionProof = await runStep("composition-success-https-auth-identity", () =>
+    runFixtureBackedCase(binaryPath, preset, compositionCase),
   );
-  const typedNegative = await runStep(
-    "typed-negative-socks-auth-identity-pre-spawn-unsupported",
-    () => runSocksCredentialUnsupportedCase(binaryPath, preset),
+  const typedNegative = await runStep("typed-negative-socks-auth-identity-pre-spawn-unsupported", () =>
+    runSocksCredentialUnsupportedCase(binaryPath, preset),
   );
 
   await runStep("launch-args-marker-guard", () => assertLaunchArgsMarkerGuard());
@@ -1703,7 +2129,9 @@ async function main() {
     redactionSweep,
     checkCount: STEP_RESULTS.length,
   };
-  assert(typedNegative.errorCode === "PROXY_SOCKS_AUTH_UNSUPPORTED", "Typed negative summary error code mismatch.", { errorCode: typedNegative.errorCode });
+  assert(typedNegative.errorCode === "PROXY_SOCKS_AUTH_UNSUPPORTED", "Typed negative summary error code mismatch.", {
+    errorCode: typedNegative.errorCode,
+  });
   assertFinalSurfaceRedacted("final verify.s05 summary", finalSummary);
   emit(finalSummary);
 }

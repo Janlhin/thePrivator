@@ -55,10 +55,12 @@ export const VERIFY_EVENT = "verify.m004.s04";
 export const PRESET_ID = "ubuntu-linux-chrome-120";
 export const PROXY_SOCKS_AUTH_UNSUPPORTED = "PROXY_SOCKS_AUTH_UNSUPPORTED";
 
-const VENV_PYTHON = process.platform === "win32"
-  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
-  : join(ROOT_DIR, ".venv", "bin", "python");
-const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === "win32" ? "python" : "python3"));
+const VENV_PYTHON =
+  process.platform === "win32"
+    ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+    : join(ROOT_DIR, ".venv", "bin", "python");
+const PYTHON =
+  process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : process.platform === "win32" ? "python" : "python3");
 const READINESS_TIMEOUT_MS = 10_000;
 const HTTP_TIMEOUT_MS = 5_000;
 const PLAYWRIGHT_TIMEOUT_MS = 20_000;
@@ -82,14 +84,24 @@ const S04_FORBIDDEN_TEXT_PATTERNS = Object.freeze([
   { markerClass: "proxy_switch", pattern: /--proxy-server\b/i },
   { markerClass: "proxy_bypass", pattern: /--proxy-bypass-list\b/i },
   { markerClass: "direct_fallback", pattern: /direct:\/\//i },
-  { markerClass: "handoff_field", pattern: /\b(?:handoff|connect-over-cdp|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i },
-  { markerClass: "debug_endpoint", pattern: /\b(?:DevToolsActivePort|debugPort|remote-debugging|--remote-debugging-port|cdp:\/\/)\b/i },
+  {
+    markerClass: "handoff_field",
+    pattern: /\b(?:handoff|connect-over-cdp|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i,
+  },
+  {
+    markerClass: "debug_endpoint",
+    pattern: /\b(?:DevToolsActivePort|debugPort|remote-debugging|--remote-debugging-port|cdp:\/\/)\b/i,
+  },
   { markerClass: "ws_endpoint", pattern: /wss?:\/\/[^\s"']+/i },
   { markerClass: "profile_private_path", pattern: /\b(?:profile-store|profiles\.json|user-data)\b/i },
-  { markerClass: "raw_diag", pattern: /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|Traceback|stack trace|traceback)\b/i },
+  {
+    markerClass: "raw_diag",
+    pattern: /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|Traceback|stack trace|traceback)\b/i,
+  },
 ]);
 
-const S04_FORBIDDEN_KEY_PATTERN = /^(?:authorization|bearer|token|credentials?|username|password|proxyAuthorization|proxyServer|proxyBypass|leaseId|leaseEndpoint|handoff|handoffEndpoint|endpoint|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|remoteDebuggingPort|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|stack|traceback|argv|args|env|storeRoot|appDataRoot|userDataDir|profileDir)$/i;
+const S04_FORBIDDEN_KEY_PATTERN =
+  /^(?:authorization|bearer|token|credentials?|username|password|proxyAuthorization|proxyServer|proxyBypass|leaseId|leaseEndpoint|handoff|handoffEndpoint|endpoint|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|remoteDebuggingPort|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|stack|traceback|argv|args|env|storeRoot|appDataRoot|userDataDir|profileDir)$/i;
 
 const PROXY_FIXTURE_MANAGER = String.raw`
 import json
@@ -258,17 +270,16 @@ export function createS04RedactionContext({
     storeRoot,
     leaseIds,
     handoffEndpoints,
-    extraSensitiveValues: [
-      PROXY_USERNAME,
-      PROXY_PASSWORD,
-      ...targetUrls,
-      ...proxyAuthorities,
-      ...extraSensitiveValues,
-    ],
+    extraSensitiveValues: [PROXY_USERNAME, PROXY_PASSWORD, ...targetUrls, ...proxyAuthorities, ...extraSensitiveValues],
   });
 }
 
-export function findS04ForbiddenPublicMarker(value, context = createS04RedactionContext(), path = "$", state = { count: 0 }) {
+export function findS04ForbiddenPublicMarker(
+  value,
+  context = createS04RedactionContext(),
+  path = "$",
+  state = { count: 0 },
+) {
   const s03Marker = findS03ForbiddenPublicMarker(value, context, path, { count: 0 });
   if (s03Marker) {
     return s03Marker;
@@ -311,7 +322,11 @@ export function findS04ForbiddenPublicMarker(value, context = createS04Redaction
 
   for (const [key, nested] of Object.entries(value)) {
     if (!isRedactedPlaceholderKey(key) && S04_FORBIDDEN_KEY_PATTERN.test(key)) {
-      return { markerClass: classifyS04ForbiddenKey(key), fieldPath: safeFieldPath(path, key), reason: "forbidden S04 key" };
+      return {
+        markerClass: classifyS04ForbiddenKey(key),
+        fieldPath: safeFieldPath(path, key),
+        reason: "forbidden S04 key",
+      };
     }
     const nestedMarker = findS04ForbiddenPublicMarker(nested, context, safeFieldPath(path, key), state);
     if (nestedMarker) return nestedMarker;
@@ -413,15 +428,33 @@ function resetRunState() {
 }
 
 function makeRequestId(label) {
-  return `verify-m004-s04-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 72) || "request"}`;
+  return `verify-m004-s04-${
+    String(label)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 72) || "request"
+  }`;
 }
 
 function assertSetupProfile(profile, expectedName) {
-  assert(isPlainObject(profile), "Profile setup response did not include a profile object.", { phase: "profile-setup" });
-  assert(typeof profile.id === "string" && profile.id.length > 0, "Profile setup response did not include an id.", { phase: "profile-setup" });
+  assert(isPlainObject(profile), "Profile setup response did not include a profile object.", {
+    phase: "profile-setup",
+  });
+  assert(typeof profile.id === "string" && profile.id.length > 0, "Profile setup response did not include an id.", {
+    phase: "profile-setup",
+  });
   assert(profile.name === expectedName, "Profile setup response name did not match.", { phase: "profile-setup" });
-  assert(isPlainObject(profile.storage), "Profile setup response did not include storage metadata.", { phase: "profile-setup" });
-  assert(typeof profile.storage.userDataDir === "string" && profile.storage.userDataDir.startsWith("profile-store/profiles/") && profile.storage.userDataDir.endsWith("/user-data"), "Profile storage path was not the expected safe relative shape.", { phase: "profile-setup" });
+  assert(isPlainObject(profile.storage), "Profile setup response did not include storage metadata.", {
+    phase: "profile-setup",
+  });
+  assert(
+    typeof profile.storage.userDataDir === "string" &&
+      profile.storage.userDataDir.startsWith("profile-store/profiles/") &&
+      profile.storage.userDataDir.endsWith("/user-data"),
+    "Profile storage path was not the expected safe relative shape.",
+    { phase: "profile-setup" },
+  );
   return profile;
 }
 
@@ -429,16 +462,31 @@ function assertPresetList(result) {
   assert(result?.identityVersion === 2, "Preset list did not return identityVersion 2.", { phase: "identity-preset" });
   assert(Array.isArray(result.presets), "Preset list did not return an array.", { phase: "identity-preset" });
   const preset = result.presets.find((item) => item?.presetId === PRESET_ID);
-  assert(preset, "Preset list did not include the curated CDP proof preset.", { phase: "identity-preset", presetCount: result.presets.length });
+  assert(preset, "Preset list did not include the curated CDP proof preset.", {
+    phase: "identity-preset",
+    presetCount: result.presets.length,
+  });
   return preset;
 }
 
 function assertAppliedIdentity(result, profile, preset) {
-  assert([4, 5].includes(result?.storeVersion), "Identity apply did not preserve store v4.", { phase: "identity-apply" });
-  assert(Array.isArray(result.warnings) && result.warnings.length === 0, "Curated identity preset should apply without warnings.", { phase: "identity-apply", warningCount: Array.isArray(result.warnings) ? result.warnings.length : null });
+  assert([4, 5].includes(result?.storeVersion), "Identity apply did not preserve store v4.", {
+    phase: "identity-apply",
+  });
+  assert(
+    Array.isArray(result.warnings) && result.warnings.length === 0,
+    "Curated identity preset should apply without warnings.",
+    { phase: "identity-apply", warningCount: Array.isArray(result.warnings) ? result.warnings.length : null },
+  );
   assert(result.profile?.id === profile.id, "Identity apply profile id mismatch.", { phase: "identity-apply" });
-  assert(result.profile?.identity?.presetId === PRESET_ID, "Identity apply did not persist preset id.", { phase: "identity-apply" });
-  assert(JSON.stringify(result.profile.identity) === JSON.stringify(preset), "Persisted identity does not match preset payload.", { phase: "identity-apply" });
+  assert(result.profile?.identity?.presetId === PRESET_ID, "Identity apply did not persist preset id.", {
+    phase: "identity-apply",
+  });
+  assert(
+    JSON.stringify(result.profile.identity) === JSON.stringify(preset),
+    "Persisted identity does not match preset payload.",
+    { phase: "identity-apply" },
+  );
   return result.profile.identity;
 }
 
@@ -449,9 +497,17 @@ function assertProxyUpdate(result, profile, expectedProxy) {
   assert(proxy?.proxyVersion === 1, "Proxy update did not return proxyVersion 1.", { phase: "proxy-update" });
   assert(proxy.mode === "fixedServer", "Proxy update did not persist fixedServer mode.", { phase: "proxy-update" });
   assert(proxy.protocol === expectedProxy.protocol, "Proxy update protocol mismatch.", { phase: "proxy-update" });
-  assert(proxy.host === expectedProxy.host, "Proxy update host mismatch.", { phase: "proxy-update", proxyHostMatched: false });
-  assert(proxy.port === expectedProxy.port, "Proxy update port mismatch.", { phase: "proxy-update", proxyPortMatched: false });
-  assert(proxy.credentialState === "configured", "Proxy update did not report configured credentials.", { phase: "proxy-update" });
+  assert(proxy.host === expectedProxy.host, "Proxy update host mismatch.", {
+    phase: "proxy-update",
+    proxyHostMatched: false,
+  });
+  assert(proxy.port === expectedProxy.port, "Proxy update port mismatch.", {
+    phase: "proxy-update",
+    proxyPortMatched: false,
+  });
+  assert(proxy.credentialState === "configured", "Proxy update did not report configured credentials.", {
+    phase: "proxy-update",
+  });
   assert(!("credentials" in proxy), "Proxy update public summary leaked credentials.", { phase: "proxy-update" });
   return proxy;
 }
@@ -515,17 +571,23 @@ function createIdentityProxyProfile({ binaryPath, storeRoot, preset, fixture, co
 function createSocksUnsupportedProfile({ binaryPath, storeRoot, preset, context }) {
   const profile = createProfile(binaryPath, storeRoot, `M004 S04 socks auth ${randomUUID().slice(0, 8)}`, context);
   applyIdentityPreset(binaryPath, storeRoot, profile, preset, context);
-  updateProxy(binaryPath, storeRoot, profile, {
-    proxyVersion: 1,
-    mode: "fixedServer",
-    protocol: "socks5",
-    host: "proxy.socks-auth.invalid",
-    port: 1080,
-    credentials: {
-      username: PROXY_USERNAME,
-      password: PROXY_PASSWORD,
+  updateProxy(
+    binaryPath,
+    storeRoot,
+    profile,
+    {
+      proxyVersion: 1,
+      mode: "fixedServer",
+      protocol: "socks5",
+      host: "proxy.socks-auth.invalid",
+      port: 1080,
+      credentials: {
+        username: PROXY_USERNAME,
+        password: PROXY_PASSWORD,
+      },
     },
-  }, context);
+    context,
+  );
   return {
     profileId: profile.id,
     public: {
@@ -538,10 +600,7 @@ function createSocksUnsupportedProfile({ binaryPath, storeRoot, preset, context 
 
 function proxyAuthorityFromReady(ready) {
   if (!ready?.proxy) return [];
-  return [
-    `${ready.proxy.host}:${ready.proxy.port}`,
-    `http://${ready.proxy.host}:${ready.proxy.port}`,
-  ];
+  return [`${ready.proxy.host}:${ready.proxy.port}`, `http://${ready.proxy.host}:${ready.proxy.port}`];
 }
 
 function summarizeObservations(observations) {
@@ -560,7 +619,10 @@ async function waitForExit(child, timeoutMs, context, phase) {
     return { exitCode: child.exitCode, signal: child.signalCode };
   }
   return new Promise((resolveExit, rejectExit) => {
-    const timer = setTimeout(() => rejectExit(new VerifyFailure(`${phase} timed out waiting for process exit.`, { phase })), timeoutMs);
+    const timer = setTimeout(
+      () => rejectExit(new VerifyFailure(`${phase} timed out waiting for process exit.`, { phase })),
+      timeoutMs,
+    );
     child.once("exit", (exitCode, signal) => {
       clearTimeout(timer);
       resolveExit({ exitCode, signal });
@@ -569,7 +631,11 @@ async function waitForExit(child, timeoutMs, context, phase) {
     if (error instanceof VerifyFailure) {
       throw error;
     }
-    throw new VerifyFailure(`${phase} failed while waiting for process exit.`, { phase, errorName: error instanceof Error ? error.name : "Error", outputTail: redactedTail("", context) });
+    throw new VerifyFailure(`${phase} failed while waiting for process exit.`, {
+      phase,
+      errorName: error instanceof Error ? error.name : "Error",
+      outputTail: redactedTail("", context),
+    });
   });
 }
 
@@ -606,12 +672,14 @@ class LineProcess {
       this.exitSignal = signal;
       while (this.waiters.length > 0) {
         const waiter = this.waiters.shift();
-        waiter.reject(new VerifyFailure(`${label} exited before emitting the expected line.`, {
-          phase: "proxy-fixture",
-          exitCode: code,
-          signal,
-          outputTail: redactedTail(this.stderr, this.contextProvider()),
-        }));
+        waiter.reject(
+          new VerifyFailure(`${label} exited before emitting the expected line.`, {
+            phase: "proxy-fixture",
+            exitCode: code,
+            signal,
+            outputTail: redactedTail(this.stderr, this.contextProvider()),
+          }),
+        );
       }
     });
   }
@@ -621,12 +689,14 @@ class LineProcess {
       return Promise.resolve(this.lines.shift());
     }
     if (this.exited) {
-      return Promise.reject(new VerifyFailure(`${this.label} already exited.`, {
-        phase: "proxy-fixture",
-        exitCode: this.exitCode,
-        signal: this.exitSignal,
-        outputTail: redactedTail(this.stderr, this.contextProvider()),
-      }));
+      return Promise.reject(
+        new VerifyFailure(`${this.label} already exited.`, {
+          phase: "proxy-fixture",
+          exitCode: this.exitCode,
+          signal: this.exitSignal,
+          outputTail: redactedTail(this.stderr, this.contextProvider()),
+        }),
+      );
     }
     return new Promise((resolveLine, rejectLine) => {
       const timer = setTimeout(() => {
@@ -634,7 +704,9 @@ class LineProcess {
         if (index >= 0) {
           this.waiters.splice(index, 1);
         }
-        rejectLine(new VerifyFailure(`${this.label} timed out waiting for output.`, { phase: "proxy-fixture", timeoutMs }));
+        rejectLine(
+          new VerifyFailure(`${this.label} timed out waiting for output.`, { phase: "proxy-fixture", timeoutMs }),
+        );
       }, timeoutMs);
       this.waiters.push({
         resolve: (line) => {
@@ -723,7 +795,9 @@ async function startProxyFixture(config, contextProvider) {
     outputTail: redactedTail(lineProcess.stderr, contextProvider()),
   });
   assert(ready.proxy?.mode === "fixedServer", "Proxy fixture ready payload was malformed.", { phase: "proxy-fixture" });
-  assert(ready.target?.url && typeof ready.target.url === "string", "Proxy fixture target URL was missing.", { phase: "proxy-fixture" });
+  assert(ready.target?.url && typeof ready.target.url === "string", "Proxy fixture target URL was missing.", {
+    phase: "proxy-fixture",
+  });
   return {
     label: config.label,
     process: lineProcess,
@@ -731,7 +805,10 @@ async function startProxyFixture(config, contextProvider) {
     async observations() {
       lineProcess.send({ cmd: "observations" });
       const response = await lineProcess.readJson(FIXTURE_COMMAND_TIMEOUT_MS);
-      assert(response.ok === true, "Proxy fixture observations command failed.", { phase: "proxy-observation", errorCode: response.error?.code });
+      assert(response.ok === true, "Proxy fixture observations command failed.", {
+        phase: "proxy-observation",
+        errorCode: response.error?.code,
+      });
       return { proxy: response.proxy ?? [], target: response.target ?? [] };
     },
     async stop() {
@@ -751,18 +828,41 @@ async function waitForObservation(fixture, predicate, label, timeoutMs = PROXY_O
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   }
   const summary = summarizeObservations(latest);
-  fail("Timed out waiting for expected proxy fixture observation.", { phase: "proxy-observation", label, ...summary, timeoutMs });
+  fail("Timed out waiting for expected proxy fixture observation.", {
+    phase: "proxy-observation",
+    label,
+    ...summary,
+    timeoutMs,
+  });
 }
 
 function assertRepresentativeIdentityProof(proof, identity) {
-  assert(proof.userAgent === identity.browser.userAgent, "Identity proof userAgent mismatch.", { phase: "identity-assertion" });
-  assert(proof.platform === identity.navigator.platform, "Identity proof navigator.platform mismatch.", { phase: "identity-assertion" });
-  assert(proof.hardwareConcurrency === identity.navigator.hardwareConcurrency, "Identity proof hardwareConcurrency mismatch.", { phase: "identity-assertion" });
-  assert(proof.deviceMemory === identity.navigator.deviceMemory, "Identity proof deviceMemory mismatch.", { phase: "identity-assertion" });
-  assert(proof.language === identity.locale.locale, "Identity proof navigator.language mismatch.", { phase: "identity-assertion" });
-  assert(proof.timezone === identity.locale.timezoneId, "Identity proof timezone mismatch.", { phase: "identity-assertion" });
-  assert(proof.webglVendor === identity.webgl.vendor, "Identity proof WebGL vendor mismatch.", { phase: "identity-assertion" });
-  assert(proof.webRtcPolicy === "relay", "Identity proof did not preserve non-proxied UDP WebRTC policy.", { phase: "identity-assertion" });
+  assert(proof.userAgent === identity.browser.userAgent, "Identity proof userAgent mismatch.", {
+    phase: "identity-assertion",
+  });
+  assert(proof.platform === identity.navigator.platform, "Identity proof navigator.platform mismatch.", {
+    phase: "identity-assertion",
+  });
+  assert(
+    proof.hardwareConcurrency === identity.navigator.hardwareConcurrency,
+    "Identity proof hardwareConcurrency mismatch.",
+    { phase: "identity-assertion" },
+  );
+  assert(proof.deviceMemory === identity.navigator.deviceMemory, "Identity proof deviceMemory mismatch.", {
+    phase: "identity-assertion",
+  });
+  assert(proof.language === identity.locale.locale, "Identity proof navigator.language mismatch.", {
+    phase: "identity-assertion",
+  });
+  assert(proof.timezone === identity.locale.timezoneId, "Identity proof timezone mismatch.", {
+    phase: "identity-assertion",
+  });
+  assert(proof.webglVendor === identity.webgl.vendor, "Identity proof WebGL vendor mismatch.", {
+    phase: "identity-assertion",
+  });
+  assert(proof.webRtcPolicy === "relay", "Identity proof did not preserve non-proxied UDP WebRTC policy.", {
+    phase: "identity-assertion",
+  });
   return {
     userAgent: true,
     platform: true,
@@ -781,11 +881,15 @@ async function attachNavigateAndAssert({ endpoint, targetUrl, identity }) {
   try {
     browser = await playwrightChromium.connectOverCDP(endpoint, { timeout: PLAYWRIGHT_TIMEOUT_MS });
     const contexts = browser.contexts();
-    const browserContext = contexts[0] ?? await browser.newContext();
+    const browserContext = contexts[0] ?? (await browser.newContext());
     page = await browserContext.newPage();
     await page.goto(targetUrl, { waitUntil: "load", timeout: NAVIGATION_TIMEOUT_MS });
     const bodyText = await page.locator("body").textContent({ timeout: 5_000 });
-    assert(typeof bodyText === "string" && bodyText.toLowerCase().includes("theprivator proxy proof"), "Playwright page did not observe the proxy proof target marker.", { phase: "playwright-navigation" });
+    assert(
+      typeof bodyText === "string" && bodyText.toLowerCase().includes("theprivator proxy proof"),
+      "Playwright page did not observe the proxy proof target marker.",
+      { phase: "playwright-navigation" },
+    );
     const proof = await page.evaluate(() => {
       const canvas = document.createElement("canvas");
       const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
@@ -838,7 +942,17 @@ async function attachNavigateAndAssert({ endpoint, targetUrl, identity }) {
   }
 }
 
-export function assertS04DomainFailure(response, { expectedCode, expectedStatusCode, expectedPhase = "lease", context = createS04RedactionContext(), phase = expectedPhase, caseName = phase } = {}) {
+export function assertS04DomainFailure(
+  response,
+  {
+    expectedCode,
+    expectedStatusCode,
+    expectedPhase = "lease",
+    context = createS04RedactionContext(),
+    phase = expectedPhase,
+    caseName = phase,
+  } = {},
+) {
   const result = assertDomainErrorResponse({
     ...response,
     expectedCode,
@@ -869,7 +983,18 @@ function failureMatrixEntry(caseName, result) {
   };
 }
 
-export function buildS04FinalSummary({ status, target, setup = {}, httpChecks = {}, failureMatrix = [], leaseFlow = {}, cleanup = {}, redaction = {}, error = null, checks = STEP_RESULTS } = {}) {
+export function buildS04FinalSummary({
+  status,
+  target,
+  setup = {},
+  httpChecks = {},
+  failureMatrix = [],
+  leaseFlow = {},
+  cleanup = {},
+  redaction = {},
+  error = null,
+  checks = STEP_RESULTS,
+} = {}) {
   const summary = {
     status,
     target: target
@@ -929,7 +1054,16 @@ export function buildS04FinalSummary({ status, target, setup = {}, httpChecks = 
   return Object.fromEntries(Object.entries(summary).filter(([, value]) => value !== undefined));
 }
 
-async function cleanupAfterFailure({ processState, readiness, baseUrl, token, activeLeaseIds, storeRoot, fixture, cleanup }) {
+async function cleanupAfterFailure({
+  processState,
+  readiness,
+  baseUrl,
+  token,
+  activeLeaseIds,
+  storeRoot,
+  fixture,
+  cleanup,
+}) {
   if (baseUrl && token && activeLeaseIds?.size) {
     for (const leaseId of [...activeLeaseIds]) {
       try {
@@ -975,7 +1109,11 @@ async function cleanupAfterFailure({ processState, readiness, baseUrl, token, ac
   }
 }
 
-export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s04-${randomUUID()}`, storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s04-")) } = {}) {
+export async function runVerification({
+  rootDir = ROOT_DIR,
+  token = `m004-s04-${randomUUID()}`,
+  storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s04-")),
+} = {}) {
   resetRunState();
   const leaseIds = [];
   const handoffEndpoints = [];
@@ -1010,55 +1148,84 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s04-${
   };
 
   try {
-    target = runStep("binary-discovery", () => {
-      const targetTriple = readTargetTriple(rootDir);
-      return assertS02TargetBinary({ rootDir, targetTriple, binaryPath: targetBinaryPath({ rootDir, targetTriple }) });
-    }, context);
+    target = runStep(
+      "binary-discovery",
+      () => {
+        const targetTriple = readTargetTriple(rootDir);
+        return assertS02TargetBinary({
+          rootDir,
+          targetTriple,
+          binaryPath: targetBinaryPath({ rootDir, targetTriple }),
+        });
+      },
+      context,
+    );
     const binaryPath = resolve(rootDir, target.binary);
 
     rebuildContext();
     runStep("runtime-root", () => ({ created: true, location: "temporary-app-data" }), context);
 
-    preset = runStep("identity-preset", () => {
-      const result = sidecarSuccess(binaryPath, makeRequestId("identity-presets-list"), "identity.presets.list", {}, { context }).result;
-      const selected = assertPresetList(result);
-      return { value: selected, log: { presetSelected: true, presetCount: result.count ?? result.presets.length } };
-    }, context);
+    preset = runStep(
+      "identity-preset",
+      () => {
+        const result = sidecarSuccess(
+          binaryPath,
+          makeRequestId("identity-presets-list"),
+          "identity.presets.list",
+          {},
+          { context },
+        ).result;
+        const selected = assertPresetList(result);
+        return { value: selected, log: { presetSelected: true, presetCount: result.count ?? result.presets.length } };
+      },
+      context,
+    );
 
-    fixture = await runStepAsync("proxy-fixture", async () => {
-      const readyFixture = await startProxyFixture({
-        kind: "http",
-        label: "m004-s04-http-auth-identity",
-        targetHost: TARGET_HOST,
-        targetPath: TARGET_PATH,
-        fixtureCredentials: {
-          username: PROXY_USERNAME,
-          password: PROXY_PASSWORD,
-        },
-      }, () => context);
-      targetUrls.push(readyFixture.ready.target.url);
-      proxyAuthorities.push(...proxyAuthorityFromReady(readyFixture.ready));
-      rebuildContext();
-      return {
-        value: readyFixture,
-        log: { fixtureKind: "http", proxyReady: true, targetReady: true, proxyAuth: "configured" },
-      };
-    }, context);
+    fixture = await runStepAsync(
+      "proxy-fixture",
+      async () => {
+        const readyFixture = await startProxyFixture(
+          {
+            kind: "http",
+            label: "m004-s04-http-auth-identity",
+            targetHost: TARGET_HOST,
+            targetPath: TARGET_PATH,
+            fixtureCredentials: {
+              username: PROXY_USERNAME,
+              password: PROXY_PASSWORD,
+            },
+          },
+          () => context,
+        );
+        targetUrls.push(readyFixture.ready.target.url);
+        proxyAuthorities.push(...proxyAuthorityFromReady(readyFixture.ready));
+        rebuildContext();
+        return {
+          value: readyFixture,
+          log: { fixtureKind: "http", proxyReady: true, targetReady: true, proxyAuth: "configured" },
+        };
+      },
+      context,
+    );
 
-    const profiles = runStep("profile-setup", () => {
-      const success = createIdentityProxyProfile({ binaryPath, storeRoot, preset, fixture, context });
-      const socks = createSocksUnsupportedProfile({ binaryPath, storeRoot, preset, context });
-      return {
-        value: { success, socks },
-        log: {
-          profileCount: 2,
-          identityPresetApplied: true,
-          proxyConfigured: true,
-          proxyAuth: "configured",
-          typedFailureProfile: true,
-        },
-      };
-    }, context);
+    const profiles = runStep(
+      "profile-setup",
+      () => {
+        const success = createIdentityProxyProfile({ binaryPath, storeRoot, preset, fixture, context });
+        const socks = createSocksUnsupportedProfile({ binaryPath, storeRoot, preset, context });
+        return {
+          value: { success, socks },
+          log: {
+            profileCount: 2,
+            identityPresetApplied: true,
+            proxyConfigured: true,
+            proxyAuth: "configured",
+            typedFailureProfile: true,
+          },
+        };
+      },
+      context,
+    );
     successProfile = profiles.success;
     socksProfile = profiles.socks;
     setup = {
@@ -1069,302 +1236,454 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s04-${
       typedFailureProfile: true,
     };
 
-    processState = runStep("spawn", () => {
-      const state = startAutomationApi({ binaryPath, storeRoot, token });
-      return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
-    }, context);
+    processState = runStep(
+      "spawn",
+      () => {
+        const state = startAutomationApi({ binaryPath, storeRoot, token });
+        return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
+      },
+      context,
+    );
 
-    readiness = await runStepAsync("readiness", async () => {
-      const ready = await waitForReadiness(processState, { timeoutMs: READINESS_TIMEOUT_MS, context });
-      baseUrl = `http://${ready.host}:${ready.port}`;
-      rebuildContext();
-      return { value: ready, log: { ready: true, scope: "loopback", version: ready.version } };
-    }, context);
+    readiness = await runStepAsync(
+      "readiness",
+      async () => {
+        const ready = await waitForReadiness(processState, { timeoutMs: READINESS_TIMEOUT_MS, context });
+        baseUrl = `http://${ready.host}:${ready.port}`;
+        rebuildContext();
+        return { value: ready, log: { ready: true, scope: "loopback", version: ready.version } };
+      },
+      context,
+    );
 
-    await runStepAsync("listener-open", async () => {
-      const listener = await assertListenerOpen({ host: readiness.host, port: readiness.port });
-      return { value: listener, log: { open: true } };
-    }, context);
+    await runStepAsync(
+      "listener-open",
+      async () => {
+        const listener = await assertListenerOpen({ host: readiness.host, port: readiness.port });
+        return { value: listener, log: { open: true } };
+      },
+      context,
+    );
 
-    httpChecks.health = await runStepAsync("health", async () => {
-      const response = await requestJson(`${baseUrl}/health`, { phase: "health" });
-      const health = assertHealthWithHeader(response, context);
-      return { value: health, log: { statusCode: health.statusCode, healthy: true } };
-    }, context);
+    httpChecks.health = await runStepAsync(
+      "health",
+      async () => {
+        const response = await requestJson(`${baseUrl}/health`, { phase: "health" });
+        const health = assertHealthWithHeader(response, context);
+        return { value: health, log: { statusCode: health.statusCode, healthy: true } };
+      },
+      context,
+    );
 
-    httpChecks.auth = await runStepAsync("auth", async () => {
-      const checks = await verifyAuthFailures({ baseUrl, context });
-      assert(checks.some((item) => item.errorCode === AUTOMATION_AUTH_REQUIRED), "Missing-auth check did not return the expected code.", { phase: "auth" });
-      assert(checks.some((item) => item.errorCode === AUTOMATION_AUTH_INVALID), "Invalid-auth check did not return the expected code.", { phase: "auth" });
-      return { value: checks, log: { checks: checks.length, codes: checks.map((item) => item.errorCode) } };
-    }, context);
+    httpChecks.auth = await runStepAsync(
+      "auth",
+      async () => {
+        const checks = await verifyAuthFailures({ baseUrl, context });
+        assert(
+          checks.some((item) => item.errorCode === AUTOMATION_AUTH_REQUIRED),
+          "Missing-auth check did not return the expected code.",
+          { phase: "auth" },
+        );
+        assert(
+          checks.some((item) => item.errorCode === AUTOMATION_AUTH_INVALID),
+          "Invalid-auth check did not return the expected code.",
+          { phase: "auth" },
+        );
+        return { value: checks, log: { checks: checks.length, codes: checks.map((item) => item.errorCode) } };
+      },
+      context,
+    );
 
-    failureMatrix.push(await runStepAsync("failure-invalid-ttl", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/leases`, {
-        method: "POST",
-        token,
-        body: { framework: "playwright", ttlSeconds: 0 },
-        phase: "failure-invalid-ttl",
-      });
-      return assertS04DomainFailure(response, {
-        expectedCode: INVALID_REQUEST,
-        expectedStatusCode: 400,
-        expectedPhase: "lease",
+    failureMatrix.push(
+      await runStepAsync(
+        "failure-invalid-ttl",
+        async () => {
+          const response = await requestJson(
+            `${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/leases`,
+            {
+              method: "POST",
+              token,
+              body: { framework: "playwright", ttlSeconds: 0 },
+              phase: "failure-invalid-ttl",
+            },
+          );
+          return assertS04DomainFailure(response, {
+            expectedCode: INVALID_REQUEST,
+            expectedStatusCode: 400,
+            expectedPhase: "lease",
+            context,
+            phase: "failure-invalid-ttl",
+            caseName: "invalid-ttl",
+          });
+        },
         context,
-        phase: "failure-invalid-ttl",
-        caseName: "invalid-ttl",
-      });
-    }, context));
+      ),
+    );
 
-    failureMatrix.push(await runStepAsync("failure-unknown-profile", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/missing-m004-s04-profile/leases`, {
-        method: "POST",
-        token,
-        body: { framework: "playwright", ttlSeconds: 1 },
-        phase: "failure-unknown-profile",
-      });
-      return assertS04DomainFailure(response, {
-        expectedCode: PROFILE_NOT_FOUND,
-        expectedStatusCode: 404,
-        expectedPhase: "lease",
+    failureMatrix.push(
+      await runStepAsync(
+        "failure-unknown-profile",
+        async () => {
+          const response = await requestJson(`${baseUrl}/v1/profiles/missing-m004-s04-profile/leases`, {
+            method: "POST",
+            token,
+            body: { framework: "playwright", ttlSeconds: 1 },
+            phase: "failure-unknown-profile",
+          });
+          return assertS04DomainFailure(response, {
+            expectedCode: PROFILE_NOT_FOUND,
+            expectedStatusCode: 404,
+            expectedPhase: "lease",
+            context,
+            phase: "failure-unknown-profile",
+            caseName: "unknown-profile",
+          });
+        },
         context,
-        phase: "failure-unknown-profile",
-        caseName: "unknown-profile",
-      });
-    }, context));
+      ),
+    );
 
-    failureMatrix.push(await runStepAsync("failure-unknown-lease", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/lease_missing_m004_s04`, {
-        token,
-        phase: "failure-unknown-lease",
-      });
-      return assertS04DomainFailure(response, {
-        expectedCode: AUTOMATION_LEASE_NOT_FOUND,
-        expectedStatusCode: 404,
-        expectedPhase: "lease",
+    failureMatrix.push(
+      await runStepAsync(
+        "failure-unknown-lease",
+        async () => {
+          const response = await requestJson(`${baseUrl}/v1/leases/lease_missing_m004_s04`, {
+            token,
+            phase: "failure-unknown-lease",
+          });
+          return assertS04DomainFailure(response, {
+            expectedCode: AUTOMATION_LEASE_NOT_FOUND,
+            expectedStatusCode: 404,
+            expectedPhase: "lease",
+            context,
+            phase: "failure-unknown-lease",
+            caseName: "unknown-lease",
+          });
+        },
         context,
-        phase: "failure-unknown-lease",
-        caseName: "unknown-lease",
-      });
-    }, context));
+      ),
+    );
 
-    failureMatrix.push(await runStepAsync("failure-malformed-lease", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/not-a-lease`, {
-        token,
-        phase: "failure-malformed-lease",
-      });
-      return assertS04DomainFailure(response, {
-        expectedCode: INVALID_REQUEST,
-        expectedStatusCode: 400,
-        expectedPhase: "lease",
+    failureMatrix.push(
+      await runStepAsync(
+        "failure-malformed-lease",
+        async () => {
+          const response = await requestJson(`${baseUrl}/v1/leases/not-a-lease`, {
+            token,
+            phase: "failure-malformed-lease",
+          });
+          return assertS04DomainFailure(response, {
+            expectedCode: INVALID_REQUEST,
+            expectedStatusCode: 400,
+            expectedPhase: "lease",
+            context,
+            phase: "failure-malformed-lease",
+            caseName: "malformed-lease",
+          });
+        },
         context,
-        phase: "failure-malformed-lease",
-        caseName: "malformed-lease",
-      });
-    }, context));
+      ),
+    );
 
-    failureMatrix.push(await runStepAsync("failure-proxy-socks-auth", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(socksProfile.profileId)}/leases`, {
-        method: "POST",
-        token,
-        body: { framework: "playwright", ttlSeconds: 30 },
-        phase: "failure-proxy-socks-auth",
-      });
-      return assertS04DomainFailure(response, {
-        expectedCode: PROXY_SOCKS_AUTH_UNSUPPORTED,
-        expectedStatusCode: 503,
-        expectedPhase: "lease",
+    failureMatrix.push(
+      await runStepAsync(
+        "failure-proxy-socks-auth",
+        async () => {
+          const response = await requestJson(
+            `${baseUrl}/v1/profiles/${encodeURIComponent(socksProfile.profileId)}/leases`,
+            {
+              method: "POST",
+              token,
+              body: { framework: "playwright", ttlSeconds: 30 },
+              phase: "failure-proxy-socks-auth",
+            },
+          );
+          return assertS04DomainFailure(response, {
+            expectedCode: PROXY_SOCKS_AUTH_UNSUPPORTED,
+            expectedStatusCode: 503,
+            expectedPhase: "lease",
+            context,
+            phase: "failure-proxy-socks-auth",
+            caseName: "proxy-socks-auth-unsupported",
+          });
+        },
         context,
-        phase: "failure-proxy-socks-auth",
-        caseName: "proxy-socks-auth-unsupported",
-      });
-    }, context));
+      ),
+    );
 
-    const firstLease = await runStepAsync("lease-create", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/leases`, {
-        method: "POST",
-        token,
-        body: { framework: "playwright", ttlSeconds: 30 },
-        phase: "lease-create",
-      });
-      const result = assertLeaseCreateResponse({
-        ...response,
-        expectedProfileId: successProfile.profileId,
-        expectedTtlSeconds: 30,
-        phase: "lease-create",
-      });
-      assertNoForbiddenLeaseSurface({ lease: result.public, request: { requestId: result.public.requestId } }, context);
-      return { value: result.private, log: result.public };
-    }, context);
+    const firstLease = await runStepAsync(
+      "lease-create",
+      async () => {
+        const response = await requestJson(
+          `${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/leases`,
+          {
+            method: "POST",
+            token,
+            body: { framework: "playwright", ttlSeconds: 30 },
+            phase: "lease-create",
+          },
+        );
+        const result = assertLeaseCreateResponse({
+          ...response,
+          expectedProfileId: successProfile.profileId,
+          expectedTtlSeconds: 30,
+          phase: "lease-create",
+        });
+        assertNoForbiddenLeaseSurface(
+          { lease: result.public, request: { requestId: result.public.requestId } },
+          context,
+        );
+        return { value: result.private, log: result.public };
+      },
+      context,
+    );
     leaseIds.push(firstLease.leaseId);
     handoffEndpoints.push(firstLease.handoffEndpoint);
     activeLeaseIds.add(firstLease.leaseId);
     rebuildContext();
-    leaseFlow.create = { leaseStatus: "active", ttlSeconds: 30, runtimeStatus: "running", attachAuthority: "private-on-create-only" };
+    leaseFlow.create = {
+      leaseStatus: "active",
+      ttlSeconds: 30,
+      runtimeStatus: "running",
+      attachAuthority: "private-on-create-only",
+    };
 
-    leaseFlow.playwright = await runStepAsync("playwright-attach-navigation", async () => attachNavigateAndAssert({
-      endpoint: firstLease.handoffEndpoint,
-      targetUrl: fixture.ready.target.url,
-      identity: successProfile.identity,
-    }), context);
+    leaseFlow.playwright = await runStepAsync(
+      "playwright-attach-navigation",
+      async () =>
+        attachNavigateAndAssert({
+          endpoint: firstLease.handoffEndpoint,
+          targetUrl: fixture.ready.target.url,
+          identity: successProfile.identity,
+        }),
+      context,
+    );
 
-    leaseFlow.proxyObservation = await runStepAsync("proxy-observation", async () => {
-      const observations = await waitForObservation(
-        fixture,
-        (items) => items.proxy.length > 0 && items.target.length > 0 && items.proxy.some((item) => item?.auth === "accepted" || item?.status === "accepted"),
-        "identity-proxy-playwright-route",
-      );
-      const summary = summarizeObservations(observations);
-      assert(summary.routeObserved && summary.authAccepted, "Proxy fixture observations did not prove credentialed proxy routing.", { phase: "proxy-observation", ...summary });
-      return summary;
-    }, context);
+    leaseFlow.proxyObservation = await runStepAsync(
+      "proxy-observation",
+      async () => {
+        const observations = await waitForObservation(
+          fixture,
+          (items) =>
+            items.proxy.length > 0 &&
+            items.target.length > 0 &&
+            items.proxy.some((item) => item?.auth === "accepted" || item?.status === "accepted"),
+          "identity-proxy-playwright-route",
+        );
+        const summary = summarizeObservations(observations);
+        assert(
+          summary.routeObserved && summary.authAccepted,
+          "Proxy fixture observations did not prove credentialed proxy routing.",
+          { phase: "proxy-observation", ...summary },
+        );
+        return summary;
+      },
+      context,
+    );
 
-    leaseFlow.activeStatus = await runStepAsync("lease-status-active", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-        token,
-        phase: "lease-status-active",
-      });
-      return assertLeaseStatusResponse({
-        ...response,
-        expectedProfileId: successProfile.profileId,
-        expectedStatus: "active",
-        expectedTtlSeconds: 30,
-        context,
-        phase: "lease-status-active",
-      });
-    }, context);
+    leaseFlow.activeStatus = await runStepAsync(
+      "lease-status-active",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+          token,
+          phase: "lease-status-active",
+        });
+        return assertLeaseStatusResponse({
+          ...response,
+          expectedProfileId: successProfile.profileId,
+          expectedStatus: "active",
+          expectedTtlSeconds: 30,
+          context,
+          phase: "lease-status-active",
+        });
+      },
+      context,
+    );
 
-    leaseFlow.release = await runStepAsync("lease-release", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-        method: "DELETE",
-        token,
-        phase: "lease-release",
-      });
-      const released = assertLeaseReleaseResponse({
-        ...response,
-        expectedProfileId: successProfile.profileId,
-        expectedTtlSeconds: 30,
-        context,
-        phase: "lease-release",
-      });
-      activeLeaseIds.delete(firstLease.leaseId);
-      return released;
-    }, context);
+    leaseFlow.release = await runStepAsync(
+      "lease-release",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+          method: "DELETE",
+          token,
+          phase: "lease-release",
+        });
+        const released = assertLeaseReleaseResponse({
+          ...response,
+          expectedProfileId: successProfile.profileId,
+          expectedTtlSeconds: 30,
+          context,
+          phase: "lease-release",
+        });
+        activeLeaseIds.delete(firstLease.leaseId);
+        return released;
+      },
+      context,
+    );
 
-    const releasedReuse = await runStepAsync("failure-released-reuse", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-        method: "DELETE",
-        token,
-        phase: "failure-released-reuse",
-      });
-      return assertS04DomainFailure(response, {
-        expectedCode: AUTOMATION_LEASE_RELEASED,
-        expectedStatusCode: 409,
-        expectedPhase: "lease",
-        context,
-        phase: "failure-released-reuse",
-        caseName: "released-reuse",
-      });
-    }, context);
+    const releasedReuse = await runStepAsync(
+      "failure-released-reuse",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+          method: "DELETE",
+          token,
+          phase: "failure-released-reuse",
+        });
+        return assertS04DomainFailure(response, {
+          expectedCode: AUTOMATION_LEASE_RELEASED,
+          expectedStatusCode: 409,
+          expectedPhase: "lease",
+          context,
+          phase: "failure-released-reuse",
+          caseName: "released-reuse",
+        });
+      },
+      context,
+    );
     failureMatrix.push(releasedReuse);
     leaseFlow.releasedReuse = failureMatrixEntry("released-reuse", releasedReuse);
 
-    leaseFlow.postReleaseRuntime = await runStepAsync("runtime-status-released", async () => {
-      const runtimeResponse = await requestJson(`${baseUrl}/v1/runtime/status`, { token, phase: "runtime-status-released" });
-      const runtime = assertRuntimeStatusResponse({
-        ...runtimeResponse,
-        expectedRunningProfileIds: [],
-        context,
-        phase: "runtime-status-released",
-      });
-      const selectedResponse = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/status`, {
-        token,
-        phase: "selected-profile-status-released",
-      });
-      const selectedSurfaceContext = createS04RedactionContext({
-        rootDir,
-        token,
-        storeRoot,
-        leaseIds,
-        handoffEndpoints,
-        targetUrls,
-        extraSensitiveValues: baseUrl ? [baseUrl] : [],
-      });
-      const selected = assertSelectedProfileStatusResponse({
-        ...selectedResponse,
-        expectedProfileId: successProfile.profileId,
-        expectedRuntimeStatus: "stopped",
-        context: selectedSurfaceContext,
-        phase: "selected-profile-status-released",
-      });
-      return { runtimeRunningCount: runtime.runningCount, selectedStatus: selected.runtimeStatus };
-    }, context);
+    leaseFlow.postReleaseRuntime = await runStepAsync(
+      "runtime-status-released",
+      async () => {
+        const runtimeResponse = await requestJson(`${baseUrl}/v1/runtime/status`, {
+          token,
+          phase: "runtime-status-released",
+        });
+        const runtime = assertRuntimeStatusResponse({
+          ...runtimeResponse,
+          expectedRunningProfileIds: [],
+          context,
+          phase: "runtime-status-released",
+        });
+        const selectedResponse = await requestJson(
+          `${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/status`,
+          {
+            token,
+            phase: "selected-profile-status-released",
+          },
+        );
+        const selectedSurfaceContext = createS04RedactionContext({
+          rootDir,
+          token,
+          storeRoot,
+          leaseIds,
+          handoffEndpoints,
+          targetUrls,
+          extraSensitiveValues: baseUrl ? [baseUrl] : [],
+        });
+        const selected = assertSelectedProfileStatusResponse({
+          ...selectedResponse,
+          expectedProfileId: successProfile.profileId,
+          expectedRuntimeStatus: "stopped",
+          context: selectedSurfaceContext,
+          phase: "selected-profile-status-released",
+        });
+        return { runtimeRunningCount: runtime.runningCount, selectedStatus: selected.runtimeStatus };
+      },
+      context,
+    );
 
-    leaseFlow.revocation = await runStepAsync("release-revocation", async () => assertEndpointRevoked(firstLease.handoffEndpoint), context);
+    leaseFlow.revocation = await runStepAsync(
+      "release-revocation",
+      async () => assertEndpointRevoked(firstLease.handoffEndpoint),
+      context,
+    );
 
-    const expiringLease = await runStepAsync("lease-create-short", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/leases`, {
-        method: "POST",
-        token,
-        body: { framework: "playwright", ttlSeconds: 1 },
-        phase: "lease-create-short",
-      });
-      const result = assertLeaseCreateResponse({
-        ...response,
-        expectedProfileId: successProfile.profileId,
-        expectedTtlSeconds: 1,
-        phase: "lease-create-short",
-      });
-      return { value: result.private, log: { ...result.public, ttlSeconds: 1 } };
-    }, context);
+    const expiringLease = await runStepAsync(
+      "lease-create-short",
+      async () => {
+        const response = await requestJson(
+          `${baseUrl}/v1/profiles/${encodeURIComponent(successProfile.profileId)}/leases`,
+          {
+            method: "POST",
+            token,
+            body: { framework: "playwright", ttlSeconds: 1 },
+            phase: "lease-create-short",
+          },
+        );
+        const result = assertLeaseCreateResponse({
+          ...response,
+          expectedProfileId: successProfile.profileId,
+          expectedTtlSeconds: 1,
+          phase: "lease-create-short",
+        });
+        return { value: result.private, log: { ...result.public, ttlSeconds: 1 } };
+      },
+      context,
+    );
     leaseIds.push(expiringLease.leaseId);
     handoffEndpoints.push(expiringLease.handoffEndpoint);
     activeLeaseIds.add(expiringLease.leaseId);
     rebuildContext();
 
-    leaseFlow.expiry = await runStepAsync("lease-expiry", async () => {
-      const expired = await waitForLeaseStatus({
-        baseUrl,
-        token,
-        profileId: successProfile.profileId,
-        leaseId: expiringLease.leaseId,
-        expectedStatus: "expired",
-        expectedTtlSeconds: 1,
-        context,
-        timeoutMs: EXPIRY_WAIT_TIMEOUT_MS,
-      });
-      activeLeaseIds.delete(expiringLease.leaseId);
-      return expired;
-    }, context);
+    leaseFlow.expiry = await runStepAsync(
+      "lease-expiry",
+      async () => {
+        const expired = await waitForLeaseStatus({
+          baseUrl,
+          token,
+          profileId: successProfile.profileId,
+          leaseId: expiringLease.leaseId,
+          expectedStatus: "expired",
+          expectedTtlSeconds: 1,
+          context,
+          timeoutMs: EXPIRY_WAIT_TIMEOUT_MS,
+        });
+        activeLeaseIds.delete(expiringLease.leaseId);
+        return expired;
+      },
+      context,
+    );
 
-    const expiredReuse = await runStepAsync("failure-expired-reuse", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(expiringLease.leaseId)}`, {
-        method: "DELETE",
-        token,
-        phase: "failure-expired-reuse",
-      });
-      return assertS04DomainFailure(response, {
-        expectedCode: AUTOMATION_LEASE_EXPIRED,
-        expectedStatusCode: 409,
-        expectedPhase: "lease",
-        context,
-        phase: "failure-expired-reuse",
-        caseName: "expired-reuse",
-      });
-    }, context);
+    const expiredReuse = await runStepAsync(
+      "failure-expired-reuse",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(expiringLease.leaseId)}`, {
+          method: "DELETE",
+          token,
+          phase: "failure-expired-reuse",
+        });
+        return assertS04DomainFailure(response, {
+          expectedCode: AUTOMATION_LEASE_EXPIRED,
+          expectedStatusCode: 409,
+          expectedPhase: "lease",
+          context,
+          phase: "failure-expired-reuse",
+          caseName: "expired-reuse",
+        });
+      },
+      context,
+    );
     failureMatrix.push(expiredReuse);
     leaseFlow.expiredReuse = failureMatrixEntry("expired-reuse", expiredReuse);
 
-    leaseFlow.expiredRevocation = await runStepAsync("expiry-revocation", async () => assertEndpointRevoked(expiringLease.handoffEndpoint), context);
+    leaseFlow.expiredRevocation = await runStepAsync(
+      "expiry-revocation",
+      async () => assertEndpointRevoked(expiringLease.handoffEndpoint),
+      context,
+    );
 
     cleanup.apiChildExit = await runStepAsync("shutdown", async () => stopAutomationApi(processState), context);
-    const listener = await runStepAsync("listener-close", async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }), context);
+    const listener = await runStepAsync(
+      "listener-close",
+      async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }),
+      context,
+    );
     cleanup.listenerClosed = listener.closed;
     const fixtureStopped = await runStepAsync("proxy-fixture-stop", async () => fixture.stop(), context);
     cleanup.proxyFixtureStopped = fixtureStopped.stopped === true;
-    cleanup.runtimeRootRemoved = runStep("cleanup", () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }), context).runtimeRootRemoved;
+    cleanup.runtimeRootRemoved = runStep(
+      "cleanup",
+      () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }),
+      context,
+    ).runtimeRootRemoved;
 
-    const redactionResult = runStep("redaction-scan", () => assertS04PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context), context);
+    const redactionResult = runStep(
+      "redaction-scan",
+      () => assertS04PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context),
+      context,
+    );
     const summary = buildS04FinalSummary({
       status: "pass",
       target,
@@ -1381,7 +1700,10 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s04-${
     return { summary, events: VERIFIER_EVENTS, checks: STEP_RESULTS };
   } catch (error) {
     await cleanupAfterFailure({ processState, readiness, baseUrl, token, activeLeaseIds, storeRoot, fixture, cleanup });
-    const safeError = error instanceof VerifyFailure ? error : new VerifyFailure(error instanceof Error ? error.message : String(error));
+    const safeError =
+      error instanceof VerifyFailure
+        ? error
+        : new VerifyFailure(error instanceof Error ? error.message : String(error));
     const summary = buildS04FinalSummary({
       status: "fail",
       target,
@@ -1398,7 +1720,17 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s04-${
     try {
       assertS04PublicEvidenceRedacted(redactedSummary, context);
     } catch (redactionError) {
-      emit({ status: "fail", summary: { status: "fail", redaction: { status: "failed", error: safeS04ErrorForPublic(redactionError, context) }, cleanup } }, context);
+      emit(
+        {
+          status: "fail",
+          summary: {
+            status: "fail",
+            redaction: { status: "failed", error: safeS04ErrorForPublic(redactionError, context) },
+            cleanup,
+          },
+        },
+        context,
+      );
       throw safeError;
     }
     emit({ status: "fail", summary: redactedSummary }, context);

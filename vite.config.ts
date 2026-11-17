@@ -4,6 +4,9 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   plugins: [react()],
   clearScreen: false,
+  fmt: {
+    printWidth: 120,
+  },
   server: {
     host: "127.0.0.1",
     port: 5173,

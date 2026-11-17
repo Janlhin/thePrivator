@@ -41,7 +41,9 @@ beforeEach(() => {
 describe("ProfileTools", () => {
   it("describes the shared browser JSON import and export format", () => {
     render(<ProfileTools profileId={PROFILE} running={false} />);
-    expect(screen.getByText(/JSON import and export use the same cookie array/i)).toHaveTextContent(/expirationDate.*storeId/i);
+    expect(screen.getByText(/JSON import and export use the same cookie array/i)).toHaveTextContent(
+      /expirationDate.*storeId/i,
+    );
   });
   it("says the tools need a saved profile before offering them", () => {
     // A create form has no profile directory to export or check yet.
@@ -150,7 +152,8 @@ describe("ProfileTools", () => {
           warnings: [
             {
               code: "COOKIE_VALUE_UNAVAILABLE",
-              message: "Some stored cookies could not be exported because their values were unavailable to the sidecar.",
+              message:
+                "Some stored cookies could not be exported because their values were unavailable to the sidecar.",
               count: 2,
             },
           ],

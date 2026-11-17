@@ -1,14 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,10 +20,12 @@ export const SIDECAR_EXTERNAL_BIN = "binaries/theprivator-sidecar";
 const STEP_RESULTS = [];
 const VERIFIER_EVENTS = [];
 const REDACTED_VALUE = "<redacted>";
-const VENV_PYTHON = process.platform === "win32"
-  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
-  : join(ROOT_DIR, ".venv", "bin", "python");
-const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === "win32" ? "python" : "python3"));
+const VENV_PYTHON =
+  process.platform === "win32"
+    ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+    : join(ROOT_DIR, ".venv", "bin", "python");
+const PYTHON =
+  process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : process.platform === "win32" ? "python" : "python3");
 const SAFE_DIAGNOSTIC_KEYS = new Set([
   "event",
   "requestId",
@@ -54,12 +48,28 @@ const SAFE_PERSISTED_DIAGNOSTIC_KEYS = new Set([
   "errorCode",
   "detailRef",
 ]);
-const SENSITIVE_KEY_PATTERN = /(?:destinationPath|sourcePath|storeRoot|appDataRoot|profileRoot|profileDir|userDataDir|cookieDomain|cookieValue|cookies?|domains?|values?|selectedPath|paths?|stdout|stderr|rawDiagnostics?|rawPayload|stack|traceback|argv|args|env|token|authorization|credential|password|secret|debug|cdp|devtools|endpoint)/i;
+const SENSITIVE_KEY_PATTERN =
+  /(?:destinationPath|sourcePath|storeRoot|appDataRoot|profileRoot|profileDir|userDataDir|cookieDomain|cookieValue|cookies?|domains?|values?|selectedPath|paths?|stdout|stderr|rawDiagnostics?|rawPayload|stack|traceback|argv|args|env|token|authorization|credential|password|secret|debug|cdp|devtools|endpoint)/i;
 const STATIC_FORBIDDEN_PATTERNS = Object.freeze([
-  { markerClass: "profile_private_path", pattern: /\b(?:profile-store\/profiles|user-data|app-data-root|XDG_DATA_HOME|APPDATA|LOCALAPPDATA|Application Support)\b/i },
-  { markerClass: "raw_diag", pattern: /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|rawBody|rawPayload|Traceback|traceback|stack trace)\b/i },
-  { markerClass: "debug_endpoint", pattern: /\b(?:DevToolsActivePort|debugPort|devtoolsPort|remoteDebuggingPort|remote-debugging|--remote-debugging-port|cdp:\/\/|cdpEndpoint|cdpPort)\b/i },
-  { markerClass: "credential", pattern: /\b(?:Authorization|Bearer|Proxy-Authorization|credentials?|username|password|secret|token)\b/i },
+  {
+    markerClass: "profile_private_path",
+    pattern:
+      /\b(?:profile-store\/profiles|user-data|app-data-root|XDG_DATA_HOME|APPDATA|LOCALAPPDATA|Application Support)\b/i,
+  },
+  {
+    markerClass: "raw_diag",
+    pattern:
+      /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|rawBody|rawPayload|Traceback|traceback|stack trace)\b/i,
+  },
+  {
+    markerClass: "debug_endpoint",
+    pattern:
+      /\b(?:DevToolsActivePort|debugPort|devtoolsPort|remoteDebuggingPort|remote-debugging|--remote-debugging-port|cdp:\/\/|cdpEndpoint|cdpPort)\b/i,
+  },
+  {
+    markerClass: "credential",
+    pattern: /\b(?:Authorization|Bearer|Proxy-Authorization|credentials?|username|password|secret|token)\b/i,
+  },
   { markerClass: "launch_args", pattern: /\b(?:--user-data-dir|--proxy-server|--load-extension|argv|args|env)\b/i },
 ]);
 const M005_FOCUSED_VITEST_FILES = Object.freeze([
@@ -79,7 +89,8 @@ const M005_SOURCE_GUARD_FILES = Object.freeze([
   "src-tauri/src/sidecar.rs",
 ]);
 const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[\/"'`\s)]|$)/;
-const FRONTEND_FILESYSTEM_AUTHORITY_PATTERN = /@tauri-apps\/plugin-fs|\b(?:readTextFile|writeTextFile|readFile|writeFile)\s*\(/;
+const FRONTEND_FILESYSTEM_AUTHORITY_PATTERN =
+  /@tauri-apps\/plugin-fs|\b(?:readTextFile|writeTextFile|readFile|writeFile)\s*\(/;
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -153,8 +164,14 @@ export function redactM005Text(value, context = createM005RedactionContext()) {
   return redacted
     .replace(/Traceback|traceback|stack trace/gi, "<redacted:raw_diag>")
     .replace(/stdout|stderr|raw diagnostics?|rawDiagnostics?|rawBody|rawPayload/gi, "<redacted:raw_diag>")
-    .replace(/DevToolsActivePort|debugPort|--remote-debugging-port(?:=|\s+)\d*|remote-debugging|cdp:\/\/|cdpEndpoint|devtoolsPort/gi, "<redacted:debug_endpoint>")
-    .replace(/Authorization|Bearer|Proxy-Authorization|credentials?|username|password|secret|token/gi, "<redacted:private>")
+    .replace(
+      /DevToolsActivePort|debugPort|--remote-debugging-port(?:=|\s+)\d*|remote-debugging|cdp:\/\/|cdpEndpoint|devtoolsPort/gi,
+      "<redacted:debug_endpoint>",
+    )
+    .replace(
+      /Authorization|Bearer|Proxy-Authorization|credentials?|username|password|secret|token/gi,
+      "<redacted:private>",
+    )
     .replace(/--user-data-dir|--proxy-server|--load-extension|argv|args|env/gi, "<redacted:launch_args>");
 }
 
@@ -190,7 +207,12 @@ function safeFieldPath(path, keyOrIndex) {
   return /^[A-Za-z_$][\w$]*$/.test(segment) ? `${path}.${segment}` : `${path}[${JSON.stringify(segment)}]`;
 }
 
-export function findM005ForbiddenPublicMarker(value, context = createM005RedactionContext(), path = "$", state = { count: 0 }) {
+export function findM005ForbiddenPublicMarker(
+  value,
+  context = createM005RedactionContext(),
+  path = "$",
+  state = { count: 0 },
+) {
   if (state.count++ > 6_000) {
     return { markerClass: "scan_limit", fieldPath: path, reason: "bounded scan limit exceeded" };
   }
@@ -278,39 +300,54 @@ function commandName(command, args) {
 
 export function formatM005CommandFailure(label, result, context = createM005RedactionContext()) {
   const combinedOutput = `${result?.stdout ?? ""}\n${result?.stderr ?? ""}`;
-  return redactM005({
-    phase: "subprocess",
-    command: label,
-    exitCode: typeof result?.status === "number" ? result.status : null,
-    signal: result?.signal ?? null,
-    errorCode: result?.error?.code ?? null,
-    timedOut: result?.error?.code === "ETIMEDOUT",
-    redactedTail: redactedM005Tail(combinedOutput, context),
-    guidance: result?.error?.code === "ETIMEDOUT"
-      ? "The child process was terminated after the bounded M005/S01 verifier timeout."
-      : "Inspect the named focused command locally; public verifier output includes only a redacted tail.",
-  }, context);
+  return redactM005(
+    {
+      phase: "subprocess",
+      command: label,
+      exitCode: typeof result?.status === "number" ? result.status : null,
+      signal: result?.signal ?? null,
+      errorCode: result?.error?.code ?? null,
+      timedOut: result?.error?.code === "ETIMEDOUT",
+      redactedTail: redactedM005Tail(combinedOutput, context),
+      guidance:
+        result?.error?.code === "ETIMEDOUT"
+          ? "The child process was terminated after the bounded M005/S01 verifier timeout."
+          : "Inspect the named focused command locally; public verifier output includes only a redacted tail.",
+    },
+    context,
+  );
 }
 
-function runM005CommandStep(name, command, args, timeoutMs, { rootDir = ROOT_DIR, context = createM005RedactionContext({ rootDir }) } = {}) {
-  return runStep(name, () => {
-    const label = commandName(command, args);
-    const result = spawnSync(executable(command), args, {
-      cwd: rootDir,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: timeoutMs,
-      maxBuffer: 20 * 1024 * 1024,
-    });
+function runM005CommandStep(
+  name,
+  command,
+  args,
+  timeoutMs,
+  { rootDir = ROOT_DIR, context = createM005RedactionContext({ rootDir }) } = {},
+) {
+  return runStep(
+    name,
+    () => {
+      const label = commandName(command, args);
+      const result = spawnSync(executable(command), args, {
+        cwd: rootDir,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: timeoutMs,
+        maxBuffer: 20 * 1024 * 1024,
+      });
 
-    if (result.error || result.status !== 0) {
-      const failure = formatM005CommandFailure(label, result, context);
-      const verb = result.error?.code === "ETIMEDOUT" ? "timed out" : `exited with status ${result.status ?? "unknown"}`;
-      fail(`${label} ${verb}.`, failure);
-    }
+      if (result.error || result.status !== 0) {
+        const failure = formatM005CommandFailure(label, result, context);
+        const verb =
+          result.error?.code === "ETIMEDOUT" ? "timed out" : `exited with status ${result.status ?? "unknown"}`;
+        fail(`${label} ${verb}.`, failure);
+      }
 
-    return { command: label };
-  }, context);
+      return { command: label };
+    },
+    context,
+  );
 }
 
 function parseJsonLine(line, label, context) {
@@ -341,7 +378,10 @@ function parseNdjson(value, expectedLines, label, context) {
   return lines.map((line, index) => parseJsonLine(line, `${label} line ${index + 1}`, context));
 }
 
-export function runSourceSidecarRequest(payload, { rootDir = ROOT_DIR, python = PYTHON, context = createM005RedactionContext() } = {}) {
+export function runSourceSidecarRequest(
+  payload,
+  { rootDir = ROOT_DIR, python = PYTHON, context = createM005RedactionContext() } = {},
+) {
   const result = spawnSync(executable(python), ["-m", "theprivator_sidecar"], {
     cwd: rootDir,
     input: `${JSON.stringify(payload)}\n`,
@@ -371,7 +411,10 @@ export function runSourceSidecarRequest(payload, { rootDir = ROOT_DIR, python = 
 }
 
 function assertDiagnosticEvent(diagnostic, expected) {
-  assert(diagnostic && typeof diagnostic === "object" && !Array.isArray(diagnostic), "Sidecar diagnostic was not an object.");
+  assert(
+    diagnostic && typeof diagnostic === "object" && !Array.isArray(diagnostic),
+    "Sidecar diagnostic was not an object.",
+  );
   for (const key of Object.keys(diagnostic)) {
     assert(SAFE_DIAGNOSTIC_KEYS.has(key), "Sidecar diagnostic included an unsafe field.", {
       phase: "diagnostic-shape",
@@ -399,8 +442,16 @@ function assertDiagnosticEvent(diagnostic, expected) {
       phase: "diagnostic-shape",
     });
   }
-  assert(typeof diagnostic.durationMs === "number" && diagnostic.durationMs >= 0, "Sidecar diagnostic duration was invalid.");
-  return { method: diagnostic.method, status: diagnostic.status, errorCode: diagnostic.errorCode, detailRef: diagnostic.detailRef ?? null };
+  assert(
+    typeof diagnostic.durationMs === "number" && diagnostic.durationMs >= 0,
+    "Sidecar diagnostic duration was invalid.",
+  );
+  return {
+    method: diagnostic.method,
+    status: diagnostic.status,
+    errorCode: diagnostic.errorCode,
+    detailRef: diagnostic.detailRef ?? null,
+  };
 }
 
 function assertPortabilitySuccess(response, { requestId, operation, format }) {
@@ -411,7 +462,9 @@ function assertPortabilitySuccess(response, { requestId, operation, format }) {
   assert(result.operation === operation, "Portability operation mismatch.", { phase: "contract" });
   assert(result.format === format, "Portability format mismatch.", { phase: "contract" });
   assert(Array.isArray(result.warnings), "Portability warnings were not an array.", { phase: "contract" });
-  assert(result.warningCount === result.warnings.length, "Portability warningCount did not match warnings length.", { phase: "contract" });
+  assert(result.warningCount === result.warnings.length, "Portability warningCount did not match warnings length.", {
+    phase: "contract",
+  });
   for (const field of ["exportedCount", "importedCount", "replacedCount", "skippedCount", "warningCount"]) {
     if (field in result) {
       assert(Number.isInteger(result[field]) && result[field] >= 0, "Portability count field was invalid.", {
@@ -435,7 +488,11 @@ function assertPortabilityError(response, { requestId, code }) {
     actualCode: response.error?.code,
   });
   assert(response.error?.recoverable === true, "Portability error was not recoverable.", { phase: "contract" });
-  assert(typeof response.error?.detailRef === "string" && response.error.detailRef.startsWith("sidecar-"), "Portability error was missing a safe detailRef.", { phase: "contract" });
+  assert(
+    typeof response.error?.detailRef === "string" && response.error.detailRef.startsWith("sidecar-"),
+    "Portability error was missing a safe detailRef.",
+    { phase: "contract" },
+  );
   assert(!("path" in response.error), "Portability error leaked a path field.", { phase: "contract" });
   return { errorCode: response.error.code, detailRef: response.error.detailRef };
 }
@@ -463,18 +520,26 @@ function permissionIdentifier(permission) {
 
 function assertNoForbiddenCapability(permission) {
   const identifier = permissionIdentifier(permission);
-  assert(typeof identifier === "string" && identifier.length > 0, "Default capability contained an invalid permission entry.", {
-    phase: "capability",
-    identifier: identifier ?? "unknown",
-  });
+  assert(
+    typeof identifier === "string" && identifier.length > 0,
+    "Default capability contained an invalid permission entry.",
+    {
+      phase: "capability",
+      identifier: identifier ?? "unknown",
+    },
+  );
   assert(!identifier.startsWith("fs:"), "Default capability must not grant frontend filesystem authority.", {
     phase: "capability",
     identifier,
   });
-  assert(identifier !== "shell:allow-open" && identifier !== "opener:allow-open" && identifier !== "opener:default", "Default capability must not grant shell/open authority.", {
-    phase: "capability",
-    identifier,
-  });
+  assert(
+    identifier !== "shell:allow-open" && identifier !== "opener:allow-open" && identifier !== "opener:default",
+    "Default capability must not grant shell/open authority.",
+    {
+      phase: "capability",
+      identifier,
+    },
+  );
   assert(identifier !== "dialog:default", "Default capability must not grant broad dialog defaults.", {
     phase: "capability",
     identifier,
@@ -499,63 +564,112 @@ export function assertM005CapabilityConfig({ rootDir = ROOT_DIR } = {}) {
     assertNoForbiddenCapability(permission);
     const identifier = permissionIdentifier(permission);
     if (identifier === "shell:allow-spawn") {
-      assert(permission && typeof permission === "object" && !Array.isArray(permission), "shell:allow-spawn must stay scoped by an allowlist object.", {
-        phase: "capability",
-      });
+      assert(
+        permission && typeof permission === "object" && !Array.isArray(permission),
+        "shell:allow-spawn must stay scoped by an allowlist object.",
+        {
+          phase: "capability",
+        },
+      );
       const allow = permission.allow;
       const allowedSidecars = Array.isArray(allow)
         ? allow.filter((entry) => entry?.name === SIDECAR_EXTERNAL_BIN && entry?.sidecar === true)
         : [];
-      assert(Array.isArray(allow) && allow.length === 1 && allowedSidecars.length === 1, "shell:allow-spawn must allow only the packaged sidecar.", {
-        phase: "capability",
-        identifier,
-      });
+      assert(
+        Array.isArray(allow) && allow.length === 1 && allowedSidecars.length === 1,
+        "shell:allow-spawn must allow only the packaged sidecar.",
+        {
+          phase: "capability",
+          identifier,
+        },
+      );
     }
     permissionIds.push(identifier);
   }
 
   const sortedIds = [...permissionIds].sort();
   const expectedIds = ["core:default", "dialog:allow-open", "dialog:allow-save", "shell:allow-spawn"].sort();
-  assert(JSON.stringify(sortedIds) === JSON.stringify(expectedIds), "Default capability must contain only core, dialog open/save, and fixed sidecar spawn permissions.", {
-    phase: "capability",
-    permissions: sortedIds,
-  });
+  assert(
+    JSON.stringify(sortedIds) === JSON.stringify(expectedIds),
+    "Default capability must contain only core, dialog open/save, and fixed sidecar spawn permissions.",
+    {
+      phase: "capability",
+      permissions: sortedIds,
+    },
+  );
 
   const packageJson = readJsonFile(packagePath, "package.json", { rootDir });
-  assert(typeof packageJson.dependencies?.["@tauri-apps/plugin-dialog"] === "string", "package.json must depend on @tauri-apps/plugin-dialog for native file dialogs.", {
-    phase: "capability",
-  });
-  assert(!packageJson.dependencies?.["@tauri-apps/plugin-fs"] && !packageJson.devDependencies?.["@tauri-apps/plugin-fs"], "package.json must not add the Tauri filesystem plugin.", {
-    phase: "capability",
-  });
+  assert(
+    typeof packageJson.dependencies?.["@tauri-apps/plugin-dialog"] === "string",
+    "package.json must depend on @tauri-apps/plugin-dialog for native file dialogs.",
+    {
+      phase: "capability",
+    },
+  );
+  assert(
+    !packageJson.dependencies?.["@tauri-apps/plugin-fs"] && !packageJson.devDependencies?.["@tauri-apps/plugin-fs"],
+    "package.json must not add the Tauri filesystem plugin.",
+    {
+      phase: "capability",
+    },
+  );
 
   const packageLock = readJsonFile(packageLockPath, "package-lock.json", { rootDir });
-  assert(typeof packageLock.packages?.[""]?.dependencies?.["@tauri-apps/plugin-dialog"] === "string", "package-lock root package must include @tauri-apps/plugin-dialog.", {
-    phase: "capability",
-  });
-  assert(packageLock.packages?.["node_modules/@tauri-apps/plugin-dialog"], "package-lock must pin @tauri-apps/plugin-dialog.", {
-    phase: "capability",
-  });
-  assert(!packageLock.packages?.[""]?.dependencies?.["@tauri-apps/plugin-fs"] && !packageLock.packages?.["node_modules/@tauri-apps/plugin-fs"], "package-lock must not include @tauri-apps/plugin-fs.", {
-    phase: "capability",
-  });
+  assert(
+    typeof packageLock.packages?.[""]?.dependencies?.["@tauri-apps/plugin-dialog"] === "string",
+    "package-lock root package must include @tauri-apps/plugin-dialog.",
+    {
+      phase: "capability",
+    },
+  );
+  assert(
+    packageLock.packages?.["node_modules/@tauri-apps/plugin-dialog"],
+    "package-lock must pin @tauri-apps/plugin-dialog.",
+    {
+      phase: "capability",
+    },
+  );
+  assert(
+    !packageLock.packages?.[""]?.dependencies?.["@tauri-apps/plugin-fs"] &&
+      !packageLock.packages?.["node_modules/@tauri-apps/plugin-fs"],
+    "package-lock must not include @tauri-apps/plugin-fs.",
+    {
+      phase: "capability",
+    },
+  );
 
   const cargoToml = readFileSync(cargoTomlPath, "utf8");
   const cargoLock = readFileSync(cargoLockPath, "utf8");
-  assert(/^tauri-plugin-dialog\s*=\s*/m.test(cargoToml), "Cargo.toml must depend on tauri-plugin-dialog.", { phase: "capability" });
-  assert(!/^tauri-plugin-fs\s*=\s*/m.test(cargoToml), "Cargo.toml must not depend on tauri-plugin-fs.", { phase: "capability" });
-  assert(/\nname = "tauri-plugin-dialog"\n/.test(cargoLock), "Cargo.lock must pin tauri-plugin-dialog.", { phase: "capability" });
+  assert(/^tauri-plugin-dialog\s*=\s*/m.test(cargoToml), "Cargo.toml must depend on tauri-plugin-dialog.", {
+    phase: "capability",
+  });
+  assert(!/^tauri-plugin-fs\s*=\s*/m.test(cargoToml), "Cargo.toml must not depend on tauri-plugin-fs.", {
+    phase: "capability",
+  });
+  assert(/\nname = "tauri-plugin-dialog"\n/.test(cargoLock), "Cargo.lock must pin tauri-plugin-dialog.", {
+    phase: "capability",
+  });
 
   const libRs = readFileSync(libPath, "utf8");
-  assert(libRs.includes(".plugin(tauri_plugin_dialog::init())"), "Tauri builder must register the dialog plugin.", { phase: "capability" });
-  assert(libRs.includes("sidecar::profile_cookies_export") && libRs.includes("sidecar::profile_cookies_replace"), "Tauri invoke handler must register fixed cookie commands.", {
+  assert(libRs.includes(".plugin(tauri_plugin_dialog::init())"), "Tauri builder must register the dialog plugin.", {
     phase: "capability",
   });
+  assert(
+    libRs.includes("sidecar::profile_cookies_export") && libRs.includes("sidecar::profile_cookies_replace"),
+    "Tauri invoke handler must register fixed cookie commands.",
+    {
+      phase: "capability",
+    },
+  );
 
   const sidecarRs = readFileSync(sidecarPath, "utf8");
-  assert(sidecarRs.includes('"portability.cookies.export"') && sidecarRs.includes('"portability.cookies.replace"'), "Rust bridge must expose fixed portability cookie method wrappers.", {
-    phase: "capability",
-  });
+  assert(
+    sidecarRs.includes('"portability.cookies.export"') && sidecarRs.includes('"portability.cookies.replace"'),
+    "Rust bridge must expose fixed portability cookie method wrappers.",
+    {
+      phase: "capability",
+    },
+  );
 
   return {
     permissions: sortedIds,
@@ -568,13 +682,21 @@ export function assertM005CapabilityConfig({ rootDir = ROOT_DIR } = {}) {
 export function runCapabilityOnlyVerification({ rootDir = ROOT_DIR, resetState = true, emitFinal = true } = {}) {
   if (resetState) resetM005VerificationState();
   const stepStart = STEP_RESULTS.length;
-  const result = runStep("capability.dialog-boundary", () => assertM005CapabilityConfig({ rootDir }), createM005RedactionContext({ rootDir }));
+  const result = runStep(
+    "capability.dialog-boundary",
+    () => assertM005CapabilityConfig({ rootDir }),
+    createM005RedactionContext({ rootDir }),
+  );
   const summary = {
     event: VERIFY_EVENT,
     status: "pass",
     mode: "capability-only",
     capability: result,
-    checks: STEP_RESULTS.slice(stepStart).map((check) => ({ name: check.name, status: check.status, durationMs: check.durationMs })),
+    checks: STEP_RESULTS.slice(stepStart).map((check) => ({
+      name: check.name,
+      status: check.status,
+      durationMs: check.durationMs,
+    })),
   };
   assertM005PublicEvidenceRedacted(summary, createM005RedactionContext({ rootDir }));
   if (emitFinal) emit({ status: "pass", summary }, createM005RedactionContext({ rootDir }));
@@ -596,39 +718,60 @@ export function assertM005SourceGuardrails({ rootDir = ROOT_DIR } = {}) {
     const absolutePath = assertFileExists(rootDir, relativePath);
     const source = readFileSync(absolutePath, "utf8");
     scannedFiles.push(relativePath);
-    assert(!IGNORED_ARTIFACT_REFERENCE_PATTERN.test(source), "M005/S01 verifier and tests must not import ignored planning artifacts.", {
-      phase: "source-guardrail",
-      file: relativePath,
-      markerClass: "ignored_artifact_reference",
-    });
+    assert(
+      !IGNORED_ARTIFACT_REFERENCE_PATTERN.test(source),
+      "M005/S01 verifier and tests must not import ignored planning artifacts.",
+      {
+        phase: "source-guardrail",
+        file: relativePath,
+        markerClass: "ignored_artifact_reference",
+      },
+    );
   }
 
   // Applied per UI file rather than to src/App.tsx alone, so the rule still holds
   // once the UI is split into components. See scripts/ui-sources.mjs.
   for (const file of readGuardedUiSources(rootDir).files) {
-    assert(!FRONTEND_FILESYSTEM_AUTHORITY_PATTERN.test(file.text), "Cookie portability UI must not gain frontend filesystem authority.", {
-      phase: "source-guardrail",
-      file: file.path,
-      markerClass: "frontend_filesystem_authority",
-    });
-    assert(!file.text.includes('"profile_cookies_export"') && !file.text.includes('"profile_cookies_replace"'), "Cookie portability UI must call typed client wrappers instead of raw invoke command names.", {
-      phase: "source-guardrail",
-      file: file.path,
-      markerClass: "raw_cookie_invoke_in_ui",
-    });
+    assert(
+      !FRONTEND_FILESYSTEM_AUTHORITY_PATTERN.test(file.text),
+      "Cookie portability UI must not gain frontend filesystem authority.",
+      {
+        phase: "source-guardrail",
+        file: file.path,
+        markerClass: "frontend_filesystem_authority",
+      },
+    );
+    assert(
+      !file.text.includes('"profile_cookies_export"') && !file.text.includes('"profile_cookies_replace"'),
+      "Cookie portability UI must call typed client wrappers instead of raw invoke command names.",
+      {
+        phase: "source-guardrail",
+        file: file.path,
+        markerClass: "raw_cookie_invoke_in_ui",
+      },
+    );
   }
 
   const clientSource = readFileSync(assertFileExists(rootDir, "src/sidecar/client.ts"), "utf8");
-  assert(!clientSource.includes('"portability.cookies.export"') && !clientSource.includes('"portability.cookies.replace"'), "TypeScript client must not expose raw sidecar portability method strings.", {
-    phase: "source-guardrail",
-    file: "src/sidecar/client.ts",
-    markerClass: "raw_sidecar_method_in_client",
-  });
-  assert(clientSource.includes('invoke<unknown>("profile_cookies_export"') && clientSource.includes('invoke<unknown>("profile_cookies_replace"'), "TypeScript client must keep fixed cookie portability Tauri wrappers.", {
-    phase: "source-guardrail",
-    file: "src/sidecar/client.ts",
-    markerClass: "missing_fixed_wrappers",
-  });
+  assert(
+    !clientSource.includes('"portability.cookies.export"') && !clientSource.includes('"portability.cookies.replace"'),
+    "TypeScript client must not expose raw sidecar portability method strings.",
+    {
+      phase: "source-guardrail",
+      file: "src/sidecar/client.ts",
+      markerClass: "raw_sidecar_method_in_client",
+    },
+  );
+  assert(
+    clientSource.includes('invoke<unknown>("profile_cookies_export"') &&
+      clientSource.includes('invoke<unknown>("profile_cookies_replace"'),
+    "TypeScript client must keep fixed cookie portability Tauri wrappers.",
+    {
+      phase: "source-guardrail",
+      file: "src/sidecar/client.ts",
+      markerClass: "missing_fixed_wrappers",
+    },
+  );
 
   return {
     scannedFiles: scannedFiles.length,
@@ -649,14 +792,23 @@ export function assertM005ReadmeDocs({ rootDir = ROOT_DIR } = {}) {
     phase: "docs",
     markerClass: "missing_scope",
   });
-  assert(/S04/i.test(readme) && /packaged/i.test(readme) && /dialog/i.test(readme), "README must defer packaged real-dialog proof to S04.", {
-    phase: "docs",
-    markerClass: "missing_s04_boundary",
-  });
-  assert(/no-frontend-filesystem|no frontend filesystem/i.test(readme) && /no-path-leak|path leak|selected locations/i.test(readme), "README must document the frontend filesystem and selected-location redaction boundary.", {
-    phase: "docs",
-    markerClass: "missing_authority_boundary",
-  });
+  assert(
+    /S04/i.test(readme) && /packaged/i.test(readme) && /dialog/i.test(readme),
+    "README must defer packaged real-dialog proof to S04.",
+    {
+      phase: "docs",
+      markerClass: "missing_s04_boundary",
+    },
+  );
+  assert(
+    /no-frontend-filesystem|no frontend filesystem/i.test(readme) &&
+      /no-path-leak|path leak|selected locations/i.test(readme),
+    "README must document the frontend filesystem and selected-location redaction boundary.",
+    {
+      phase: "docs",
+      markerClass: "missing_authority_boundary",
+    },
+  );
   return {
     command: "documented",
     packagedDialogProof: "deferred-to-s04",
@@ -727,7 +879,12 @@ finally:
     conn.close()
 print(json.dumps({"count": 2}))
 `;
-  return runPythonFixture(script, { storeRoot, profileId, cookieDomain, cookieValue, secondCookieValue }, context, "cookie-db-create");
+  return runPythonFixture(
+    script,
+    { storeRoot, profileId, cookieDomain, cookieValue, secondCookieValue },
+    context,
+    "cookie-db-create",
+  );
 }
 
 function cookieDbSummary({ storeRoot, profileId, expectedValues = [] }, context) {
@@ -757,7 +914,10 @@ function writeImportJson(path, cookies) {
 function readDiagnostics(storeRoot, context) {
   const path = join(storeRoot, DIAGNOSTIC_RELATIVE_LOG_PATH);
   assert(existsSync(path), "Diagnostic log was not written.", { phase: "diagnostics" });
-  const lines = readFileSync(path, "utf8").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = readFileSync(path, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
   return lines.map((line, index) => parseJsonLine(line, `diagnostic ${index + 1}`, context));
 }
 
@@ -771,10 +931,15 @@ function assertPersistedDiagnostics(entries, expectedRows) {
       });
     }
     assert(entry.event === "sidecar.request", "Persisted diagnostic event mismatch.", { phase: "diagnostics", index });
-    assert(entry.logPath === DIAGNOSTIC_RELATIVE_LOG_PATH, "Persisted diagnostic logPath mismatch.", { phase: "diagnostics", index });
+    assert(entry.logPath === DIAGNOSTIC_RELATIVE_LOG_PATH, "Persisted diagnostic logPath mismatch.", {
+      phase: "diagnostics",
+      index,
+    });
   }
   for (const expected of expectedRows) {
-    const matches = entries.filter((entry) => entry.requestId === expected.requestId && entry.method === expected.method);
+    const matches = entries.filter(
+      (entry) => entry.requestId === expected.requestId && entry.method === expected.method,
+    );
     assert(matches.length === 1, "Persisted diagnostics did not contain exactly one expected row.", {
       phase: "diagnostics",
       requestId: expected.requestId,
@@ -792,18 +957,26 @@ function assertPersistedDiagnostics(entries, expectedRows) {
 function writeBusyRuntimeRecord(storeRoot, profileId) {
   const runtimePath = join(storeRoot, "profile-store", "runtime", "chromium-processes.json");
   mkdirSync(dirname(runtimePath), { recursive: true });
-  writeFileSync(runtimePath, `${JSON.stringify({
-    registryVersion: 1,
-    processes: {
-      [profileId]: {
-        profileId,
-        pid: process.pid,
-        startedAt: new Date().toISOString().replace(/\.\d{3}Z$/, ".000Z"),
-        userDataDir: `profile-store/profiles/${profileId}/user-data`,
-        ownerToken: "m005-runtime-owner",
+  writeFileSync(
+    runtimePath,
+    `${JSON.stringify(
+      {
+        registryVersion: 1,
+        processes: {
+          [profileId]: {
+            profileId,
+            pid: process.pid,
+            startedAt: new Date().toISOString().replace(/\.\d{3}Z$/, ".000Z"),
+            userDataDir: `profile-store/profiles/${profileId}/user-data`,
+            ownerToken: "m005-runtime-owner",
+          },
+        },
       },
-    },
-  }, null, 2)}\n`, "utf8");
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
 }
 
 function clearBusyRuntimeRecord(storeRoot) {
@@ -874,7 +1047,16 @@ function recordCleanupStep(storeRoot, { keepTemp, context }) {
     const durationMs = duration();
     const cleanup = { status: "retained", retained: true };
     STEP_RESULTS.push({ name: "cleanup.temp-fixtures", status: "pass", durationMs });
-    emit({ phase: "cleanup.temp-fixtures", status: "pass", durationMs, cleanupStatus: cleanup.status, retained: cleanup.retained }, context);
+    emit(
+      {
+        phase: "cleanup.temp-fixtures",
+        status: "pass",
+        durationMs,
+        cleanupStatus: cleanup.status,
+        retained: cleanup.retained,
+      },
+      context,
+    );
     return cleanup;
   }
 
@@ -883,18 +1065,42 @@ function recordCleanupStep(storeRoot, { keepTemp, context }) {
     const durationMs = duration();
     const cleanup = { status: "removed", retained: false };
     STEP_RESULTS.push({ name: "cleanup.temp-fixtures", status: "pass", durationMs });
-    emit({ phase: "cleanup.temp-fixtures", status: "pass", durationMs, cleanupStatus: cleanup.status, retained: cleanup.retained }, context);
+    emit(
+      {
+        phase: "cleanup.temp-fixtures",
+        status: "pass",
+        durationMs,
+        cleanupStatus: cleanup.status,
+        retained: cleanup.retained,
+      },
+      context,
+    );
     return cleanup;
   } catch (error) {
     const durationMs = duration();
     const cleanup = { status: "failed", retained: true, errorCode: error?.code ?? "CLEANUP_FAILED" };
     STEP_RESULTS.push({ name: "cleanup.temp-fixtures", status: "fail", durationMs });
-    emit({ phase: "cleanup.temp-fixtures", status: "fail", durationMs, cleanupStatus: cleanup.status, errorCode: cleanup.errorCode }, context);
+    emit(
+      {
+        phase: "cleanup.temp-fixtures",
+        status: "fail",
+        durationMs,
+        cleanupStatus: cleanup.status,
+        errorCode: cleanup.errorCode,
+      },
+      context,
+    );
     return cleanup;
   }
 }
 
-export function runSidecarOnlySmoke({ rootDir = ROOT_DIR, python = PYTHON, keepTemp = false, resetState = true, emitFinal = true } = {}) {
+export function runSidecarOnlySmoke({
+  rootDir = ROOT_DIR,
+  python = PYTHON,
+  keepTemp = false,
+  resetState = true,
+  emitFinal = true,
+} = {}) {
   if (resetState) resetM005VerificationState();
   const sidecarStepStart = STEP_RESULTS.length;
   void rootDir;
@@ -914,7 +1120,16 @@ export function runSidecarOnlySmoke({ rootDir = ROOT_DIR, python = PYTHON, keepT
   const busyExportPath = join(storeRoot, "busy-should-not-leak.json");
   const redactionContext = createM005RedactionContext({
     storeRoot,
-    selectedPaths: [exportJsonPath, zeroExportJsonPath, exportTxtPath, importJsonPath, malformedJsonPath, oversizedPath, unsupportedPath, busyExportPath],
+    selectedPaths: [
+      exportJsonPath,
+      zeroExportJsonPath,
+      exportTxtPath,
+      importJsonPath,
+      malformedJsonPath,
+      oversizedPath,
+      unsupportedPath,
+      busyExportPath,
+    ],
     cookieDomains: [cookieDomain, `.${cookieDomain}`],
     cookieValues: [cookieValue, secondCookieValue, replacementValue],
   });
@@ -930,186 +1145,483 @@ export function runSidecarOnlySmoke({ rootDir = ROOT_DIR, python = PYTHON, keepT
   }
 
   try {
-    const profileId = runStep("fixture.profile", () => {
-      const id = createStoreProfile(context);
-      const userDataRoot = join(storeRoot, "profile-store", "profiles", id, "user-data");
-      context.redactionContext = createM005RedactionContext({
-        storeRoot,
-        profileRoot: dirname(userDataRoot),
-        userDataRoot,
-        selectedPaths: [exportJsonPath, zeroExportJsonPath, exportTxtPath, importJsonPath, malformedJsonPath, oversizedPath, unsupportedPath, busyExportPath],
-        cookieDomains: [cookieDomain, `.${cookieDomain}`],
-        cookieValues: [cookieValue, secondCookieValue, replacementValue],
-      });
-      return { value: id, log: { profileReady: true } };
-    }, context.redactionContext);
+    const profileId = runStep(
+      "fixture.profile",
+      () => {
+        const id = createStoreProfile(context);
+        const userDataRoot = join(storeRoot, "profile-store", "profiles", id, "user-data");
+        context.redactionContext = createM005RedactionContext({
+          storeRoot,
+          profileRoot: dirname(userDataRoot),
+          userDataRoot,
+          selectedPaths: [
+            exportJsonPath,
+            zeroExportJsonPath,
+            exportTxtPath,
+            importJsonPath,
+            malformedJsonPath,
+            oversizedPath,
+            unsupportedPath,
+            busyExportPath,
+          ],
+          cookieDomains: [cookieDomain, `.${cookieDomain}`],
+          cookieValues: [cookieValue, secondCookieValue, replacementValue],
+        });
+        return { value: id, log: { profileReady: true } };
+      },
+      context.redactionContext,
+    );
 
-    runStep("sidecar.zero-cookie-export", () => {
-      const result = remember(
-        runSourceSidecarRequest({
-          id: "m005-export-zero-json",
+    runStep(
+      "sidecar.zero-cookie-export",
+      () => {
+        const result = remember(
+          runSourceSidecarRequest(
+            {
+              id: "m005-export-zero-json",
+              method: PORTABILITY_EXPORT,
+              params: { storeRoot, profileId, destinationPath: zeroExportJsonPath, format: FORMAT_THEPRIVATOR_JSON },
+            },
+            { context: context.redactionContext },
+          ),
+          {
+            requestId: "m005-export-zero-json",
+            method: PORTABILITY_EXPORT,
+            status: "ok",
+            errorCode: null,
+            detailRef: null,
+          },
+        );
+        const payload = assertPortabilitySuccess(result.response, {
+          requestId: "m005-export-zero-json",
+          operation: "export",
+          format: FORMAT_THEPRIVATOR_JSON,
+        });
+        assertDiagnosticEvent(result.diagnostic, {
           method: PORTABILITY_EXPORT,
-          params: { storeRoot, profileId, destinationPath: zeroExportJsonPath, format: FORMAT_THEPRIVATOR_JSON },
-        }, { context: context.redactionContext }),
-        { requestId: "m005-export-zero-json", method: PORTABILITY_EXPORT, status: "ok", errorCode: null, detailRef: null },
-      );
-      const payload = assertPortabilitySuccess(result.response, { requestId: "m005-export-zero-json", operation: "export", format: FORMAT_THEPRIVATOR_JSON });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_EXPORT, status: "ok", errorCode: null, detailRef: null });
-      assert(payload.exportedCount === 0 && payload.skippedCount === 0 && payload.warningCount === 0, "Zero-cookie export did not report clean zero counts.", { phase: "zero-cookie" });
-      const exported = JSON.parse(readFileSync(zeroExportJsonPath, "utf8"));
-      assert(Array.isArray(exported) && exported.length === 0, "Zero-cookie JSON export did not write an empty cookie array.", { phase: "zero-cookie" });
-      sidecar.emptyExported = true;
-      sidecar.counts.zeroJsonExported = payload.exportedCount;
-      return { exportedCount: payload.exportedCount, warningCount: payload.warningCount };
-    }, context.redactionContext);
+          status: "ok",
+          errorCode: null,
+          detailRef: null,
+        });
+        assert(
+          payload.exportedCount === 0 && payload.skippedCount === 0 && payload.warningCount === 0,
+          "Zero-cookie export did not report clean zero counts.",
+          { phase: "zero-cookie" },
+        );
+        const exported = JSON.parse(readFileSync(zeroExportJsonPath, "utf8"));
+        assert(
+          Array.isArray(exported) && exported.length === 0,
+          "Zero-cookie JSON export did not write an empty cookie array.",
+          { phase: "zero-cookie" },
+        );
+        sidecar.emptyExported = true;
+        sidecar.counts.zeroJsonExported = payload.exportedCount;
+        return { exportedCount: payload.exportedCount, warningCount: payload.warningCount };
+      },
+      context.redactionContext,
+    );
 
-    runStep("fixture.cookie-db", () => {
-      const result = createCookieDbFixture({ storeRoot, profileId, cookieDomain, cookieValue, secondCookieValue }, context.redactionContext);
-      assert(result.count === 2, "Cookie DB fixture did not create the expected rows.", { phase: "fixture" });
-      return { rowCount: result.count };
-    }, context.redactionContext);
+    runStep(
+      "fixture.cookie-db",
+      () => {
+        const result = createCookieDbFixture(
+          { storeRoot, profileId, cookieDomain, cookieValue, secondCookieValue },
+          context.redactionContext,
+        );
+        assert(result.count === 2, "Cookie DB fixture did not create the expected rows.", { phase: "fixture" });
+        return { rowCount: result.count };
+      },
+      context.redactionContext,
+    );
 
-    const jsonExport = runStep("sidecar.export-json", () => {
-      const result = remember(
-        runSourceSidecarRequest({
-          id: "m005-export-json",
+    const jsonExport = runStep(
+      "sidecar.export-json",
+      () => {
+        const result = remember(
+          runSourceSidecarRequest(
+            {
+              id: "m005-export-json",
+              method: PORTABILITY_EXPORT,
+              params: { storeRoot, profileId, destinationPath: exportJsonPath, format: FORMAT_THEPRIVATOR_JSON },
+            },
+            { context: context.redactionContext },
+          ),
+          { requestId: "m005-export-json", method: PORTABILITY_EXPORT, status: "ok", errorCode: null, detailRef: null },
+        );
+        const payload = assertPortabilitySuccess(result.response, {
+          requestId: "m005-export-json",
+          operation: "export",
+          format: FORMAT_THEPRIVATOR_JSON,
+        });
+        assertDiagnosticEvent(result.diagnostic, {
           method: PORTABILITY_EXPORT,
-          params: { storeRoot, profileId, destinationPath: exportJsonPath, format: FORMAT_THEPRIVATOR_JSON },
-        }, { context: context.redactionContext }),
-        { requestId: "m005-export-json", method: PORTABILITY_EXPORT, status: "ok", errorCode: null, detailRef: null },
-      );
-      const payload = assertPortabilitySuccess(result.response, { requestId: "m005-export-json", operation: "export", format: FORMAT_THEPRIVATOR_JSON });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_EXPORT, status: "ok", errorCode: null, detailRef: null });
-      assert(payload.exportedCount === 2, "JSON export did not report two exported cookies.", { phase: "export" });
-      const exported = JSON.parse(readFileSync(exportJsonPath, "utf8"));
-      assert(Array.isArray(exported) && exported.length === 2, "JSON export did not write the expected cookie array.", { phase: "export" });
-      assert(exported.every((cookie) => cookie.storeId === "Default" && typeof cookie.session === "boolean" && typeof cookie.expirationDate === "number" && ["Lax", "Strict", "None", "Unspecified"].includes(cookie.sameSite)), "JSON export used the wrong cookie fields.", { phase: "export" });
-      sidecar.exportedJson = true;
-      sidecar.counts.jsonExported = payload.exportedCount;
-      return { exportedCount: payload.exportedCount, warningCount: payload.warningCount };
-    }, context.redactionContext);
+          status: "ok",
+          errorCode: null,
+          detailRef: null,
+        });
+        assert(payload.exportedCount === 2, "JSON export did not report two exported cookies.", { phase: "export" });
+        const exported = JSON.parse(readFileSync(exportJsonPath, "utf8"));
+        assert(
+          Array.isArray(exported) && exported.length === 2,
+          "JSON export did not write the expected cookie array.",
+          { phase: "export" },
+        );
+        assert(
+          exported.every(
+            (cookie) =>
+              cookie.storeId === "Default" &&
+              typeof cookie.session === "boolean" &&
+              typeof cookie.expirationDate === "number" &&
+              ["Lax", "Strict", "None", "Unspecified"].includes(cookie.sameSite),
+          ),
+          "JSON export used the wrong cookie fields.",
+          { phase: "export" },
+        );
+        sidecar.exportedJson = true;
+        sidecar.counts.jsonExported = payload.exportedCount;
+        return { exportedCount: payload.exportedCount, warningCount: payload.warningCount };
+      },
+      context.redactionContext,
+    );
 
-    runStep("sidecar.legacy-export-rejected", () => {
-      const result = runSourceSidecarRequest({
-        id: "m005-export-netscape",
-        method: PORTABILITY_EXPORT,
-        params: { storeRoot, profileId, destinationPath: exportTxtPath, format: FORMAT_NETSCAPE },
-      }, { context: context.redactionContext });
-      const error = assertPortabilityError(result.response, { requestId: "m005-export-netscape", code: "PORTABILITY_UNSUPPORTED_FORMAT" });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_EXPORT, status: "error", errorCode: "PORTABILITY_UNSUPPORTED_FORMAT", detailRef: error.detailRef });
-      remember(result, { requestId: "m005-export-netscape", method: PORTABILITY_EXPORT, status: "error", errorCode: "PORTABILITY_UNSUPPORTED_FORMAT", detailRef: error.detailRef });
-      assert(!existsSync(exportTxtPath), "Removed text export unexpectedly wrote a file.", { phase: "export" });
-      sidecar.legacyExportRejected = true;
-      return { errorCode: error.errorCode };
-    }, context.redactionContext);
+    runStep(
+      "sidecar.legacy-export-rejected",
+      () => {
+        const result = runSourceSidecarRequest(
+          {
+            id: "m005-export-netscape",
+            method: PORTABILITY_EXPORT,
+            params: { storeRoot, profileId, destinationPath: exportTxtPath, format: FORMAT_NETSCAPE },
+          },
+          { context: context.redactionContext },
+        );
+        const error = assertPortabilityError(result.response, {
+          requestId: "m005-export-netscape",
+          code: "PORTABILITY_UNSUPPORTED_FORMAT",
+        });
+        assertDiagnosticEvent(result.diagnostic, {
+          method: PORTABILITY_EXPORT,
+          status: "error",
+          errorCode: "PORTABILITY_UNSUPPORTED_FORMAT",
+          detailRef: error.detailRef,
+        });
+        remember(result, {
+          requestId: "m005-export-netscape",
+          method: PORTABILITY_EXPORT,
+          status: "error",
+          errorCode: "PORTABILITY_UNSUPPORTED_FORMAT",
+          detailRef: error.detailRef,
+        });
+        assert(!existsSync(exportTxtPath), "Removed text export unexpectedly wrote a file.", { phase: "export" });
+        sidecar.legacyExportRejected = true;
+        return { errorCode: error.errorCode };
+      },
+      context.redactionContext,
+    );
 
-    runStep("sidecar.replace-json", () => {
-      writeImportJson(importJsonPath, [
-        { domain: cookieDomain, hostOnly: true, path: "/", name: "session_id", value: "m005-duplicate-old", secure: true, httpOnly: true, expiresUnix: 1_900_000_000, sameSite: "lax", priority: "high" },
-        { domain: cookieDomain, hostOnly: true, path: "/", name: "session_id", value: replacementValue, secure: true, httpOnly: true, expiresUnix: 1_900_000_000, sameSite: "strict", priority: "medium" },
-        { domain: `.${cookieDomain}`, hostOnly: false, path: "/new", name: "new_cookie", value: secondCookieValue, secure: false, httpOnly: false, expiresUnix: null, sameSite: "unspecified", priority: "medium" },
-      ]);
-      const result = remember(
-        runSourceSidecarRequest({
-          id: "m005-replace-json",
+    runStep(
+      "sidecar.replace-json",
+      () => {
+        writeImportJson(importJsonPath, [
+          {
+            domain: cookieDomain,
+            hostOnly: true,
+            path: "/",
+            name: "session_id",
+            value: "m005-duplicate-old",
+            secure: true,
+            httpOnly: true,
+            expiresUnix: 1_900_000_000,
+            sameSite: "lax",
+            priority: "high",
+          },
+          {
+            domain: cookieDomain,
+            hostOnly: true,
+            path: "/",
+            name: "session_id",
+            value: replacementValue,
+            secure: true,
+            httpOnly: true,
+            expiresUnix: 1_900_000_000,
+            sameSite: "strict",
+            priority: "medium",
+          },
+          {
+            domain: `.${cookieDomain}`,
+            hostOnly: false,
+            path: "/new",
+            name: "new_cookie",
+            value: secondCookieValue,
+            secure: false,
+            httpOnly: false,
+            expiresUnix: null,
+            sameSite: "unspecified",
+            priority: "medium",
+          },
+        ]);
+        const result = remember(
+          runSourceSidecarRequest(
+            {
+              id: "m005-replace-json",
+              method: PORTABILITY_REPLACE,
+              params: { storeRoot, profileId, sourcePath: importJsonPath },
+            },
+            { context: context.redactionContext },
+          ),
+          {
+            requestId: "m005-replace-json",
+            method: PORTABILITY_REPLACE,
+            status: "ok",
+            errorCode: null,
+            detailRef: null,
+          },
+        );
+        const payload = assertPortabilitySuccess(result.response, {
+          requestId: "m005-replace-json",
+          operation: "replace",
+          format: FORMAT_THEPRIVATOR_JSON,
+        });
+        assertDiagnosticEvent(result.diagnostic, {
           method: PORTABILITY_REPLACE,
-          params: { storeRoot, profileId, sourcePath: importJsonPath },
-        }, { context: context.redactionContext }),
-        { requestId: "m005-replace-json", method: PORTABILITY_REPLACE, status: "ok", errorCode: null, detailRef: null },
-      );
-      const payload = assertPortabilitySuccess(result.response, { requestId: "m005-replace-json", operation: "replace", format: FORMAT_THEPRIVATOR_JSON });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_REPLACE, status: "ok", errorCode: null, detailRef: null });
-      assert(payload.importedCount === 2, "Replace did not import the expected unique cookie count.", { phase: "replace" });
-      assert(payload.replacedCount === 1, "Replace did not report the expected replaced cookie count.", { phase: "replace" });
-      assert(payload.skippedCount === 1, "Replace did not report the expected duplicate skip count.", { phase: "replace" });
-      const summary = cookieDbSummary({ storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] }, context.redactionContext);
-      assert(summary.count === 2 && summary.hasExpectedValues, "Cookie DB rows did not match replace results.", { phase: "replace" });
-      sidecar.replaced = true;
-      sidecar.counts.imported = payload.importedCount;
-      sidecar.counts.replaced = payload.replacedCount;
-      sidecar.counts.skipped = payload.skippedCount;
-      return { importedCount: payload.importedCount, replacedCount: payload.replacedCount, skippedCount: payload.skippedCount };
-    }, context.redactionContext);
+          status: "ok",
+          errorCode: null,
+          detailRef: null,
+        });
+        assert(payload.importedCount === 2, "Replace did not import the expected unique cookie count.", {
+          phase: "replace",
+        });
+        assert(payload.replacedCount === 1, "Replace did not report the expected replaced cookie count.", {
+          phase: "replace",
+        });
+        assert(payload.skippedCount === 1, "Replace did not report the expected duplicate skip count.", {
+          phase: "replace",
+        });
+        const summary = cookieDbSummary(
+          { storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] },
+          context.redactionContext,
+        );
+        assert(summary.count === 2 && summary.hasExpectedValues, "Cookie DB rows did not match replace results.", {
+          phase: "replace",
+        });
+        sidecar.replaced = true;
+        sidecar.counts.imported = payload.importedCount;
+        sidecar.counts.replaced = payload.replacedCount;
+        sidecar.counts.skipped = payload.skippedCount;
+        return {
+          importedCount: payload.importedCount,
+          replacedCount: payload.replacedCount,
+          skippedCount: payload.skippedCount,
+        };
+      },
+      context.redactionContext,
+    );
 
-    runStep("sidecar.invalid-import-preserves-db", () => {
-      const before = cookieDbSummary({ storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] }, context.redactionContext);
-      writeFileSync(malformedJsonPath, `${JSON.stringify({ format: "theprivator.cookies", version: 999, cookies: [] })}\n`, "utf8");
-      const result = runSourceSidecarRequest({
-        id: "m005-replace-invalid",
-        method: PORTABILITY_REPLACE,
-        params: { storeRoot, profileId, sourcePath: malformedJsonPath },
-      }, { context: context.redactionContext });
-      const error = assertPortabilityError(result.response, { requestId: "m005-replace-invalid", code: "PORTABILITY_COOKIE_FILE_INVALID" });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_REPLACE, status: "error", errorCode: "PORTABILITY_COOKIE_FILE_INVALID", detailRef: error.detailRef });
-      remember(result, { requestId: "m005-replace-invalid", method: PORTABILITY_REPLACE, status: "error", errorCode: "PORTABILITY_COOKIE_FILE_INVALID", detailRef: error.detailRef });
-      const after = cookieDbSummary({ storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] }, context.redactionContext);
-      assert(after.count === before.count && after.hasExpectedValues, "Invalid import mutated existing cookies.", { phase: "invalid-import" });
-      sidecar.invalidImportPreservedRows = true;
-      return { errorCode: error.errorCode, rowsPreserved: true };
-    }, context.redactionContext);
+    runStep(
+      "sidecar.invalid-import-preserves-db",
+      () => {
+        const before = cookieDbSummary(
+          { storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] },
+          context.redactionContext,
+        );
+        writeFileSync(
+          malformedJsonPath,
+          `${JSON.stringify({ format: "theprivator.cookies", version: 999, cookies: [] })}\n`,
+          "utf8",
+        );
+        const result = runSourceSidecarRequest(
+          {
+            id: "m005-replace-invalid",
+            method: PORTABILITY_REPLACE,
+            params: { storeRoot, profileId, sourcePath: malformedJsonPath },
+          },
+          { context: context.redactionContext },
+        );
+        const error = assertPortabilityError(result.response, {
+          requestId: "m005-replace-invalid",
+          code: "PORTABILITY_COOKIE_FILE_INVALID",
+        });
+        assertDiagnosticEvent(result.diagnostic, {
+          method: PORTABILITY_REPLACE,
+          status: "error",
+          errorCode: "PORTABILITY_COOKIE_FILE_INVALID",
+          detailRef: error.detailRef,
+        });
+        remember(result, {
+          requestId: "m005-replace-invalid",
+          method: PORTABILITY_REPLACE,
+          status: "error",
+          errorCode: "PORTABILITY_COOKIE_FILE_INVALID",
+          detailRef: error.detailRef,
+        });
+        const after = cookieDbSummary(
+          { storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] },
+          context.redactionContext,
+        );
+        assert(after.count === before.count && after.hasExpectedValues, "Invalid import mutated existing cookies.", {
+          phase: "invalid-import",
+        });
+        sidecar.invalidImportPreservedRows = true;
+        return { errorCode: error.errorCode, rowsPreserved: true };
+      },
+      context.redactionContext,
+    );
 
-    runStep("sidecar.oversized-import-preserves-db", () => {
-      const before = cookieDbSummary({ storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] }, context.redactionContext);
-      writeFileSync(oversizedPath, "x".repeat(MAX_IMPORT_BYTES + 1), "utf8");
-      const result = runSourceSidecarRequest({
-        id: "m005-replace-oversized",
-        method: PORTABILITY_REPLACE,
-        params: { storeRoot, profileId, sourcePath: oversizedPath },
-      }, { context: context.redactionContext });
-      const error = assertPortabilityError(result.response, { requestId: "m005-replace-oversized", code: "PORTABILITY_COOKIE_FILE_TOO_LARGE" });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_REPLACE, status: "error", errorCode: "PORTABILITY_COOKIE_FILE_TOO_LARGE", detailRef: error.detailRef });
-      remember(result, { requestId: "m005-replace-oversized", method: PORTABILITY_REPLACE, status: "error", errorCode: "PORTABILITY_COOKIE_FILE_TOO_LARGE", detailRef: error.detailRef });
-      const after = cookieDbSummary({ storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] }, context.redactionContext);
-      assert(after.count === before.count && after.hasExpectedValues, "Oversized import mutated existing cookies.", { phase: "oversized-import" });
-      sidecar.oversizedImportPreservedRows = true;
-      return { errorCode: error.errorCode, rowsPreserved: true };
-    }, context.redactionContext);
+    runStep(
+      "sidecar.oversized-import-preserves-db",
+      () => {
+        const before = cookieDbSummary(
+          { storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] },
+          context.redactionContext,
+        );
+        writeFileSync(oversizedPath, "x".repeat(MAX_IMPORT_BYTES + 1), "utf8");
+        const result = runSourceSidecarRequest(
+          {
+            id: "m005-replace-oversized",
+            method: PORTABILITY_REPLACE,
+            params: { storeRoot, profileId, sourcePath: oversizedPath },
+          },
+          { context: context.redactionContext },
+        );
+        const error = assertPortabilityError(result.response, {
+          requestId: "m005-replace-oversized",
+          code: "PORTABILITY_COOKIE_FILE_TOO_LARGE",
+        });
+        assertDiagnosticEvent(result.diagnostic, {
+          method: PORTABILITY_REPLACE,
+          status: "error",
+          errorCode: "PORTABILITY_COOKIE_FILE_TOO_LARGE",
+          detailRef: error.detailRef,
+        });
+        remember(result, {
+          requestId: "m005-replace-oversized",
+          method: PORTABILITY_REPLACE,
+          status: "error",
+          errorCode: "PORTABILITY_COOKIE_FILE_TOO_LARGE",
+          detailRef: error.detailRef,
+        });
+        const after = cookieDbSummary(
+          { storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] },
+          context.redactionContext,
+        );
+        assert(after.count === before.count && after.hasExpectedValues, "Oversized import mutated existing cookies.", {
+          phase: "oversized-import",
+        });
+        sidecar.oversizedImportPreservedRows = true;
+        return { errorCode: error.errorCode, rowsPreserved: true };
+      },
+      context.redactionContext,
+    );
 
-    runStep("sidecar.unsupported-format-rejected", () => {
-      const before = cookieDbSummary({ storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] }, context.redactionContext);
-      const result = runSourceSidecarRequest({
-        id: "m005-replace-unsupported",
-        method: PORTABILITY_REPLACE,
-        params: { storeRoot, profileId, sourcePath: unsupportedPath },
-      }, { context: context.redactionContext });
-      const error = assertPortabilityError(result.response, { requestId: "m005-replace-unsupported", code: "PORTABILITY_UNSUPPORTED_FORMAT" });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_REPLACE, status: "error", errorCode: "PORTABILITY_UNSUPPORTED_FORMAT", detailRef: error.detailRef });
-      remember(result, { requestId: "m005-replace-unsupported", method: PORTABILITY_REPLACE, status: "error", errorCode: "PORTABILITY_UNSUPPORTED_FORMAT", detailRef: error.detailRef });
-      const after = cookieDbSummary({ storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] }, context.redactionContext);
-      assert(after.count === before.count && after.hasExpectedValues, "Unsupported import format mutated existing cookies.", { phase: "unsupported-format" });
-      sidecar.unsupportedFormatRejected = true;
-      return { errorCode: error.errorCode, rowsPreserved: true };
-    }, context.redactionContext);
+    runStep(
+      "sidecar.unsupported-format-rejected",
+      () => {
+        const before = cookieDbSummary(
+          { storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] },
+          context.redactionContext,
+        );
+        const result = runSourceSidecarRequest(
+          {
+            id: "m005-replace-unsupported",
+            method: PORTABILITY_REPLACE,
+            params: { storeRoot, profileId, sourcePath: unsupportedPath },
+          },
+          { context: context.redactionContext },
+        );
+        const error = assertPortabilityError(result.response, {
+          requestId: "m005-replace-unsupported",
+          code: "PORTABILITY_UNSUPPORTED_FORMAT",
+        });
+        assertDiagnosticEvent(result.diagnostic, {
+          method: PORTABILITY_REPLACE,
+          status: "error",
+          errorCode: "PORTABILITY_UNSUPPORTED_FORMAT",
+          detailRef: error.detailRef,
+        });
+        remember(result, {
+          requestId: "m005-replace-unsupported",
+          method: PORTABILITY_REPLACE,
+          status: "error",
+          errorCode: "PORTABILITY_UNSUPPORTED_FORMAT",
+          detailRef: error.detailRef,
+        });
+        const after = cookieDbSummary(
+          { storeRoot, profileId, expectedValues: [replacementValue, secondCookieValue] },
+          context.redactionContext,
+        );
+        assert(
+          after.count === before.count && after.hasExpectedValues,
+          "Unsupported import format mutated existing cookies.",
+          { phase: "unsupported-format" },
+        );
+        sidecar.unsupportedFormatRejected = true;
+        return { errorCode: error.errorCode, rowsPreserved: true };
+      },
+      context.redactionContext,
+    );
 
-    runStep("sidecar.busy-profile-rejected", () => {
-      writeBusyRuntimeRecord(storeRoot, profileId);
-      const result = runSourceSidecarRequest({
-        id: "m005-export-busy",
-        method: PORTABILITY_EXPORT,
-        params: { storeRoot, profileId, destinationPath: busyExportPath, format: FORMAT_THEPRIVATOR_JSON },
-      }, { context: context.redactionContext });
-      const error = assertPortabilityError(result.response, { requestId: "m005-export-busy", code: "PORTABILITY_PROFILE_BUSY" });
-      assertDiagnosticEvent(result.diagnostic, { method: PORTABILITY_EXPORT, status: "error", errorCode: "PORTABILITY_PROFILE_BUSY", detailRef: error.detailRef });
-      remember(result, { requestId: "m005-export-busy", method: PORTABILITY_EXPORT, status: "error", errorCode: "PORTABILITY_PROFILE_BUSY", detailRef: error.detailRef });
-      assert(!existsSync(busyExportPath), "Busy export wrote a destination file.", { phase: "busy-guard" });
-      clearBusyRuntimeRecord(storeRoot);
-      sidecar.busyRejected = true;
-      return { errorCode: error.errorCode, destinationUntouched: true };
-    }, context.redactionContext);
+    runStep(
+      "sidecar.busy-profile-rejected",
+      () => {
+        writeBusyRuntimeRecord(storeRoot, profileId);
+        const result = runSourceSidecarRequest(
+          {
+            id: "m005-export-busy",
+            method: PORTABILITY_EXPORT,
+            params: { storeRoot, profileId, destinationPath: busyExportPath, format: FORMAT_THEPRIVATOR_JSON },
+          },
+          { context: context.redactionContext },
+        );
+        const error = assertPortabilityError(result.response, {
+          requestId: "m005-export-busy",
+          code: "PORTABILITY_PROFILE_BUSY",
+        });
+        assertDiagnosticEvent(result.diagnostic, {
+          method: PORTABILITY_EXPORT,
+          status: "error",
+          errorCode: "PORTABILITY_PROFILE_BUSY",
+          detailRef: error.detailRef,
+        });
+        remember(result, {
+          requestId: "m005-export-busy",
+          method: PORTABILITY_EXPORT,
+          status: "error",
+          errorCode: "PORTABILITY_PROFILE_BUSY",
+          detailRef: error.detailRef,
+        });
+        assert(!existsSync(busyExportPath), "Busy export wrote a destination file.", { phase: "busy-guard" });
+        clearBusyRuntimeRecord(storeRoot);
+        sidecar.busyRejected = true;
+        return { errorCode: error.errorCode, destinationUntouched: true };
+      },
+      context.redactionContext,
+    );
 
-    runStep("diagnostics.redaction", () => {
-      const entries = readDiagnostics(storeRoot, context.redactionContext);
-      const result = assertPersistedDiagnostics(entries, expectedDiagnostics);
-      assertNoPublicLeak(portabilityPublicEvidence, context.redactionContext, "Portability public responses and diagnostics");
-      assertNoPublicLeak(entries, context.redactionContext, "Persisted diagnostics");
-      sidecar.diagnosticsRedacted = true;
-      return result;
-    }, context.redactionContext);
+    runStep(
+      "diagnostics.redaction",
+      () => {
+        const entries = readDiagnostics(storeRoot, context.redactionContext);
+        const result = assertPersistedDiagnostics(entries, expectedDiagnostics);
+        assertNoPublicLeak(
+          portabilityPublicEvidence,
+          context.redactionContext,
+          "Portability public responses and diagnostics",
+        );
+        assertNoPublicLeak(entries, context.redactionContext, "Persisted diagnostics");
+        sidecar.diagnosticsRedacted = true;
+        return result;
+      },
+      context.redactionContext,
+    );
 
-    runStep("verifier.redaction", () => {
-      assertM005PublicEvidenceRedacted(VERIFIER_EVENTS, context.redactionContext);
-      return { emittedEvents: VERIFIER_EVENTS.length };
-    }, context.redactionContext);
+    runStep(
+      "verifier.redaction",
+      () => {
+        assertM005PublicEvidenceRedacted(VERIFIER_EVENTS, context.redactionContext);
+        return { emittedEvents: VERIFIER_EVENTS.length };
+      },
+      context.redactionContext,
+    );
 
     const cleanup = recordCleanupStep(storeRoot, { keepTemp, context: context.redactionContext });
     sidecar.cleanup = cleanup;
@@ -1136,13 +1648,10 @@ export function runFullVerification({ rootDir = ROOT_DIR } = {}) {
   const context = createM005RedactionContext({ rootDir });
   const commands = {};
 
-  runM005CommandStep(
-    "node.focused-vitest",
-    "npm",
-    ["test", "--", "--run", ...M005_FOCUSED_VITEST_FILES],
-    120_000,
-    { rootDir, context },
-  );
+  runM005CommandStep("node.focused-vitest", "npm", ["test", "--", "--run", ...M005_FOCUSED_VITEST_FILES], 120_000, {
+    rootDir,
+    context,
+  });
   commands.focusedVitest = "pass";
 
   runM005CommandStep("frontend.typecheck-build", "npm", ["run", "build"], 120_000, { rootDir, context });
@@ -1179,7 +1688,9 @@ export function runFullVerification({ rootDir = ROOT_DIR } = {}) {
 }
 
 function printHelp() {
-  console.log(`Usage: npm run verify:m005:s01 -- [--sidecar-only] [--capability-only]\n\nDefault            Run the full M005/S01 source-level proof.\n--sidecar-only      Run only the source-sidecar cookie portability smoke fixture.\n--capability-only   Verify only the Tauri dialog/fixed-command permission boundary.\n`);
+  console.log(
+    `Usage: npm run verify:m005:s01 -- [--sidecar-only] [--capability-only]\n\nDefault            Run the full M005/S01 source-level proof.\n--sidecar-only      Run only the source-sidecar cookie portability smoke fixture.\n--capability-only   Verify only the Tauri dialog/fixed-command permission boundary.\n`,
+  );
 }
 
 export async function main(argv = process.argv.slice(2)) {

@@ -2,11 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useState } from "react";
 
 import type { EditorSection } from "../../app/routes";
 import { t } from "../../i18n";
-import {
-  type IdentityDraftState,
-  createIdentityDraftState,
-  parseIdentityDraftState,
-} from "../../identityControls";
+import { type IdentityDraftState, createIdentityDraftState, parseIdentityDraftState } from "../../identityControls";
 import { type ProxyDraftState, createProxyDraftState, parseProxyDraftState } from "../../proxyControls";
 import {
   applyProfileIdentityPreset,
@@ -67,12 +63,14 @@ function sameJson(left: unknown, right: unknown): boolean {
 function draftFrom(profile: ProfileRecord | null): EditorDraft {
   return {
     name: profile?.name ?? "",
-    organization: profile === null
-      ? { folderId: null, tags: [], notes: "", favorite: false, color: null }
-      : { ...profile.organization, tags: [...profile.organization.tags] },
-    launch: profile === null
-      ? { startupBehavior: "customUrls", startUrls: [], args: [] }
-      : { ...profile.launch, startUrls: [...profile.launch.startUrls], args: [...profile.launch.args] },
+    organization:
+      profile === null
+        ? { folderId: null, tags: [], notes: "", favorite: false, color: null }
+        : { ...profile.organization, tags: [...profile.organization.tags] },
+    launch:
+      profile === null
+        ? { startupBehavior: "customUrls", startUrls: [], args: [] }
+        : { ...profile.launch, startUrls: [...profile.launch.startUrls], args: [...profile.launch.args] },
     proxy: createProxyDraftState(profile?.proxy ?? null),
     identity: createIdentityDraftState(
       profile ?? {
@@ -344,7 +342,10 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
             {sectionErrorCount[entry.id] > 0 ? (
               // Errors are counted per section so a save blocked on a field two
               // tabs away says where to look instead of appearing to do nothing.
-              <span className={styles.tabBadge} aria-label={t("{count} problems", { count: sectionErrorCount[entry.id] })}>
+              <span
+                className={styles.tabBadge}
+                aria-label={t("{count} problems", { count: sectionErrorCount[entry.id] })}
+              >
                 {sectionErrorCount[entry.id]}
               </span>
             ) : null}
@@ -377,10 +378,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
             onApplyPreset={applyPreset}
           />
         ) : section === "extra" ? (
-          <StartupForm
-            launch={draft.launch}
-            onChange={(launch) => setDraft((current) => ({ ...current, launch }))}
-          />
+          <StartupForm launch={draft.launch} onChange={(launch) => setDraft((current) => ({ ...current, launch }))} />
         ) : (
           <ProfileTools profileId={profile?.id ?? null} running={running} identity={profile?.identity} />
         )}
@@ -466,7 +464,9 @@ function StartupForm({ launch, onChange }: StartupFormProps) {
           }
         />
         <span className={styles.hint} id={`${argsId}-hint`}>
-          {t("One switch per line, from the supported list. Anything that would undo the proxy or the fingerprint is refused when you save.")}
+          {t(
+            "One switch per line, from the supported list. Anything that would undo the proxy or the fingerprint is refused when you save.",
+          )}
         </span>
       </div>
     </div>

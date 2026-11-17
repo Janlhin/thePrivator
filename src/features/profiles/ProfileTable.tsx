@@ -69,10 +69,25 @@ function fingerprintLabel(profile: ProfileRecord, machine: MachineInfo | null): 
   const ua = browser.mode === "real" ? "" : browser.userAgent;
   const hints = browser.mode === "real" ? undefined : browser.clientHints;
   const platform = hints?.platform ?? (nav.mode === "real" ? "" : nav.uaPlatform);
-  const os = platform || (/Windows/.test(ua) ? "Windows" : /Macintosh/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : machine?.platform ?? t("Real device"));
-  const arch = hints?.architecture ?? (nav.mode === "real" ? machine?.architecture ?? "" : nav.uaArchitecture);
-  const version = /Chrome\/(\d+)/.exec(ua)?.[1] ?? (browser.mode === "real" ? machine?.browserVersion?.split(".")[0] : undefined);
-  return [os, arch || (/x86_64|Win64|x64/.test(ua) ? "x86_64" : ""), version ? `Chrome ${version}` : t("Installed browser")].filter(Boolean).join(" · ");
+  const os =
+    platform ||
+    (/Windows/.test(ua)
+      ? "Windows"
+      : /Macintosh/.test(ua)
+        ? "macOS"
+        : /Linux/.test(ua)
+          ? "Linux"
+          : (machine?.platform ?? t("Real device")));
+  const arch = hints?.architecture ?? (nav.mode === "real" ? (machine?.architecture ?? "") : nav.uaArchitecture);
+  const version =
+    /Chrome\/(\d+)/.exec(ua)?.[1] ?? (browser.mode === "real" ? machine?.browserVersion?.split(".")[0] : undefined);
+  return [
+    os,
+    arch || (/x86_64|Win64|x64/.test(ua) ? "x86_64" : ""),
+    version ? `Chrome ${version}` : t("Installed browser"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** Deterministic hue per tag, so a tag keeps its colour across profiles and sessions. */
@@ -98,8 +113,19 @@ interface CellProps {
   onStop: (id: string) => void;
 }
 
-
-function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLaunch, onStop, proxyCheck, onCheckProxy }: CellProps) {
+function Cell({
+  row,
+  column,
+  folderNames,
+  selected,
+  busy,
+  onSelect,
+  onOpen,
+  onLaunch,
+  onStop,
+  proxyCheck,
+  onCheckProxy,
+}: CellProps) {
   const { profile, running } = row;
   const machine = useMachineInfo();
 
@@ -172,7 +198,11 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
           {profile.lifecycle.deletedAt !== null && profile.proxy.mode === "fixedServer" ? (
             <span className={styles.muted}>{t("Restore profile to check proxy")}</span>
           ) : (
-            <ProxyExit direct={profile.proxy.mode === "direct"} state={proxyCheck} onCheck={onCheckProxy ? () => onCheckProxy(profile.id) : undefined} />
+            <ProxyExit
+              direct={profile.proxy.mode === "direct"}
+              state={proxyCheck}
+              onCheck={onCheckProxy ? () => onCheckProxy(profile.id) : undefined}
+            />
           )}
         </div>
       );
@@ -429,9 +459,7 @@ export function ProfileTable({
   // rather than falling back, so the row rule stays off unless it is real.
   const [supportsContentVisibility] = useState(
     () =>
-      typeof CSS !== "undefined" &&
-      typeof CSS.supports === "function" &&
-      CSS.supports("content-visibility", "auto"),
+      typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("content-visibility", "auto"),
   );
   // Both memoised on the layout: a fresh array or map here would give every row
   // a new prop identity on each status tick, and the row memo below would be

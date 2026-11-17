@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-
 import { usePreferences } from "./app/DesktopSession";
 import { useDocumentLanguage, useT } from "./i18n";
 import { getStorageUsage } from "./sidecar/client";
@@ -29,7 +28,6 @@ import type { ProfileData } from "./features/profiles/useProfileData";
  */
 function destinationFor(routeName: ReturnType<typeof primaryNavKeyForRoute>) {
   switch (routeName) {
-
     case "automation":
       return <AutomationPage />;
     default:
@@ -87,18 +85,29 @@ export function App() {
     let cancelled = false;
     let timer: number;
     async function refreshDisk() {
-      try { const usage = await getStorageUsage(); if (!cancelled) setDiskUsage(`${usage.incomplete ? "≥ " : ""}${formatBytes(usage.bytes)}`); }
-      catch { if (!cancelled) setDiskUsage(t("Unavailable")); }
+      try {
+        const usage = await getStorageUsage();
+        if (!cancelled) setDiskUsage(`${usage.incomplete ? "≥ " : ""}${formatBytes(usage.bytes)}`);
+      } catch {
+        if (!cancelled) setDiskUsage(t("Unavailable"));
+      }
       if (!cancelled) timer = window.setTimeout(() => void refreshDisk(), 60_000);
     }
     void refreshDisk();
-    return () => { cancelled = true; window.clearTimeout(timer); };
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, []);
   const [search, setSearch] = useState("");
   const preferences = usePreferences();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(preferences?.preferences.sidebarCollapsed ?? false);
 
-  const toggleSidebar = useCallback(() => { const next = !sidebarCollapsed; setSidebarCollapsed(next); preferences?.save({ sidebarCollapsed: next }); }, [sidebarCollapsed, preferences]);
+  const toggleSidebar = useCallback(() => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    preferences?.save({ sidebarCollapsed: next });
+  }, [sidebarCollapsed, preferences]);
 
   // One loader for the whole window: the sidebar counts the same profiles the
   // table lists, and a second loader would poll twice and could disagree.
@@ -112,11 +121,13 @@ export function App() {
       const id = profile.organization.folderId;
       if (id !== null) counts.set(id, (counts.get(id) ?? 0) + 1);
     }
-    return [...counts].sort(([a], [b]) => a.localeCompare(b))
+    return [...counts]
+      .sort(([a], [b]) => a.localeCompare(b))
       .map(([id, profileCount]) => ({ id, name: id, profileCount }));
   }, [data.rows]);
   const folderNames = useMemo<ReadonlyMap<string, string>>(
-    () => new Map(folders.map((folder) => [folder.id, folder.name])), [folders],
+    () => new Map(folders.map((folder) => [folder.id, folder.name])),
+    [folders],
   );
 
   const counts = useMemo<SidebarCounts>(
@@ -131,7 +142,12 @@ export function App() {
 
   const statusTiles = useMemo<StatusTile[]>(
     () => [
-      { key: "disk", label: t("App data"), value: diskUsage, onSelect: () => navigate({ name: "settings", section: "storage" }) },
+      {
+        key: "disk",
+        label: t("App data"),
+        value: diskUsage,
+        onSelect: () => navigate({ name: "settings", section: "storage" }),
+      },
       { key: "profiles", label: t("Profiles"), value: String(data.rows.length) },
       {
         key: "running",
@@ -153,10 +169,7 @@ export function App() {
 
   const openProfile = useCallback((id: string) => navigate({ name: "profile", id }), [navigate]);
   const newProfile = useCallback(() => navigate({ name: "profile-new" }), [navigate]);
-  const closeEditor = useCallback(
-    () => navigate({ name: "profiles", view: "all", folderId: null }),
-    [navigate],
-  );
+  const closeEditor = useCallback(() => navigate({ name: "profiles", view: "all", folderId: null }), [navigate]);
 
   return (
     <AppShell

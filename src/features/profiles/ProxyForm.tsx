@@ -72,17 +72,27 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
             value={clipboardText}
             aria-invalid={clipboardError !== null}
             aria-describedby={`${ids.clipboard}-hint${clipboardError ? ` ${ids.clipboard}-error` : ""}`}
-            onChange={(event) => { setClipboardText(event.target.value); setClipboardError(null); }}
+            onChange={(event) => {
+              setClipboardText(event.target.value);
+              setClipboardError(null);
+            }}
             onPaste={(event) => pasteProxy(event)}
             onKeyDown={(event) => {
-              if (event.key === "Enter") { event.preventDefault(); applyClipboard(clipboardText); }
+              if (event.key === "Enter") {
+                event.preventDefault();
+                applyClipboard(clipboardText);
+              }
             }}
           />
           <p id={`${ids.clipboard}-hint`} className={styles.hint}>
-            {t("Paste to fill the fields below, or type and press Enter. Accepts host:port, host:port:user:pass, user:pass@host:port, and space-, tab-, comma-, semicolon-, or pipe-separated fields. Without a protocol, uses the selected protocol (HTTP by default). Without credentials, removes authentication.")}
+            {t(
+              "Paste to fill the fields below, or type and press Enter. Accepts host:port, host:port:user:pass, user:pass@host:port, and space-, tab-, comma-, semicolon-, or pipe-separated fields. Without a protocol, uses the selected protocol (HTTP by default). Without credentials, removes authentication.",
+            )}
           </p>
           {clipboardError === null ? null : (
-            <p id={`${ids.clipboard}-error`} className={styles.error} role="alert">{t(clipboardError)}</p>
+            <p id={`${ids.clipboard}-error`} className={styles.error} role="alert">
+              {t(clipboardError)}
+            </p>
           )}
         </div>
       </section>
@@ -177,9 +187,7 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
               <select
                 value={draft.credentialMode}
                 onChange={(event) =>
-                  onChange(
-                    updateProxyDraftCredentialMode(draft, event.target.value as ProxyCredentialDraftMode),
-                  )
+                  onChange(updateProxyDraftCredentialMode(draft, event.target.value as ProxyCredentialDraftMode))
                 }
               >
                 <option value="none">{t("No authentication")}</option>
@@ -213,9 +221,7 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
                   autoComplete="off"
                   value={draft.credentialUsername}
                   aria-invalid={draft.errors.credentialUsername !== undefined}
-                  onChange={(event) =>
-                    onChange(updateProxyDraftCredentialField(draft, "username", event.target.value))
-                  }
+                  onChange={(event) => onChange(updateProxyDraftCredentialField(draft, "username", event.target.value))}
                 />
                 {draft.errors.credentialUsername === undefined ? null : (
                   <p className={styles.error} role="alert">
@@ -232,9 +238,7 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
                   autoComplete="off"
                   value={draft.credentialPassword}
                   aria-invalid={draft.errors.credentialPassword !== undefined}
-                  onChange={(event) =>
-                    onChange(updateProxyDraftCredentialField(draft, "password", event.target.value))
-                  }
+                  onChange={(event) => onChange(updateProxyDraftCredentialField(draft, "password", event.target.value))}
                 />
                 {draft.errors.credentialPassword === undefined ? null : (
                   <p className={styles.error} role="alert">

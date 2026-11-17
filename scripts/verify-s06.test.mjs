@@ -102,7 +102,8 @@ function packagedSmokeOrganization(overrides = {}) {
   return {
     folderId: null,
     tags: ["packaged smoke", "proxy_user rotation"],
-    notes: "Runbook: rotate proxy_user each quarter, notes live at profile-store/profiles and wss://ops.example/runbook.",
+    notes:
+      "Runbook: rotate proxy_user each quarter, notes live at profile-store/profiles and wss://ops.example/runbook.",
     favorite: true,
     color: "#3366ff",
     ...overrides,
@@ -295,19 +296,21 @@ describe("verify-s06 guard helpers", () => {
     expect(REQUIRED_DIAGNOSTIC_METHODS).not.toContain("identity.audit.plan");
     expect(REQUIRED_DIAGNOSTIC_METHODS).not.toContain("identity.audit.open");
     expect(REQUIRED_DIAGNOSTIC_METHODS).not.toContain("proxy.validate");
-    expect(Array.from(FORBIDDEN_PROFILE_RUNTIME_FIELDS)).toEqual(expect.arrayContaining([
-      "debugPort",
-      "remoteDebuggingPort",
-      "webSocketDebuggerUrl",
-      "targetId",
-      "argv",
-      "extensionPath",
-      "generatedConfigPath",
-      "identityRuntimeRegistry",
-      "proxyRuntimeRegistry",
-      "proxyAuthExtensionPath",
-      "proxyAuthorization",
-    ]));
+    expect(Array.from(FORBIDDEN_PROFILE_RUNTIME_FIELDS)).toEqual(
+      expect.arrayContaining([
+        "debugPort",
+        "remoteDebuggingPort",
+        "webSocketDebuggerUrl",
+        "targetId",
+        "argv",
+        "extensionPath",
+        "generatedConfigPath",
+        "identityRuntimeRegistry",
+        "proxyRuntimeRegistry",
+        "proxyAuthExtensionPath",
+        "proxyAuthorization",
+      ]),
+    );
     expect(Array.from(FORBIDDEN_PROFILE_RUNTIME_FIELDS)).toContain("args");
     expect(Array.from(FORBIDDEN_PROFILE_RUNTIME_FIELDS)).not.toContain("credentials");
     expect(Array.from(FORBIDDEN_PROFILE_RUNTIME_FIELDS)).not.toContain("organization");
@@ -351,48 +354,78 @@ describe("verify-s06 guard helpers", () => {
     for (const name of helperNames) {
       expect(packagedVerifier[name], name).toBeTypeOf("function");
     }
-    expect(Object.keys(packagedVerifier)).not.toEqual(expect.arrayContaining([
-      "PACKAGED_SMOKE_PROXY_USERNAME",
-      "PACKAGED_SMOKE_PROXY_PASSWORD",
-      "PACKAGED_SMOKE_PROXY_TARGET_HOST",
-      "PACKAGED_SMOKE_PROXY_TARGET_PATH",
-      "GLOBAL_SENSITIVE_VALUES",
-    ]));
+    expect(Object.keys(packagedVerifier)).not.toEqual(
+      expect.arrayContaining([
+        "PACKAGED_SMOKE_PROXY_USERNAME",
+        "PACKAGED_SMOKE_PROXY_PASSWORD",
+        "PACKAGED_SMOKE_PROXY_TARGET_HOST",
+        "PACKAGED_SMOKE_PROXY_TARGET_PATH",
+        "GLOBAL_SENSITIVE_VALUES",
+      ]),
+    );
   });
 
-  it.skipIf(process.platform === "win32")("rejects stale package artifacts from before the recorded build start", () => {
-    const root = makeRoot();
-    const beforeBuild = new Date("2026-01-01T00:00:00.000Z");
-    const buildStartedAt = new Date("2026-01-02T00:00:00.000Z");
-    writeExecutable(join(root, "src-tauri", "target", "release", executableName("theprivator", "linux")), beforeBuild);
-    writeExecutable(join(root, "src-tauri", "target", "release", executableName("theprivator-sidecar", "linux")), beforeBuild);
-    writeExecutable(join(root, "src-tauri", "binaries", "theprivator-sidecar-x86_64-unknown-linux-gnu"), beforeBuild);
-    writeArtifact(join(root, "src-tauri", "target", "release", "bundle", "deb", "ThePrivator_2.1.0_amd64.deb"), beforeBuild);
-    writeArtifact(join(root, "src-tauri", "target", "release", "bundle", "rpm", "ThePrivator-2.1.0-1.x86_64.rpm"), beforeBuild);
+  it.skipIf(process.platform === "win32")(
+    "rejects stale package artifacts from before the recorded build start",
+    () => {
+      const root = makeRoot();
+      const beforeBuild = new Date("2026-01-01T00:00:00.000Z");
+      const buildStartedAt = new Date("2026-01-02T00:00:00.000Z");
+      writeExecutable(
+        join(root, "src-tauri", "target", "release", executableName("theprivator", "linux")),
+        beforeBuild,
+      );
+      writeExecutable(
+        join(root, "src-tauri", "target", "release", executableName("theprivator-sidecar", "linux")),
+        beforeBuild,
+      );
+      writeExecutable(join(root, "src-tauri", "binaries", "theprivator-sidecar-x86_64-unknown-linux-gnu"), beforeBuild);
+      writeArtifact(
+        join(root, "src-tauri", "target", "release", "bundle", "deb", "ThePrivator_2.1.0_amd64.deb"),
+        beforeBuild,
+      );
+      writeArtifact(
+        join(root, "src-tauri", "target", "release", "bundle", "rpm", "ThePrivator-2.1.0-1.x86_64.rpm"),
+        beforeBuild,
+      );
 
-    expect(() => assertFreshBuildArtifacts({
-      rootDir: root,
-      buildStartedAt,
-      targetTriple: "x86_64-unknown-linux-gnu",
-      platform: "linux",
-    })).toThrow(VerifyFailure);
-    expect(() => assertFreshBuildArtifacts({
-      rootDir: root,
-      buildStartedAt,
-      targetTriple: "x86_64-unknown-linux-gnu",
-      platform: "linux",
-    })).toThrow(/stale/i);
-  });
+      expect(() =>
+        assertFreshBuildArtifacts({
+          rootDir: root,
+          buildStartedAt,
+          targetTriple: "x86_64-unknown-linux-gnu",
+          platform: "linux",
+        }),
+      ).toThrow(VerifyFailure);
+      expect(() =>
+        assertFreshBuildArtifacts({
+          rootDir: root,
+          buildStartedAt,
+          targetTriple: "x86_64-unknown-linux-gnu",
+          platform: "linux",
+        }),
+      ).toThrow(/stale/i);
+    },
+  );
 
   it.skipIf(process.platform === "win32")("returns only repo-relative fresh package and sidecar artifact paths", () => {
     const root = makeRoot();
     const buildStartedAt = new Date("2026-01-02T00:00:00.000Z");
     const afterBuild = new Date("2026-01-02T00:00:10.000Z");
     writeExecutable(join(root, "src-tauri", "target", "release", executableName("theprivator", "linux")), afterBuild);
-    writeExecutable(join(root, "src-tauri", "target", "release", executableName("theprivator-sidecar", "linux")), afterBuild);
+    writeExecutable(
+      join(root, "src-tauri", "target", "release", executableName("theprivator-sidecar", "linux")),
+      afterBuild,
+    );
     writeExecutable(join(root, "src-tauri", "binaries", "theprivator-sidecar-x86_64-unknown-linux-gnu"), afterBuild);
-    writeArtifact(join(root, "src-tauri", "target", "release", "bundle", "deb", "ThePrivator_2.1.0_amd64.deb"), afterBuild);
-    writeArtifact(join(root, "src-tauri", "target", "release", "bundle", "rpm", "ThePrivator-2.1.0-1.x86_64.rpm"), afterBuild);
+    writeArtifact(
+      join(root, "src-tauri", "target", "release", "bundle", "deb", "ThePrivator_2.1.0_amd64.deb"),
+      afterBuild,
+    );
+    writeArtifact(
+      join(root, "src-tauri", "target", "release", "bundle", "rpm", "ThePrivator-2.1.0-1.x86_64.rpm"),
+      afterBuild,
+    );
 
     const result = assertFreshBuildArtifacts({
       rootDir: root,
@@ -441,7 +474,9 @@ describe("verify-s06 guard helpers", () => {
       "core:window:allow-set-title",
     ]) {
       seedTauriGuardrails(root, { permissions: [forbiddenPermission] });
-      expect(() => assertTauriGuardrails({ rootDir: root, platform: "linux" }), forbiddenPermission).toThrow(/widened/i);
+      expect(() => assertTauriGuardrails({ rootDir: root, platform: "linux" }), forbiddenPermission).toThrow(
+        /widened/i,
+      );
     }
 
     seedTauriGuardrails(root, {
@@ -466,16 +501,24 @@ describe("verify-s06 guard helpers", () => {
     const emptyBin = join(root, "empty-bin");
     mkdirSync(emptyBin, { recursive: true });
 
-    expect(() => assertWebDriverPreflight({
-      rootDir: root,
-      platform: "linux",
-      env: { PATH: emptyBin },
-      cargoBin: emptyBin,
-      strict: true,
-    })).toThrow(VerifyFailure);
+    expect(() =>
+      assertWebDriverPreflight({
+        rootDir: root,
+        platform: "linux",
+        env: { PATH: emptyBin },
+        cargoBin: emptyBin,
+        strict: true,
+      }),
+    ).toThrow(VerifyFailure);
 
     try {
-      assertWebDriverPreflight({ rootDir: root, platform: "linux", env: { PATH: emptyBin }, cargoBin: emptyBin, strict: true });
+      assertWebDriverPreflight({
+        rootDir: root,
+        platform: "linux",
+        env: { PATH: emptyBin },
+        cargoBin: emptyBin,
+        strict: true,
+      });
       throw new Error("expected preflight to fail");
     } catch (error) {
       expect(error).toBeInstanceOf(VerifyFailure);
@@ -490,31 +533,42 @@ describe("verify-s06 guard helpers", () => {
     }
   });
 
-  it.skipIf(process.platform === "win32")("rejects ambiguous Chromium env paths and resolves executable PATH candidates", () => {
-    const root = makeRoot();
-    const binDir = join(root, "bin");
-    const chromium = join(binDir, "chromium");
-    writeExecutable(chromium);
+  it.skipIf(process.platform === "win32")(
+    "rejects ambiguous Chromium env paths and resolves executable PATH candidates",
+    () => {
+      const root = makeRoot();
+      const binDir = join(root, "bin");
+      const chromium = join(binDir, "chromium");
+      writeExecutable(chromium);
 
-    expect(() => resolveChromiumExecutable({
-      rootDir: root,
-      env: { THEPRIVATOR_CHROMIUM_PATH: `${chromium}${process.platform === "win32" ? ";" : ":"}${chromium}`, PATH: binDir },
-      platform: "linux",
-    })).toThrow(/ambiguous/i);
+      expect(() =>
+        resolveChromiumExecutable({
+          rootDir: root,
+          env: {
+            THEPRIVATOR_CHROMIUM_PATH: `${chromium}${process.platform === "win32" ? ";" : ":"}${chromium}`,
+            PATH: binDir,
+          },
+          platform: "linux",
+        }),
+      ).toThrow(/ambiguous/i);
 
-    expect(resolveChromiumExecutable({ rootDir: root, env: { PATH: binDir }, platform: "linux" })).toMatchObject({
-      name: "chromium",
-      source: "PATH",
-    });
-  });
+      expect(resolveChromiumExecutable({ rootDir: root, env: { PATH: binDir }, platform: "linux" })).toMatchObject({
+        name: "chromium",
+        source: "PATH",
+      });
+    },
+  );
 
   it("redacts absolute roots, public URLs, env values, Chromium user-data flags, and sensitive output tails", () => {
     const root = makeRoot();
     const appDataRoot = join(root, "app-data-root-should-not-leak");
-    const value = redact({
-      stderrTail: `launch --user-data-dir=${appDataRoot} THEPRIVATOR_CHROMIUM_PATH=${join(root, "bin", "chromium")} copied-browser-data-should-not-leak https://browserleaks.com/webgl`,
-      artifact: join(root, "src-tauri", "target", "release", "theprivator"),
-    }, { rootDir: root, sensitiveValues: [appDataRoot, "copied-browser-data-should-not-leak"] });
+    const value = redact(
+      {
+        stderrTail: `launch --user-data-dir=${appDataRoot} THEPRIVATOR_CHROMIUM_PATH=${join(root, "bin", "chromium")} copied-browser-data-should-not-leak https://browserleaks.com/webgl`,
+        artifact: join(root, "src-tauri", "target", "release", "theprivator"),
+      },
+      { rootDir: root, sensitiveValues: [appDataRoot, "copied-browser-data-should-not-leak"] },
+    );
 
     const text = JSON.stringify(value);
     expect(text).not.toContain(root);
@@ -557,20 +611,24 @@ describe("verify-s06 guard helpers", () => {
     });
     expect(s05Context.smokeProfileName).toBe("M004 Packaged Automation Smoke 20260509T101112000Z-s05abc");
     expect(JSON.stringify(s05Context.log)).not.toContain(root);
-    expect(() => createSmokeRunContext({
-      rootDir: root,
-      now: new Date("2026-05-09T10:11:12.000Z"),
-      nonce: "unsafe-prefix",
-      profilePrefix: "M004/Packaged Automation Smoke",
-      baseEnv: {},
-    })).toThrow(/profile prefix/i);
+    expect(() =>
+      createSmokeRunContext({
+        rootDir: root,
+        now: new Date("2026-05-09T10:11:12.000Z"),
+        nonce: "unsafe-prefix",
+        profilePrefix: "M004/Packaged Automation Smoke",
+        baseEnv: {},
+      }),
+    ).toThrow(/profile prefix/i);
 
-    expect(() => createSmokeRunContext({
-      rootDir: root,
-      now: new Date("2026-05-09T10:11:12.000Z"),
-      nonce: "abc123",
-      baseEnv: {},
-    })).toThrow(/already exists/i);
+    expect(() =>
+      createSmokeRunContext({
+        rootDir: root,
+        now: new Date("2026-05-09T10:11:12.000Z"),
+        nonce: "abc123",
+        baseEnv: {},
+      }),
+    ).toThrow(/already exists/i);
   });
 
   it("builds standard Tauri WebDriver capabilities without smuggling store roots or sidecar params", () => {
@@ -594,12 +652,14 @@ describe("verify-s06 guard helpers", () => {
     const cargoBin = join(root, "home", ".cargo", "bin");
     writeExecutable(join(cargoBin, "tauri-driver"));
 
-    expect(resolveTauriDriverExecutable({
-      rootDir: root,
-      platform: "linux",
-      env: { PATH: join(root, "empty") },
-      cargoBin,
-    })).toMatchObject({ name: "tauri-driver", path: join(cargoBin, "tauri-driver") });
+    expect(
+      resolveTauriDriverExecutable({
+        rootDir: root,
+        platform: "linux",
+        env: { PATH: join(root, "empty") },
+        cargoBin,
+      }),
+    ).toMatchObject({ name: "tauri-driver", path: join(cargoBin, "tauri-driver") });
 
     const snippet = safeVisibleTextSnippet(
       `Profile failed at ${root} with --user-data-dir=${join(root, "profile-store", "profiles", "p1", "user-data")} and Traceback secret`,
@@ -673,7 +733,8 @@ describe("verify-s06 guard helpers", () => {
       smokeProfileName: context.smokeProfileName,
       smokeRoot: context.smokeRootRelative,
       appDataRoot: "src-tauri/target/s06-smoke-data/20260509T101112000Z-persist123/data/Com.ThePrivator.Desktop",
-      profileStore: "src-tauri/target/s06-smoke-data/20260509T101112000Z-persist123/data/Com.ThePrivator.Desktop/profile-store/profiles.json",
+      profileStore:
+        "src-tauri/target/s06-smoke-data/20260509T101112000Z-persist123/data/Com.ThePrivator.Desktop/profile-store/profiles.json",
       profileId,
       storeVersion: 4,
       persistedRuntimeFields: 0,
@@ -765,7 +826,9 @@ describe("verify-s06 guard helpers", () => {
       storeVersion: 4,
       profiles: [packagedSmokeStoreProfile(profileId, context.smokeProfileName, { identity: defaultIdentity() })],
     });
-    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(/curated identity preset/i);
+    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(
+      /curated identity preset/i,
+    );
 
     writeJson(storePath, {
       storeVersion: 4,
@@ -784,7 +847,9 @@ describe("verify-s06 guard helpers", () => {
         }),
       ],
     });
-    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(/safe relative user-data/i);
+    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(
+      /safe relative user-data/i,
+    );
 
     writeJson(storePath, {
       storeVersion: 4,
@@ -801,11 +866,15 @@ describe("verify-s06 guard helpers", () => {
       storeVersion: 4,
       profiles: [
         packagedSmokeStoreProfile(profileId, context.smokeProfileName, {
-          proxy: packagedSmokeProxy({ summary: "http://proxy-user-should-not-leak:proxy-pass-should-not-leak@proxy.example:8080" }),
+          proxy: packagedSmokeProxy({
+            summary: "http://proxy-user-should-not-leak:proxy-pass-should-not-leak@proxy.example:8080",
+          }),
         }),
       ],
     });
-    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(/proxy|credential|redaction/i);
+    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(
+      /proxy|credential|redaction/i,
+    );
   });
 
   it("accepts declared launch args while still rejecting captured runtime argv", () => {
@@ -818,15 +887,16 @@ describe("verify-s06 guard helpers", () => {
     });
     const profileId = "55555555-5555-4555-8555-555555555555";
     const storePath = join(context.dataRoot, "theprivator", "profile-store", "profiles.json");
-    const seed = (launchOverrides, profileOverrides = {}) => writeJson(storePath, {
-      storeVersion: 4,
-      profiles: [
-        packagedSmokeStoreProfile(profileId, context.smokeProfileName, {
-          launch: packagedSmokeLaunch(launchOverrides),
-          ...profileOverrides,
-        }),
-      ],
-    });
+    const seed = (launchOverrides, profileOverrides = {}) =>
+      writeJson(storePath, {
+        storeVersion: 4,
+        profiles: [
+          packagedSmokeStoreProfile(profileId, context.smokeProfileName, {
+            launch: packagedSmokeLaunch(launchOverrides),
+            ...profileOverrides,
+          }),
+        ],
+      });
 
     seed({ args: ["--disable-features=Translate", "--no-first-run", "--lang=en-GB"] });
     expect(assertPostSmokeProfileStore({ rootDir: root, smokeContext: context }).launch).toEqual({
@@ -859,7 +929,9 @@ describe("verify-s06 guard helpers", () => {
       Array.from({ length: 11 }, (_, index) => `https://example.invalid/${index}`),
     ]) {
       seed({ startUrls });
-      expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context }), String(startUrls[0])).toThrow(/startUrls/i);
+      expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context }), String(startUrls[0])).toThrow(
+        /startUrls/i,
+      );
     }
 
     seed({ startupBehavior: "openLastSession" });
@@ -876,14 +948,15 @@ describe("verify-s06 guard helpers", () => {
     });
     const profileId = "66666666-6666-4666-8666-666666666666";
     const storePath = join(context.dataRoot, "theprivator", "profile-store", "profiles.json");
-    const seed = (organizationOverrides) => writeJson(storePath, {
-      storeVersion: 4,
-      profiles: [
-        packagedSmokeStoreProfile(profileId, context.smokeProfileName, {
-          organization: packagedSmokeOrganization(organizationOverrides),
-        }),
-      ],
-    });
+    const seed = (organizationOverrides) =>
+      writeJson(storePath, {
+        storeVersion: 4,
+        profiles: [
+          packagedSmokeStoreProfile(profileId, context.smokeProfileName, {
+            organization: packagedSmokeOrganization(organizationOverrides),
+          }),
+        ],
+      });
 
     seed({
       notes: "See profile-store/profiles/notes: proxy_user rotation, wss://ops.example, C:\\Users\\ops\\manifest.json",
@@ -911,7 +984,9 @@ describe("verify-s06 guard helpers", () => {
     expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(/organization\.color/i);
 
     seed({ favorite: "yes" });
-    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(/organization\.favorite/i);
+    expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(
+      /organization\.favorite/i,
+    );
   });
 
   it("rejects a smoke profile left in the profile-store trash", () => {
@@ -973,35 +1048,41 @@ describe("verify-s06 guard helpers", () => {
     });
     const diagnosticsPath = join(appDataRoot, "profile-store", "diagnostics", "events.jsonl");
     mkdirSync(dirname(diagnosticsPath), { recursive: true });
-    writeFileSync(diagnosticsPath, [
-      "not-json-but-safe",
-      JSON.stringify({
-        schemaVersion: 1,
-        ts: "2026-05-09T10:10:59.000Z",
-        source: "python-sidecar",
-        event: "sidecar.request",
-        status: "error",
-        requestId: "s06-socks-negative",
-        method: "profiles.proxy.check",
-        durationMs: 7,
-        errorCode: "PROXY_SOCKS_AUTH_UNSUPPORTED",
-        detailRef: "sidecar-socks-auth-negative",
-        logPath: "profile-store/diagnostics/events.jsonl",
-      }),
-      ...REQUIRED_DIAGNOSTIC_METHODS.map((method, index) => JSON.stringify({
-        schemaVersion: 1,
-        ts: `2026-05-09T10:11:${String(index).padStart(2, "0")}.000Z`,
-        source: "python-sidecar",
-        event: "sidecar.request",
-        status: "ok",
-        requestId: `s06-${index}`,
-        method,
-        durationMs: index,
-        errorCode: null,
-        detailRef: null,
-        logPath: "profile-store/diagnostics/events.jsonl",
-      })),
-    ].join("\n"), "utf8");
+    writeFileSync(
+      diagnosticsPath,
+      [
+        "not-json-but-safe",
+        JSON.stringify({
+          schemaVersion: 1,
+          ts: "2026-05-09T10:10:59.000Z",
+          source: "python-sidecar",
+          event: "sidecar.request",
+          status: "error",
+          requestId: "s06-socks-negative",
+          method: "profiles.proxy.check",
+          durationMs: 7,
+          errorCode: "PROXY_SOCKS_AUTH_UNSUPPORTED",
+          detailRef: "sidecar-socks-auth-negative",
+          logPath: "profile-store/diagnostics/events.jsonl",
+        }),
+        ...REQUIRED_DIAGNOSTIC_METHODS.map((method, index) =>
+          JSON.stringify({
+            schemaVersion: 1,
+            ts: `2026-05-09T10:11:${String(index).padStart(2, "0")}.000Z`,
+            source: "python-sidecar",
+            event: "sidecar.request",
+            status: "ok",
+            requestId: `s06-${index}`,
+            method,
+            durationMs: index,
+            errorCode: null,
+            detailRef: null,
+            logPath: "profile-store/diagnostics/events.jsonl",
+          }),
+        ),
+      ].join("\n"),
+      "utf8",
+    );
 
     const proof = assertPostSmokeDiagnostics({ rootDir: root, smokeContext: context });
 
@@ -1031,19 +1112,25 @@ describe("verify-s06 guard helpers", () => {
     expect(JSON.stringify(proof)).not.toContain(root);
 
     for (const missingMethod of ["profiles.proxy.update", "profiles.proxy.check", "chromium.launch", "chromium.stop"]) {
-      writeFileSync(diagnosticsPath, [
-        ...REQUIRED_DIAGNOSTIC_METHODS.filter((method) => method !== missingMethod).map((method, index) => JSON.stringify({
-          schemaVersion: 1,
-          ts: `2026-05-09T10:12:${String(index).padStart(2, "0")}.000Z`,
-          source: "python-sidecar",
-          event: "sidecar.request",
-          status: "ok",
-          requestId: `s06-missing-${index}`,
-          method,
-          durationMs: index,
-          logPath: "profile-store/diagnostics/events.jsonl",
-        })),
-      ].join("\n"), "utf8");
+      writeFileSync(
+        diagnosticsPath,
+        [
+          ...REQUIRED_DIAGNOSTIC_METHODS.filter((method) => method !== missingMethod).map((method, index) =>
+            JSON.stringify({
+              schemaVersion: 1,
+              ts: `2026-05-09T10:12:${String(index).padStart(2, "0")}.000Z`,
+              source: "python-sidecar",
+              event: "sidecar.request",
+              status: "ok",
+              requestId: `s06-missing-${index}`,
+              method,
+              durationMs: index,
+              logPath: "profile-store/diagnostics/events.jsonl",
+            }),
+          ),
+        ].join("\n"),
+        "utf8",
+      );
       try {
         assertPostSmokeDiagnostics({ rootDir: root, smokeContext: context });
         throw new Error("expected diagnostics assertion to fail");
@@ -1053,16 +1140,20 @@ describe("verify-s06 guard helpers", () => {
       }
     }
 
-    writeFileSync(diagnosticsPath, `${JSON.stringify({
-      schemaVersion: 1,
-      ts: "2026-05-09T10:11:12.000Z",
-      source: "python-sidecar",
-      event: "sidecar.request",
-      status: "ok",
-      method: "profiles.create",
-      durationMs: 1,
-      logPath: "/tmp/unsafe-events.jsonl",
-    })}\n`, "utf8");
+    writeFileSync(
+      diagnosticsPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        ts: "2026-05-09T10:11:12.000Z",
+        source: "python-sidecar",
+        event: "sidecar.request",
+        status: "ok",
+        method: "profiles.create",
+        durationMs: 1,
+        logPath: "/tmp/unsafe-events.jsonl",
+      })}\n`,
+      "utf8",
+    );
     expect(() => assertPostSmokeDiagnostics({ rootDir: root, smokeContext: context })).toThrow(/unsafe logPath/i);
 
     for (const [field, override, message] of [
@@ -1072,17 +1163,21 @@ describe("verify-s06 guard helpers", () => {
       ["status", { status: "pending" }, /unsafe status/i],
       ["method", { method: "https://browserleaks.com/webgl" }, /unsafe method/i],
     ]) {
-      writeFileSync(diagnosticsPath, `${JSON.stringify({
-        schemaVersion: 1,
-        ts: "2026-05-09T10:11:12.000Z",
-        source: "python-sidecar",
-        event: "sidecar.request",
-        status: "ok",
-        method: "profiles.create",
-        durationMs: 1,
-        logPath: "profile-store/diagnostics/events.jsonl",
-        ...override,
-      })}\n`, "utf8");
+      writeFileSync(
+        diagnosticsPath,
+        `${JSON.stringify({
+          schemaVersion: 1,
+          ts: "2026-05-09T10:11:12.000Z",
+          source: "python-sidecar",
+          event: "sidecar.request",
+          status: "ok",
+          method: "profiles.create",
+          durationMs: 1,
+          logPath: "profile-store/diagnostics/events.jsonl",
+          ...override,
+        })}\n`,
+        "utf8",
+      );
       expect(() => assertPostSmokeDiagnostics({ rootDir: root, smokeContext: context }), field).toThrow(message);
     }
   });
@@ -1100,18 +1195,30 @@ describe("verify-s06 guard helpers", () => {
       staleSocksFailureObserved: true,
       staleRequest: true,
     });
-    expect(() => assertCurrentHttpSavedProxyProofUiState({
-      visibleText: "Saved proxy proof bridge error PROXY_SOCKS_AUTH_UNSUPPORTED SOCKS proxy credentials cannot be used",
-      phase: "recoverable-error · Saved proxy proof bridge error",
-      request: "bridge-socks-negative",
-    }, { previousRequest: "bridge-socks-negative" })).toThrow(/results were not visible/i);
+    expect(() =>
+      assertCurrentHttpSavedProxyProofUiState(
+        {
+          visibleText:
+            "Saved proxy proof bridge error PROXY_SOCKS_AUTH_UNSUPPORTED SOCKS proxy credentials cannot be used",
+          phase: "recoverable-error · Saved proxy proof bridge error",
+          request: "bridge-socks-negative",
+        },
+        { previousRequest: "bridge-socks-negative" },
+      ),
+    ).toThrow(/results were not visible/i);
 
-    expect(() => assertCurrentHttpSavedProxyProofUiState({
-      resultText: "Local fixture proved saved proxy routing. Deterministic local route proof Route proof Proved Protocol HTTP Credential state configured (masked) Fallback route Not detected",
-      visibleText: "Saved proxy proof finished for request bridge-http-missing-vocab",
-      phase: "success · Saved proxy proof complete",
-      request: "bridge-http-missing-vocab",
-    }, { previousRequest: "bridge-socks-negative" })).toThrow(/required S04 vocabulary/i);
+    expect(() =>
+      assertCurrentHttpSavedProxyProofUiState(
+        {
+          resultText:
+            "Local fixture proved saved proxy routing. Deterministic local route proof Route proof Proved Protocol HTTP Credential state configured (masked) Fallback route Not detected",
+          visibleText: "Saved proxy proof finished for request bridge-http-missing-vocab",
+          phase: "success · Saved proxy proof complete",
+          request: "bridge-http-missing-vocab",
+        },
+        { previousRequest: "bridge-socks-negative" },
+      ),
+    ).toThrow(/required S04 vocabulary/i);
 
     const freshHttpResult = [
       "Local fixture proved saved proxy routing.",
@@ -1129,23 +1236,32 @@ describe("verify-s06 guard helpers", () => {
       "Public checker advisory pages",
       "Advisory only",
     ].join(" ");
-    const accepted = assertCurrentHttpSavedProxyProofUiState({
-      resultText: freshHttpResult,
-      visibleText: "Persisted diagnostic event summaries matched this detailRef. PROXY_SOCKS_AUTH_UNSUPPORTED Saved proxy proof finished for request bridge-http-current",
-      phase: "success · Saved proxy proof complete",
-      request: "bridge-http-current",
-    }, { previousRequest: "bridge-socks-negative" });
+    const accepted = assertCurrentHttpSavedProxyProofUiState(
+      {
+        resultText: freshHttpResult,
+        visibleText:
+          "Persisted diagnostic event summaries matched this detailRef. PROXY_SOCKS_AUTH_UNSUPPORTED Saved proxy proof finished for request bridge-http-current",
+        phase: "success · Saved proxy proof complete",
+        request: "bridge-http-current",
+      },
+      { previousRequest: "bridge-socks-negative" },
+    );
     expect(accepted).toMatchObject({
       hasCurrentHttpSuccess: true,
       staleSocksFailureObserved: true,
       staleRequest: false,
     });
-    expect(() => assertCurrentHttpSavedProxyProofUiState({
-      resultText: freshHttpResult,
-      visibleText: "Saved proxy proof finished for request bridge-http-current",
-      phase: "success · Saved proxy proof complete",
-      request: "bridge-http-current",
-    }, { previousRequest: "bridge-http-current" })).toThrow(/stale request/i);
+    expect(() =>
+      assertCurrentHttpSavedProxyProofUiState(
+        {
+          resultText: freshHttpResult,
+          visibleText: "Saved proxy proof finished for request bridge-http-current",
+          phase: "success · Saved proxy proof complete",
+          request: "bridge-http-current",
+        },
+        { previousRequest: "bridge-http-current" },
+      ),
+    ).toThrow(/stale request/i);
   });
 
   it("emits a redacted final summary with packaged proxy proof evidence", () => {
@@ -1260,7 +1376,9 @@ describe("verify-s06 guard helpers", () => {
     });
     expect(JSON.stringify(summary)).not.toContain(root);
     expect(JSON.stringify(summary)).not.toContain("12345");
-    expect(JSON.stringify(summary)).not.toMatch(/driver(?:Stdout|Stderr)Tail|proxy-user-should-not-leak|proxy-pass-should-not-leak|"credentials"|Proxy-Authorization|--proxy-server|profile-store\/profiles|public checker body/i);
+    expect(JSON.stringify(summary)).not.toMatch(
+      /driver(?:Stdout|Stderr)Tail|proxy-user-should-not-leak|proxy-pass-should-not-leak|"credentials"|Proxy-Authorization|--proxy-server|profile-store\/profiles|public checker body/i,
+    );
 
     for (const evidence of [
       { credentials: { username: "redacted", password: "redacted" } },
@@ -1278,7 +1396,9 @@ describe("verify-s06 guard helpers", () => {
       { note: "https://browserleaks.com/webrtc public checker body" },
       { note: "spkiSha256 verifier-only-trust-detail" },
     ]) {
-      expect(() => assertPostSmokeRedaction({ rootDir: root, smokeContext: context, evidence })).toThrow(/forbidden|unsafe|leaked/i);
+      expect(() => assertPostSmokeRedaction({ rootDir: root, smokeContext: context, evidence })).toThrow(
+        /forbidden|unsafe|leaked/i,
+      );
     }
   });
 });

@@ -16,7 +16,9 @@ mkdirSync(evidence, { recursive: true });
 let serial = 0;
 function request(method, params = {}) {
   const result = spawnSync(path.join(root, ".venv/bin/python"), ["-m", "theprivator_sidecar"], {
-    cwd: root, encoding: "utf8", timeout: 20000,
+    cwd: root,
+    encoding: "utf8",
+    timeout: 20000,
     input: JSON.stringify({ id: `smoke-${++serial}`, method, params: { ...params, storeRoot } }) + "\n",
   });
   assert.equal(result.status, 0, "Source sidecar must exit successfully");
@@ -24,11 +26,21 @@ function request(method, params = {}) {
   if (response.error) throw new Error(`${response.error.code}: ${response.error.message}`);
   return { requestId: response.id, protocolVersion: "1.0.0", durationMs: 1, result: response.result };
 }
-const methods = Object.fromEntries([
-  "profiles.list", "profiles.create", "profiles.trash.list", "profiles.duplicate",
-  "profiles.organization.update", "profiles.identity.update", "profiles.proxy.update",
-  "profiles.launch.update", "profiles.update", "chromium.status", "identity.presets.list",
-].map((method) => [method.replaceAll(".", "_"), method]));
+const methods = Object.fromEntries(
+  [
+    "profiles.list",
+    "profiles.create",
+    "profiles.trash.list",
+    "profiles.duplicate",
+    "profiles.organization.update",
+    "profiles.identity.update",
+    "profiles.proxy.update",
+    "profiles.launch.update",
+    "profiles.update",
+    "chromium.status",
+    "identity.presets.list",
+  ].map((method) => [method.replaceAll(".", "_"), method]),
+);
 const server = await createServer({ root, server: { host: "127.0.0.1", port: 0 } });
 let browser;
 try {
@@ -44,8 +56,10 @@ try {
   });
   await page.addInitScript(() => {
     window.__TAURI_INTERNALS__ = {
-      invoke: (command, args) => command.startsWith("plugin:event|") ? Promise.resolve(1) : window.sourceSidecar(command, args),
-      transformCallback: () => 1, unregisterCallback: () => {},
+      invoke: (command, args) =>
+        command.startsWith("plugin:event|") ? Promise.resolve(1) : window.sourceSidecar(command, args),
+      transformCallback: () => 1,
+      unregisterCallback: () => {},
     };
   });
   await page.goto(server.resolvedUrls.local[0]);
@@ -91,16 +105,25 @@ try {
   await page.getByRole("button", { name: "Preset information" }).click();
   await page.screenshot({ path: path.join(evidence, "fingerprint-controls.png") });
   for (const theme of ["dark", "light"]) {
-    await page.evaluate((value) => document.documentElement.dataset.theme = value, theme);
-    const heights = await page.locator('#workspace select').evaluateAll((selects) => selects.map((select) => select.getBoundingClientRect().height));
-    assert.ok(heights.every((height) => height === 36), "All fingerprint dropdowns share the control height");
+    await page.evaluate((value) => (document.documentElement.dataset.theme = value), theme);
+    const heights = await page
+      .locator("#workspace select")
+      .evaluateAll((selects) => selects.map((select) => select.getBoundingClientRect().height));
+    assert.ok(
+      heights.every((height) => height === 36),
+      "All fingerprint dropdowns share the control height",
+    );
     await page.screenshot({ path: path.join(evidence, `fingerprint-controls-${theme}.png`), animations: "disabled" });
   }
   const layout = await page.evaluate(() => {
     const root = document.scrollingElement;
     const workspace = document.getElementById("workspace");
-    return { windowHeight: innerHeight, documentHeight: root.scrollHeight,
-      workspaceHeight: workspace.clientHeight, workspaceScrollHeight: workspace.scrollHeight };
+    return {
+      windowHeight: innerHeight,
+      documentHeight: root.scrollHeight,
+      workspaceHeight: workspace.clientHeight,
+      workspaceScrollHeight: workspace.scrollHeight,
+    };
   });
   console.log("Fingerprint layout:", JSON.stringify(layout));
   assert.ok(layout.documentHeight <= layout.windowHeight, "Fingerprint must not create a full-window scrollbar");
@@ -109,22 +132,61 @@ try {
   await page.locator('[aria-labelledby="surface-ports"] select').scrollIntoViewIfNeeded();
   assert.equal(await page.evaluate(() => window.scrollY), 0, "Reaching the last surface must not scroll the window");
   assert.deepEqual(await page.getByRole("contentinfo").boundingBox(), footerBefore, "Status bar must stay fixed");
-  assert.ok(await page.locator('[aria-labelledby="surface-ports"]').evaluate((el) => {
-    for (let parent = el.parentElement; parent && parent.id !== "workspace"; parent = parent.parentElement) {
-      if (parent.scrollTop > 0) return true;
-    }
-    return false;
-  }), "The fingerprint panel must still scroll to its final surface");
+  assert.ok(
+    await page.locator('[aria-labelledby="surface-ports"]').evaluate((el) => {
+      for (let parent = el.parentElement; parent && parent.id !== "workspace"; parent = parent.parentElement) {
+        if (parent.scrollTop > 0) return true;
+      }
+      return false;
+    }),
+    "The fingerprint panel must still scroll to its final surface",
+  );
   await page.screenshot({ path: path.join(evidence, "fingerprint-scroll.png") });
   await page.getByLabel("Start from a preset").selectOption("real");
-  assert.deepEqual(await page.getByLabel("Start from a preset").locator("option").allTextContents(), ["Custom", "Real"]);
+  assert.deepEqual(await page.getByLabel("Start from a preset").locator("option").allTextContents(), [
+    "Custom",
+    "Real",
+  ]);
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("grid", { name: "Profiles", exact: true }).waitFor();
   const stored = request("profiles.list").result.profiles.find((profile) => profile.id === seed.id);
   assert.equal(stored.identity.label, "Real");
-  for (const surface of ["browser", "navigator", "screen", "locale", "canvas", "audio", "webgl", "webrtc", "geolocation", "mediaDevices", "ports"]) assert.equal(stored.identity[surface].mode, "real");
+  for (const surface of [
+    "browser",
+    "navigator",
+    "screen",
+    "locale",
+    "canvas",
+    "audio",
+    "webgl",
+    "webrtc",
+    "geolocation",
+    "mediaDevices",
+    "ports",
+  ])
+    assert.equal(stored.identity[surface].mode, "real");
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: ["favorites", "tags", "named folders", "multiline notes", "duplicate", "removed redundant navigation", "aligned preset controls", "collapsible information", "real preset persistence"], browserErrors: errors, screenshots: evidence }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        passed: [
+          "favorites",
+          "tags",
+          "named folders",
+          "multiline notes",
+          "duplicate",
+          "removed redundant navigation",
+          "aligned preset controls",
+          "collapsible information",
+          "real preset persistence",
+        ],
+        browserErrors: errors,
+        screenshots: evidence,
+      },
+      null,
+      2,
+    ),
+  );
 } finally {
   await browser?.close();
   await server.close();

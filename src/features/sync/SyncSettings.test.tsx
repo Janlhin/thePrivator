@@ -298,8 +298,7 @@ describe("SyncSettings", () => {
   it("promises that a resolution moves data aside rather than deleting it", async () => {
     respond({
       sync_status: () => envelope(enabledStatus()),
-      sync_run: () =>
-        envelope({ applied: [], conflicts: [conflictEntry()], failures: [], status: enabledStatus() }),
+      sync_run: () => envelope({ applied: [], conflicts: [conflictEntry()], failures: [], status: enabledStatus() }),
     });
 
     render(<SyncSettings />);
@@ -346,9 +345,7 @@ describe("SyncSettings", () => {
   it("reports a folder that has become unwritable", async () => {
     respond({
       sync_status: () =>
-        envelope(
-          enabledStatus({ writable: false, detail: "The sync folder is not writable: Permission denied." }),
-        ),
+        envelope(enabledStatus({ writable: false, detail: "The sync folder is not writable: Permission denied." })),
     });
 
     render(<SyncSettings />);

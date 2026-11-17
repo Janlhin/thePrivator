@@ -64,7 +64,13 @@ function writeJson(path, value) {
   writeText(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function seedPackagedProfileStore({ root = makeRoot(), profileName = "M005 Packaged Portability Smoke unit", profileId = "m005-s04-profile-1", storeVersion = 4, profiles } = {}) {
+function seedPackagedProfileStore({
+  root = makeRoot(),
+  profileName = "M005 Packaged Portability Smoke unit",
+  profileId = "m005-s04-profile-1",
+  storeVersion = 4,
+  profiles,
+} = {}) {
   const smokeRoot = join(root, "smoke-root");
   const dataRoot = join(smokeRoot, "data");
   const appDataRoot = join(dataRoot, "theprivator-app-data");
@@ -77,10 +83,26 @@ function seedPackagedProfileStore({ root = makeRoot(), profileName = "M005 Packa
     },
   };
   writeJson(join(appDataRoot, "profile-store", "profiles.json"), { storeVersion, profiles: profiles ?? [profile] });
-  return { root, smokeContext: { smokeRoot, dataRoot, smokeProfileName: profileName, runId: "unit" }, appDataRoot, profile, userDataRoot: join(appDataRoot, profile.storage.userDataDir) };
+  return {
+    root,
+    smokeContext: { smokeRoot, dataRoot, smokeProfileName: profileName, runId: "unit" },
+    appDataRoot,
+    profile,
+    userDataRoot: join(appDataRoot, profile.storage.userDataDir),
+  };
 }
 
-function writePackageFixture(packagePath, { includeRuntimeMember = false, omitCookieMember = false, extraRawMember = false, credentialProxy = false, manifestCookieLeak = false, missingLocalStorage = false } = {}) {
+function writePackageFixture(
+  packagePath,
+  {
+    includeRuntimeMember = false,
+    omitCookieMember = false,
+    extraRawMember = false,
+    credentialProxy = false,
+    manifestCookieLeak = false,
+    missingLocalStorage = false,
+  } = {},
+) {
   const script = String.raw`
 import hashlib, json, sys, zipfile
 from pathlib import Path
@@ -121,12 +143,28 @@ with zipfile.ZipFile(package_path, "w", compression=zipfile.ZIP_DEFLATED) as arc
   if payload.get("extraRawMember"):
     archive.writestr("raw-diagnostics.txt", b"Traceback stdout stderr")
 `;
-  const result = spawnSync(process.env.PYTHON ?? "python3", ["-c", script], { input: JSON.stringify({ packagePath, includeRuntimeMember, omitCookieMember, extraRawMember, credentialProxy, manifestCookieLeak, missingLocalStorage }), encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
-  if (result.status !== 0 || result.error) throw new Error(`package fixture failed: ${result.stderr || result.error?.message}`);
+  const result = spawnSync(process.env.PYTHON ?? "python3", ["-c", script], {
+    input: JSON.stringify({
+      packagePath,
+      includeRuntimeMember,
+      omitCookieMember,
+      extraRawMember,
+      credentialProxy,
+      manifestCookieLeak,
+      missingLocalStorage,
+    }),
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  if (result.status !== 0 || result.error)
+    throw new Error(`package fixture failed: ${result.stderr || result.error?.message}`);
 }
 
 function writeDiagnosticsFixture(appDataRoot, rows) {
-  writeText(join(appDataRoot, "profile-store", "diagnostics", "events.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+  writeText(
+    join(appDataRoot, "profile-store", "diagnostics", "events.jsonl"),
+    rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+  );
 }
 
 function diagnosticRow(method, overrides = {}) {
@@ -153,15 +191,25 @@ function captureConsole() {
 }
 
 function defaultPermissions(overrides = {}) {
-  return overrides.permissions ?? [
-    "core:default",
-    "dialog:allow-open",
-    "dialog:allow-save",
-    { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] },
-  ];
+  return (
+    overrides.permissions ?? [
+      "core:default",
+      "dialog:allow-open",
+      "dialog:allow-save",
+      { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] },
+    ]
+  );
 }
 
-function seedS04Root({ permissions, appSource, clientSource, libSource, sidecarSource, packageScript = "node scripts/verify-m005-s04.mjs", targets = ["deb", "rpm"] } = {}) {
+function seedS04Root({
+  permissions,
+  appSource,
+  clientSource,
+  libSource,
+  sidecarSource,
+  packageScript = "node scripts/verify-m005-s04.mjs",
+  targets = ["deb", "rpm"],
+} = {}) {
   const root = makeRoot();
   writeJson(join(root, "src-tauri", "capabilities", "default.json"), {
     identifier: "default",
@@ -169,7 +217,10 @@ function seedS04Root({ permissions, appSource, clientSource, libSource, sidecarS
     permissions: defaultPermissions({ permissions }),
   });
   writeJson(join(root, "src-tauri", "tauri.conf.json"), {
-    build: { beforeDevCommand: "npm run sidecar:build && npm run dev", beforeBuildCommand: "npm run build && npm run sidecar:build" },
+    build: {
+      beforeDevCommand: "npm run sidecar:build && npm run dev",
+      beforeBuildCommand: "npm run build && npm run sidecar:build",
+    },
     app: { windows: [{ label: "main", decorations: false }] },
     bundle: { externalBin: ["binaries/theprivator-sidecar"], targets },
   });
@@ -177,11 +228,29 @@ function seedS04Root({ permissions, appSource, clientSource, libSource, sidecarS
     scripts: { "verify:m005:s04": packageScript },
     dependencies: { "@tauri-apps/api": "^2.0.0", "@tauri-apps/plugin-dialog": "^2.0.0" },
   });
-  writeText(join(root, "README.md"), "npm run verify:m005:s04 --preflight-only --build-only --ui-only --skip-build --keep-temp verify.m005.s04 native open/save dialogs redaction scanner cleanup PORTABILITY_PROFILE_BUSY R033/R034/R035/R037/R038/R039/R040\n");
-  writeText(join(root, "src", "App.tsx"), appSource ?? "import { open, save } from '@tauri-apps/plugin-dialog';\nimport { exportProfileCookies, replaceProfileCookies, exportProfilePackage, importProfilePackage } from './sidecar/client';\nopen(); save(); void exportProfileCookies; void replaceProfileCookies; void exportProfilePackage; void importProfilePackage;\n");
-  writeText(join(root, "src", "sidecar", "client.ts"), clientSource ?? 'invoke<unknown>("profile_cookies_export", {});\ninvoke<unknown>("profile_cookies_replace", {});\ninvoke<unknown>("profile_package_export", {});\ninvoke<unknown>("profile_package_import", {});\n');
-  writeText(join(root, "src-tauri", "src", "lib.rs"), libSource ?? "sidecar::profile_cookies_export\nsidecar::profile_cookies_replace\nsidecar::profile_package_export\nsidecar::profile_package_import\n");
-  writeText(join(root, "src-tauri", "src", "sidecar.rs"), sidecarSource ?? `#[tauri::command]
+  writeText(
+    join(root, "README.md"),
+    "npm run verify:m005:s04 --preflight-only --build-only --ui-only --skip-build --keep-temp verify.m005.s04 native open/save dialogs redaction scanner cleanup PORTABILITY_PROFILE_BUSY R033/R034/R035/R037/R038/R039/R040\n",
+  );
+  writeText(
+    join(root, "src", "App.tsx"),
+    appSource ??
+      "import { open, save } from '@tauri-apps/plugin-dialog';\nimport { exportProfileCookies, replaceProfileCookies, exportProfilePackage, importProfilePackage } from './sidecar/client';\nopen(); save(); void exportProfileCookies; void replaceProfileCookies; void exportProfilePackage; void importProfilePackage;\n",
+  );
+  writeText(
+    join(root, "src", "sidecar", "client.ts"),
+    clientSource ??
+      'invoke<unknown>("profile_cookies_export", {});\ninvoke<unknown>("profile_cookies_replace", {});\ninvoke<unknown>("profile_package_export", {});\ninvoke<unknown>("profile_package_import", {});\n',
+  );
+  writeText(
+    join(root, "src-tauri", "src", "lib.rs"),
+    libSource ??
+      "sidecar::profile_cookies_export\nsidecar::profile_cookies_replace\nsidecar::profile_package_export\nsidecar::profile_package_import\n",
+  );
+  writeText(
+    join(root, "src-tauri", "src", "sidecar.rs"),
+    sidecarSource ??
+      `#[tauri::command]
 pub async fn profile_cookies_export(app: tauri::AppHandle) { let store_root = resolve_profile_store_root(&app)?; profile_cookies_export_with_runner(&runner, store_root).await }
 #[tauri::command]
 pub async fn profile_cookies_replace(app: tauri::AppHandle) { let store_root = resolve_profile_store_root(&app)?; profile_cookies_replace_with_runner(&runner, store_root).await }
@@ -193,7 +262,8 @@ async fn profile_cookies_export_with_runner() { "portability.cookies.export"; }
 async fn profile_cookies_replace_with_runner() { "portability.cookies.replace"; }
 async fn profile_package_export_with_runner() { "portability.profile_package.export"; }
 async fn profile_package_import_with_runner() { "portability.profile_package.import"; }
-`);
+`,
+  );
   writeText(join(root, "scripts", "verify-m005-s04.mjs"), "export const verifier = true;\n");
   writeText(join(root, "scripts", "verify-m005-s04.test.mjs"), "import { describe } from 'vitest';\n");
   return root;
@@ -207,10 +277,38 @@ afterEach(() => {
 
 describe("verify-m005-s04 argument contract", () => {
   it("recognizes full, preflight, build, UI, skip-build, keep-temp, help, unknown, and conflict modes", () => {
-    expect(parseArgs([])).toMatchObject({ mode: "full", preflightOnly: false, skipBuild: false, buildOnly: false, uiOnly: false, keepTemp: false, unknown: [], conflicts: [] });
-    expect(parseArgs(["--preflight-only"])).toMatchObject({ mode: "preflight-only", preflightOnly: true, skipBuild: false, unknown: [], conflicts: [] });
-    expect(parseArgs(["--build-only"])).toMatchObject({ mode: "build-only", buildOnly: true, skipBuild: false, unknown: [], conflicts: [] });
-    expect(parseArgs(["--ui-only", "--keep-temp"])).toMatchObject({ mode: "ui-only", uiOnly: true, skipBuild: true, keepTemp: true, unknown: [], conflicts: [] });
+    expect(parseArgs([])).toMatchObject({
+      mode: "full",
+      preflightOnly: false,
+      skipBuild: false,
+      buildOnly: false,
+      uiOnly: false,
+      keepTemp: false,
+      unknown: [],
+      conflicts: [],
+    });
+    expect(parseArgs(["--preflight-only"])).toMatchObject({
+      mode: "preflight-only",
+      preflightOnly: true,
+      skipBuild: false,
+      unknown: [],
+      conflicts: [],
+    });
+    expect(parseArgs(["--build-only"])).toMatchObject({
+      mode: "build-only",
+      buildOnly: true,
+      skipBuild: false,
+      unknown: [],
+      conflicts: [],
+    });
+    expect(parseArgs(["--ui-only", "--keep-temp"])).toMatchObject({
+      mode: "ui-only",
+      uiOnly: true,
+      skipBuild: true,
+      keepTemp: true,
+      unknown: [],
+      conflicts: [],
+    });
     expect(parseArgs(["--bogus"])).toMatchObject({ unknown: ["--bogus"] });
     expect(() => assertValidArgs(parseArgs(["--preflight-only", "--ui-only"]))).toThrow(VerifyFailure);
   });
@@ -219,8 +317,14 @@ describe("verify-m005-s04 argument contract", () => {
 describe("verify-m005-s04 capability and config guardrails", () => {
   it("accepts M005 dialog permissions and proves the stale S06 capability guardrail is not reused", () => {
     const root = seedS04Root();
-    expect(assertM005S04CapabilityConfig({ rootDir: root })).toMatchObject({ dialogOpenSave: "allowed", filesystemAuthority: "absent", fixedSidecarSpawn: true });
-    expect(assertM005S04Guardrails({ rootDir: root, platform: "linux" })).toMatchObject({ tauriConfig: { linuxPackageTargets: ["deb", "rpm"] } });
+    expect(assertM005S04CapabilityConfig({ rootDir: root })).toMatchObject({
+      dialogOpenSave: "allowed",
+      filesystemAuthority: "absent",
+      fixedSidecarSpawn: true,
+    });
+    expect(assertM005S04Guardrails({ rootDir: root, platform: "linux" })).toMatchObject({
+      tauriConfig: { linuxPackageTargets: ["deb", "rpm"] },
+    });
     // Assert that S06's capability guardrail rejects an M005 root, via its stable
     // error code rather than its prose. Which rejection branch fires depends on
     // S06's own allow-list, which is owned by verify-s06 and may grow; pinning the
@@ -238,24 +342,92 @@ describe("verify-m005-s04 capability and config guardrails", () => {
   });
 
   it("rejects missing dialog permission, broad filesystem/shell authority, arbitrary spawn, and missing Linux targets", () => {
-    expect(() => assertM005S04CapabilityConfig({ rootDir: seedS04Root({ permissions: ["core:default", "dialog:allow-open", { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] }] }) })).toThrow(VerifyFailure);
-    expect(() => assertM005S04CapabilityConfig({ rootDir: seedS04Root({ permissions: ["core:default", "dialog:allow-open", "dialog:allow-save", "fs:allow-read-text-file", { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] }] }) })).toThrow(VerifyFailure);
-    expect(() => assertM005S04CapabilityConfig({ rootDir: seedS04Root({ permissions: ["core:default", "dialog:allow-open", "dialog:allow-save", "shell:allow-open", { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] }] }) })).toThrow(VerifyFailure);
-    expect(() => assertM005S04CapabilityConfig({ rootDir: seedS04Root({ permissions: ["core:default", "dialog:allow-open", "dialog:allow-save", { identifier: "shell:allow-spawn", allow: [{ name: "binaries/other-sidecar", sidecar: true }] }] }) })).toThrow(VerifyFailure);
-    expect(() => assertM005S04Guardrails({ rootDir: seedS04Root({ targets: ["appimage"] }), platform: "linux" })).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04CapabilityConfig({
+        rootDir: seedS04Root({
+          permissions: [
+            "core:default",
+            "dialog:allow-open",
+            { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] },
+          ],
+        }),
+      }),
+    ).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04CapabilityConfig({
+        rootDir: seedS04Root({
+          permissions: [
+            "core:default",
+            "dialog:allow-open",
+            "dialog:allow-save",
+            "fs:allow-read-text-file",
+            { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] },
+          ],
+        }),
+      }),
+    ).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04CapabilityConfig({
+        rootDir: seedS04Root({
+          permissions: [
+            "core:default",
+            "dialog:allow-open",
+            "dialog:allow-save",
+            "shell:allow-open",
+            { identifier: "shell:allow-spawn", allow: [{ name: "binaries/theprivator-sidecar", sidecar: true }] },
+          ],
+        }),
+      }),
+    ).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04CapabilityConfig({
+        rootDir: seedS04Root({
+          permissions: [
+            "core:default",
+            "dialog:allow-open",
+            "dialog:allow-save",
+            { identifier: "shell:allow-spawn", allow: [{ name: "binaries/other-sidecar", sidecar: true }] },
+          ],
+        }),
+      }),
+    ).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04Guardrails({ rootDir: seedS04Root({ targets: ["appimage"] }), platform: "linux" }),
+    ).toThrow(VerifyFailure);
   });
 });
 
 describe("verify-m005-s04 source guardrails", () => {
   it("accepts native dialogs, typed wrappers, fixed commands, and app-data root injection", () => {
     const root = seedS04Root();
-    expect(assertM005S04SourceGuardrails({ rootDir: root })).toMatchObject({ uiUsesNativeDialogs: true, uiUsesTypedWrappers: true, clientUsesFixedCommands: true, privateScopeInjected: true });
+    expect(assertM005S04SourceGuardrails({ rootDir: root })).toMatchObject({
+      uiUsesNativeDialogs: true,
+      uiUsesTypedWrappers: true,
+      clientUsesFixedCommands: true,
+      privateScopeInjected: true,
+    });
   });
 
   it("rejects raw UI invokes, raw sidecar method selection, missing Rust commands, and ignored local-only fixture references", () => {
-    expect(() => assertM005S04SourceGuardrails({ rootDir: seedS04Root({ appSource: 'import { open, save } from "@tauri-apps/plugin-dialog";\nopen(); save(); invoke("profile_cookies_export");\nexportProfileCookies; replaceProfileCookies; exportProfilePackage; importProfilePackage;\n' }) })).toThrow(VerifyFailure);
-    expect(() => assertM005S04SourceGuardrails({ rootDir: seedS04Root({ clientSource: 'const method = "portability.profile_package.export";\ninvoke<unknown>("profile_cookies_export", {});\ninvoke<unknown>("profile_cookies_replace", {});\ninvoke<unknown>("profile_package_export", {});\ninvoke<unknown>("profile_package_import", {});\n' }) })).toThrow(VerifyFailure);
-    expect(() => assertM005S04SourceGuardrails({ rootDir: seedS04Root({ libSource: "sidecar::profile_cookies_export\n" }) })).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04SourceGuardrails({
+        rootDir: seedS04Root({
+          appSource:
+            'import { open, save } from "@tauri-apps/plugin-dialog";\nopen(); save(); invoke("profile_cookies_export");\nexportProfileCookies; replaceProfileCookies; exportProfilePackage; importProfilePackage;\n',
+        }),
+      }),
+    ).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04SourceGuardrails({
+        rootDir: seedS04Root({
+          clientSource:
+            'const method = "portability.profile_package.export";\ninvoke<unknown>("profile_cookies_export", {});\ninvoke<unknown>("profile_cookies_replace", {});\ninvoke<unknown>("profile_package_export", {});\ninvoke<unknown>("profile_package_import", {});\n',
+        }),
+      }),
+    ).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04SourceGuardrails({ rootDir: seedS04Root({ libSource: "sidecar::profile_cookies_export\n" }) }),
+    ).toThrow(VerifyFailure);
     const root = seedS04Root();
     writeText(join(root, "scripts", "verify-m005-s04.test.mjs"), "import '../." + "gsd/local-plan.md';\n");
     expect(() => assertM005S04SourceGuardrails({ rootDir: root })).toThrow(VerifyFailure);
@@ -265,25 +437,71 @@ describe("verify-m005-s04 source guardrails", () => {
 describe("verify-m005-s04 native dialog preflight", () => {
   it("plans Wayland AT-SPI selection with redacted save/open dialog summaries", () => {
     const commandExists = (name) => name === "python3";
-    const plan = planNativeDialogAutomation({ platform: "linux", env: { WAYLAND_DISPLAY: "wayland-1", PATH: "/mock/bin" }, commandExists });
-    expect(plan).toMatchObject({ strategy: "wayland", status: "available", keyboard: "at-spi", clipboard: "none", missing: [] });
+    const plan = planNativeDialogAutomation({
+      platform: "linux",
+      env: { WAYLAND_DISPLAY: "wayland-1", PATH: "/mock/bin" },
+      commandExists,
+    });
+    expect(plan).toMatchObject({
+      strategy: "wayland",
+      status: "available",
+      keyboard: "at-spi",
+      clipboard: "none",
+      missing: [],
+    });
     const commandPlan = createNativeDialogCommandPlan({ dialog: "save", extension: "json", strategyPlan: plan });
-    expect(commandPlan).toEqual({ dialog: "save", selected: true, extension: "json", strategy: "wayland", steps: ["focus-dialog", "type-selection", "confirm-selection"] });
+    expect(commandPlan).toEqual({
+      dialog: "save",
+      selected: true,
+      extension: "json",
+      strategy: "wayland",
+      steps: ["focus-dialog", "type-selection", "confirm-selection"],
+    });
     expect(findM005S04ForbiddenPublicMarker(commandPlan)).toBeNull();
   });
 
   it("falls back to Wayland ydotool when AT-SPI is unavailable", () => {
     const commandExists = (name) => ["ydotool", "wl-copy", "wl-paste"].includes(name);
-    const plan = planNativeDialogAutomation({ platform: "linux", env: { WAYLAND_DISPLAY: "wayland-1", PATH: "/mock/bin" }, commandExists });
-    expect(plan).toMatchObject({ strategy: "wayland", status: "available", keyboard: "ydotool", clipboard: "wl-clipboard", missing: [] });
+    const plan = planNativeDialogAutomation({
+      platform: "linux",
+      env: { WAYLAND_DISPLAY: "wayland-1", PATH: "/mock/bin" },
+      commandExists,
+    });
+    expect(plan).toMatchObject({
+      strategy: "wayland",
+      status: "available",
+      keyboard: "ydotool",
+      clipboard: "wl-clipboard",
+      missing: [],
+    });
   });
 
   it("falls back to X11 when Wayland is absent and fails closed for missing tools", () => {
-    const x11PythonPlan = planNativeDialogAutomation({ platform: "linux", env: { DISPLAY: ":1", PATH: "/mock/bin" }, commandExists: (name) => name === "python3" });
-    expect(x11PythonPlan).toMatchObject({ strategy: "x11", status: "available", keyboard: "at-spi", clipboard: "none" });
-    const x11Plan = planNativeDialogAutomation({ platform: "linux", env: { DISPLAY: ":1", PATH: "/mock/bin" }, commandExists: (name) => ["xdotool", "xclip"].includes(name) });
+    const x11PythonPlan = planNativeDialogAutomation({
+      platform: "linux",
+      env: { DISPLAY: ":1", PATH: "/mock/bin" },
+      commandExists: (name) => name === "python3",
+    });
+    expect(x11PythonPlan).toMatchObject({
+      strategy: "x11",
+      status: "available",
+      keyboard: "at-spi",
+      clipboard: "none",
+    });
+    const x11Plan = planNativeDialogAutomation({
+      platform: "linux",
+      env: { DISPLAY: ":1", PATH: "/mock/bin" },
+      commandExists: (name) => ["xdotool", "xclip"].includes(name),
+    });
     expect(x11Plan).toMatchObject({ strategy: "x11", status: "available", keyboard: "xdotool", clipboard: "xclip" });
-    expect(() => assertNativeDialogAutomationPreflight({ platform: "linux", env: { WAYLAND_DISPLAY: "wayland-1", PATH: "/mock/bin" }, commandExists: () => false, strict: true })).toThrow(VerifyFailure);
+    expect(() =>
+      assertNativeDialogAutomationPreflight({
+        platform: "linux",
+        env: { WAYLAND_DISPLAY: "wayland-1", PATH: "/mock/bin" },
+        commandExists: () => false,
+        strict: true,
+      }),
+    ).toThrow(VerifyFailure);
   });
 
   it("matches Hyprland native dialog windows by exact safe title or non-main ThePrivator fallback address", () => {
@@ -294,7 +512,12 @@ describe("verify-m005-s04 native dialog preflight", () => {
     ];
     expect(findM005S04HyprlandDialogAddress(clients, "Export cookies as ThePrivator JSON")).toBe("0xabc");
     expect(findM005S04HyprlandDialogAddress(clients, "Import ThePrivator package")).toBe("0xabc");
-    expect(findM005S04HyprlandDialogAddress([{ class: "theprivator", title: "ThePrivator", address: "0x1" }], "Import ThePrivator package")).toBeNull();
+    expect(
+      findM005S04HyprlandDialogAddress(
+        [{ class: "theprivator", title: "ThePrivator", address: "0x1" }],
+        "Import ThePrivator package",
+      ),
+    ).toBeNull();
   });
 
   it("loads Wayland clipboard through detached paste-once process without inheriting output streams", async () => {
@@ -310,15 +533,29 @@ describe("verify-m005-s04 native dialog preflight", () => {
     const spawnClipboardProcess = vi.fn(() => child);
     const context = createM005S04PublicScanContext({ selectedPaths: ["/private/theprivator-smoke/cookies.json"] });
 
-    await expect(runM005S04WaylandClipboardLoad("/private/theprivator-smoke/cookies.json", { context, phase: "native-dialog.save.json", timeoutMs: 100, settleMs: 0, spawnClipboardProcess })).resolves.toMatchObject({ clipboardMode: "paste-once", exitCode: 0 });
+    await expect(
+      runM005S04WaylandClipboardLoad("/private/theprivator-smoke/cookies.json", {
+        context,
+        phase: "native-dialog.save.json",
+        timeoutMs: 100,
+        settleMs: 0,
+        spawnClipboardProcess,
+      }),
+    ).resolves.toMatchObject({ clipboardMode: "paste-once", exitCode: 0 });
 
-    expect(spawnClipboardProcess).toHaveBeenCalledWith(expect.stringMatching(/wl-copy$/), ["--paste-once"], { stdio: ["pipe", "ignore", "ignore"], detached: true });
+    expect(spawnClipboardProcess).toHaveBeenCalledWith(expect.stringMatching(/wl-copy$/), ["--paste-once"], {
+      stdio: ["pipe", "ignore", "ignore"],
+      detached: true,
+    });
     expect(child.unref).toHaveBeenCalled();
     expect(child.kill).not.toHaveBeenCalled();
   });
 
   it("summarizes native selections by dialog kind and extension without selected paths", () => {
-    const selection = describeNativeDialogSelection({ dialog: "open", targetPath: "/private/theprivator-smoke/profile-package.tpkg" });
+    const selection = describeNativeDialogSelection({
+      dialog: "open",
+      targetPath: "/private/theprivator-smoke/profile-package.tpkg",
+    });
     expect(selection).toEqual({ dialog: "open", selected: true, extension: "tpkg" });
     expect(JSON.stringify(selection)).not.toContain("/private");
   });
@@ -352,14 +589,34 @@ describe("verify-m005-s04 scanner and summary contracts", () => {
     ]) {
       expect(findM005S04ForbiddenPublicMarker(unsafe, context)).toBeTruthy();
     }
-    expect(() => assertM005S04PublicEvidenceRedacted({ cookieValue: "m005-s04-cookie-value" }, context)).toThrow(VerifyFailure);
+    expect(() => assertM005S04PublicEvidenceRedacted({ cookieValue: "m005-s04-cookie-value" }, context)).toThrow(
+      VerifyFailure,
+    );
   });
 
   it("formats subprocess failures with marker classes but without private values or forbidden public fields", () => {
-    const context = createM005S04PublicScanContext({ appDataRoot: "/private/app-data-root", selectedPaths: ["/private/app-data-root/export.json"], cookieValues: ["m005-s04-cookie-value"], proxyCredentials: ["m005-s04-proxy-pass"] });
-    const failure = formatM005S04CommandFailure("npm run verify:m005:s04", { status: 1, signal: null, stdout: "m005-s04-cookie-value /private/app-data-root/export.json", stderr: "Traceback --remote-debugging-port=9222 m005-s04-proxy-pass", error: null }, context, "runtime.cookie-export");
+    const context = createM005S04PublicScanContext({
+      appDataRoot: "/private/app-data-root",
+      selectedPaths: ["/private/app-data-root/export.json"],
+      cookieValues: ["m005-s04-cookie-value"],
+      proxyCredentials: ["m005-s04-proxy-pass"],
+    });
+    const failure = formatM005S04CommandFailure(
+      "npm run verify:m005:s04",
+      {
+        status: 1,
+        signal: null,
+        stdout: "m005-s04-cookie-value /private/app-data-root/export.json",
+        stderr: "Traceback --remote-debugging-port=9222 m005-s04-proxy-pass",
+        error: null,
+      },
+      context,
+      "runtime.cookie-export",
+    );
     const encoded = JSON.stringify(failure);
-    expect(failure.markerClasses).toEqual(expect.arrayContaining(["app_root", "cookie_value", "credential", "debug_endpoint", "raw_diag"]));
+    expect(failure.markerClasses).toEqual(
+      expect.arrayContaining(["app_root", "cookie_value", "credential", "debug_endpoint", "raw_diag"]),
+    );
     expect(encoded).not.toContain("m005-s04-cookie-value");
     expect(encoded).not.toContain("m005-s04-proxy-pass");
     expect(encoded).not.toContain("/private/app-data-root");
@@ -370,8 +627,19 @@ describe("verify-m005-s04 scanner and summary contracts", () => {
     const summary = buildM005S04FinalSummary({
       status: "pass",
       mode: "preflight-only",
-      guardrails: { capability: { permissions: ["core:default", "dialog:allow-open", "dialog:allow-save", "shell:allow-spawn"], dialogOpenSave: "allowed", fixedSidecarSpawn: true }, tauriConfig: { linuxPackageTargets: ["deb", "rpm"] }, source: { privateScopeInjected: true } },
-      preflight: { webdriver: { display: "available", missingToolClasses: [] }, nativeDialog: { status: "available", strategy: "wayland", display: "wayland", missingToolClasses: [] } },
+      guardrails: {
+        capability: {
+          permissions: ["core:default", "dialog:allow-open", "dialog:allow-save", "shell:allow-spawn"],
+          dialogOpenSave: "allowed",
+          fixedSidecarSpawn: true,
+        },
+        tauriConfig: { linuxPackageTargets: ["deb", "rpm"] },
+        source: { privateScopeInjected: true },
+      },
+      preflight: {
+        webdriver: { display: "available", missingToolClasses: [] },
+        nativeDialog: { status: "available", strategy: "wayland", display: "wayland", missingToolClasses: [] },
+      },
       checks: [{ name: "preflight.native-dialog", status: "pass", durationMs: 2 }],
     });
     expect(summary.event).toBe(VERIFY_EVENT);
@@ -380,8 +648,13 @@ describe("verify-m005-s04 scanner and summary contracts", () => {
   });
 
   it("classifies unsafe marker classes and keeps this test file free of ignored local-only fixture imports", () => {
-    const context = createM005S04PublicScanContext({ appDataRoot: "/private/app-data-root", cookieValues: ["m005-s04-cookie-value"] });
-    expect(collectM005S04MarkerClasses("m005-s04-cookie-value /private/app-data-root Traceback", context)).toEqual(expect.arrayContaining(["app_root", "cookie_value", "raw_diag"]));
+    const context = createM005S04PublicScanContext({
+      appDataRoot: "/private/app-data-root",
+      cookieValues: ["m005-s04-cookie-value"],
+    });
+    expect(collectM005S04MarkerClasses("m005-s04-cookie-value /private/app-data-root Traceback", context)).toEqual(
+      expect.arrayContaining(["app_root", "cookie_value", "raw_diag"]),
+    );
     const source = readFileSync(fileURLToPath(import.meta.url), "utf8");
     expect(IGNORED_ARTIFACT_REFERENCE_PATTERN.test(source)).toBe(false);
   });
@@ -396,9 +669,20 @@ describe("verify-m005-s04 preflight runner", () => {
       platform: "linux",
       env: { WAYLAND_DISPLAY: "wayland-1", PATH: "/mock/bin" },
       emitFinal: true,
-      webdriverPreflight: () => ({ display: "available", missingToolClasses: [], requiredToolClasses: ["tauri-driver", "WebKitWebDriver", "Chromium"] }),
+      webdriverPreflight: () => ({
+        display: "available",
+        missingToolClasses: [],
+        requiredToolClasses: ["tauri-driver", "WebKitWebDriver", "Chromium"],
+      }),
       chromiumPreflight: () => ({ chromium: "available", source: "test" }),
-      nativeDialogPreflight: () => ({ strategy: "wayland", status: "available", display: "wayland", clipboard: "wl-clipboard", missingToolClasses: [], dialogs: [{ dialog: "save", selected: true, extension: "json" }] }),
+      nativeDialogPreflight: () => ({
+        strategy: "wayland",
+        status: "available",
+        display: "wayland",
+        clipboard: "wl-clipboard",
+        missingToolClasses: [],
+        dialogs: [{ dialog: "save", selected: true, extension: "json" }],
+      }),
     });
     expect(summary).toMatchObject({ status: "pass", mode: "preflight-only" });
     const events = lines.map((line) => JSON.parse(line));
@@ -412,39 +696,89 @@ describe("verify-m005-s04 preflight runner", () => {
 describe("verify-m005-s04 packaged harness profile discovery", () => {
   it("creates an M005-prefixed isolated smoke context and derives private profile storage from the packaged store", () => {
     const root = makeRoot();
-    const smoke = createM005S04SmokeRunContext({ rootDir: root, runId: "unit-run", nonce: "unit", now: new Date("2026-01-01T00:00:00.000Z"), baseEnv: {} });
+    const smoke = createM005S04SmokeRunContext({
+      rootDir: root,
+      runId: "unit-run",
+      nonce: "unit",
+      now: new Date("2026-01-01T00:00:00.000Z"),
+      baseEnv: {},
+    });
     expect(smoke.value.smokeProfileName).toContain("M005 Packaged Portability Smoke");
     expect(smoke.log).toMatchObject({ profileName: "generated", isolatedRoots: "created", rootScope: "private" });
-    expect(findM005S04ForbiddenPublicMarker(smoke.log, createM005S04PublicScanContext({ tempRoot: smoke.value.smokeRoot }))).toBeNull();
+    expect(
+      findM005S04ForbiddenPublicMarker(smoke.log, createM005S04PublicScanContext({ tempRoot: smoke.value.smokeRoot })),
+    ).toBeNull();
 
     const seeded = seedPackagedProfileStore({ root, profileName: smoke.value.smokeProfileName });
-    const discovered = discoverM005S04SourceProfile({ rootDir: root, smokeContext: seeded.smokeContext, profileName: smoke.value.smokeProfileName });
+    const discovered = discoverM005S04SourceProfile({
+      rootDir: root,
+      smokeContext: seeded.smokeContext,
+      profileName: smoke.value.smokeProfileName,
+    });
     expect(discovered.value.profile.id).toBe(seeded.profile.id);
     expect(discovered.value.appDataRoot).toBe(seeded.appDataRoot);
     expect(discovered.value.userDataRoot).toBe(seeded.userDataRoot);
-    expect(discovered.log).toMatchObject({ profileFound: true, privateProfileId: "derived", storage: "safe-relative-store-paths" });
-    expect(findM005S04ForbiddenPublicMarker(discovered.log, createM005S04PublicScanContext({ appDataRoot: seeded.appDataRoot, userDataRoot: seeded.userDataRoot }))).toBeNull();
+    expect(discovered.log).toMatchObject({
+      profileFound: true,
+      privateProfileId: "derived",
+      storage: "safe-relative-store-paths",
+    });
+    expect(
+      findM005S04ForbiddenPublicMarker(
+        discovered.log,
+        createM005S04PublicScanContext({ appDataRoot: seeded.appDataRoot, userDataRoot: seeded.userDataRoot }),
+      ),
+    ).toBeNull();
   });
 
   it("fails safely for missing stores and malformed profile records", () => {
     const root = makeRoot();
-    const smokeContext = { smokeRoot: join(root, "smoke"), dataRoot: join(root, "smoke", "data"), smokeProfileName: "missing", runId: "unit" };
+    const smokeContext = {
+      smokeRoot: join(root, "smoke"),
+      dataRoot: join(root, "smoke", "data"),
+      smokeProfileName: "missing",
+      runId: "unit",
+    };
     mkdirSync(smokeContext.dataRoot, { recursive: true });
     expect(() => discoverM005S04SourceProfile({ rootDir: root, smokeContext })).toThrow(VerifyFailure);
-    const malformed = seedPackagedProfileStore({ root, profiles: [{ id: "profile-1", name: "missing", storage: { profileDir: "../bad", userDataDir: "../bad/user-data" } }] });
-    expect(() => discoverM005S04SourceProfile({ rootDir: root, smokeContext: malformed.smokeContext })).toThrow(VerifyFailure);
+    const malformed = seedPackagedProfileStore({
+      root,
+      profiles: [
+        { id: "profile-1", name: "missing", storage: { profileDir: "../bad", userDataDir: "../bad/user-data" } },
+      ],
+    });
+    expect(() => discoverM005S04SourceProfile({ rootDir: root, smokeContext: malformed.smokeContext })).toThrow(
+      VerifyFailure,
+    );
   });
 });
 
 describe("verify-m005-s04 fixture helpers", () => {
   it("creates and inspects a Chromium cookie DB with redacted aggregate public output", () => {
     const { appDataRoot, userDataRoot } = seedPackagedProfileStore();
-    const context = createM005S04PublicScanContext({ appDataRoot, userDataRoot, cookieDomains: ["m005-s04-cookie.invalid"], cookieNames: ["m005_s04_session"], cookieValues: ["m005-s04-cookie-value"] });
+    const context = createM005S04PublicScanContext({
+      appDataRoot,
+      userDataRoot,
+      cookieDomains: ["m005-s04-cookie.invalid"],
+      cookieNames: ["m005_s04_session"],
+      cookieValues: ["m005-s04-cookie-value"],
+    });
     const created = createM005S04CookieDbFixture({ appDataRoot, userDataRoot }, context);
     expect(created.log).toMatchObject({ cookieDb: "created", rowCount: 2, pathScope: "isolated" });
-    const inspected = inspectM005S04CookieDbRows({ appDataRoot, userDataRoot, expectedRows: created.value.cookies }, context);
-    expect(inspected.log).toMatchObject({ cookieDb: "present", rowCount: 2, expectedRowsPresent: true, missingExpectedCount: 0 });
-    const missing = inspectM005S04CookieDbRows({ appDataRoot, userDataRoot, expectedRows: [{ domain: "missing.invalid", name: "missing", value: "missing" }] }, context);
+    const inspected = inspectM005S04CookieDbRows(
+      { appDataRoot, userDataRoot, expectedRows: created.value.cookies },
+      context,
+    );
+    expect(inspected.log).toMatchObject({
+      cookieDb: "present",
+      rowCount: 2,
+      expectedRowsPresent: true,
+      missingExpectedCount: 0,
+    });
+    const missing = inspectM005S04CookieDbRows(
+      { appDataRoot, userDataRoot, expectedRows: [{ domain: "missing.invalid", name: "missing", value: "missing" }] },
+      context,
+    );
     expect(missing.log).toMatchObject({ expectedRowsPresent: false, missingExpectedCount: 1 });
     expect(findM005S04ForbiddenPublicMarker([created.log, inspected.log], context)).toBeNull();
   });
@@ -453,14 +787,25 @@ describe("verify-m005-s04 fixture helpers", () => {
     const { smokeContext, appDataRoot, userDataRoot } = seedPackagedProfileStore();
     const context = createM005S04PublicScanContext({ tempRoot: smokeContext.smokeRoot, appDataRoot, userDataRoot });
     const imports = writeM005S04CookieImportFixtures({ smokeRoot: smokeContext.smokeRoot }, context);
-    const payload = writeM005S04PayloadFixtures({ appDataRoot, userDataRoot, selectedPackagePath: join(smokeContext.smokeRoot, "fixtures", "selected-output.tpkg") }, context);
+    const payload = writeM005S04PayloadFixtures(
+      {
+        appDataRoot,
+        userDataRoot,
+        selectedPackagePath: join(smokeContext.smokeRoot, "fixtures", "selected-output.tpkg"),
+      },
+      context,
+    );
     expect(readFileSync(imports.value.jsonPath, "utf8")).toContain("theprivator.cookies");
     expect(readFileSync(imports.value.jsonPath, "utf8")).toContain("expiresUnix");
     expect(readFileSync(imports.value.netscapePath, "utf8")).toContain("Netscape HTTP Cookie File");
     expect(readFileSync(payload.value.preferencesPath, "utf8")).toContain("M005 S04 safe payload");
     expect(readFileSync(payload.value.runtimeDebugPath, "utf8")).toContain("devtools/browser");
     expect(imports.log).toMatchObject({ fixtureFormatCount: 2, cookieCount: 2, pathScope: "smoke-root" });
-    expect(payload.log).toMatchObject({ safePayloadFileCount: 2, volatileRuntimeFileCount: 2, selectedDestinationFixture: true });
+    expect(payload.log).toMatchObject({
+      safePayloadFileCount: 2,
+      volatileRuntimeFileCount: 2,
+      selectedDestinationFixture: true,
+    });
     expect(findM005S04ForbiddenPublicMarker([imports.log, payload.log], context)).toBeNull();
   });
 });
@@ -470,9 +815,25 @@ describe("verify-m005-s04 archive and diagnostics inspectors", () => {
     const root = makeRoot();
     const packagePath = join(root, "fixtures", "portable.tpkg");
     writePackageFixture(packagePath);
-    const context = createM005S04PublicScanContext({ rootDir: root, selectedPaths: [packagePath], packageMemberNames: ["manifest.json", "cookies/theprivator-cookies.json", "payload/Default/Preferences"] });
-    const inspection = inspectM005S04PackageArchive({ rootDir: root, packagePath, selectedPaths: [packagePath] }, context);
-    expect(inspection.log).toMatchObject({ archive: "valid", manifestPresent: true, cookieMemberPresent: true, payloadFileCount: 2, cookieCount: 1, runtimeMembersSkipped: true, proxyMode: "direct", checksumValidated: true });
+    const context = createM005S04PublicScanContext({
+      rootDir: root,
+      selectedPaths: [packagePath],
+      packageMemberNames: ["manifest.json", "cookies/theprivator-cookies.json", "payload/Default/Preferences"],
+    });
+    const inspection = inspectM005S04PackageArchive(
+      { rootDir: root, packagePath, selectedPaths: [packagePath] },
+      context,
+    );
+    expect(inspection.log).toMatchObject({
+      archive: "valid",
+      manifestPresent: true,
+      cookieMemberPresent: true,
+      payloadFileCount: 2,
+      cookieCount: 1,
+      runtimeMembersSkipped: true,
+      proxyMode: "direct",
+      checksumValidated: true,
+    });
     const encoded = JSON.stringify(inspection.log);
     expect(encoded).not.toContain("manifest.json");
     expect(encoded).not.toContain("payload/Default/Preferences");
@@ -480,16 +841,34 @@ describe("verify-m005-s04 archive and diagnostics inspectors", () => {
 
     const unsafePackagePath = join(root, "fixtures", "runtime-member.tpkg");
     writePackageFixture(unsafePackagePath, { includeRuntimeMember: true });
-    expect(() => inspectM005S04PackageArchive({ rootDir: root, packagePath: unsafePackagePath })).toThrow(VerifyFailure);
+    expect(() => inspectM005S04PackageArchive({ rootDir: root, packagePath: unsafePackagePath })).toThrow(
+      VerifyFailure,
+    );
   });
 
   it("accepts direct-proxy manifests and rejects credentials, missing members, unsafe markers, and missing payload expectations", () => {
     const root = makeRoot();
     const packagePath = join(root, "fixtures", "direct.tpkg");
     writePackageFixture(packagePath);
-    const context = createM005S04PublicScanContext({ rootDir: root, selectedPaths: [packagePath], cookieValues: ["package-cookie-value"] });
-    const inspection = inspectM005S04PackageArchive({ rootDir: root, packagePath, selectedPaths: [packagePath], expectedPayloadRelativePaths: ["Default/Preferences", "Default/Local Storage/leveldb/000003.log"] }, context);
-    expect(assertM005S04PackageManifestContract(inspection.value.inspection.manifest, { expectedProfileName: "M005 S04 Package" })).toMatchObject({ proxyMode: "direct", directProxyAccepted: true, proxyCredentialStripped: true });
+    const context = createM005S04PublicScanContext({
+      rootDir: root,
+      selectedPaths: [packagePath],
+      cookieValues: ["package-cookie-value"],
+    });
+    const inspection = inspectM005S04PackageArchive(
+      {
+        rootDir: root,
+        packagePath,
+        selectedPaths: [packagePath],
+        expectedPayloadRelativePaths: ["Default/Preferences", "Default/Local Storage/leveldb/000003.log"],
+      },
+      context,
+    );
+    expect(
+      assertM005S04PackageManifestContract(inspection.value.inspection.manifest, {
+        expectedProfileName: "M005 S04 Package",
+      }),
+    ).toMatchObject({ proxyMode: "direct", directProxyAccepted: true, proxyCredentialStripped: true });
 
     const credentialPath = join(root, "fixtures", "credential.tpkg");
     writePackageFixture(credentialPath, { credentialProxy: true });
@@ -497,7 +876,9 @@ describe("verify-m005-s04 archive and diagnostics inspectors", () => {
 
     const missingCookiePath = join(root, "fixtures", "missing-cookie.tpkg");
     writePackageFixture(missingCookiePath, { omitCookieMember: true });
-    expect(() => inspectM005S04PackageArchive({ rootDir: root, packagePath: missingCookiePath })).toThrow(VerifyFailure);
+    expect(() => inspectM005S04PackageArchive({ rootDir: root, packagePath: missingCookiePath })).toThrow(
+      VerifyFailure,
+    );
 
     const extraMemberPath = join(root, "fixtures", "extra-raw.tpkg");
     writePackageFixture(extraMemberPath, { extraRawMember: true });
@@ -505,11 +886,25 @@ describe("verify-m005-s04 archive and diagnostics inspectors", () => {
 
     const manifestLeakPath = join(root, "fixtures", "manifest-cookie-leak.tpkg");
     writePackageFixture(manifestLeakPath, { manifestCookieLeak: true });
-    expect(() => inspectM005S04PackageArchive({ rootDir: root, packagePath: manifestLeakPath, expectedCookieRows: [{ domain: "m005-s04-package.invalid", name: "m005_s04_package", value: "package-cookie-value" }] })).toThrow(VerifyFailure);
+    expect(() =>
+      inspectM005S04PackageArchive({
+        rootDir: root,
+        packagePath: manifestLeakPath,
+        expectedCookieRows: [
+          { domain: "m005-s04-package.invalid", name: "m005_s04_package", value: "package-cookie-value" },
+        ],
+      }),
+    ).toThrow(VerifyFailure);
 
     const missingPayloadPath = join(root, "fixtures", "missing-local-storage.tpkg");
     writePackageFixture(missingPayloadPath, { missingLocalStorage: true });
-    expect(() => inspectM005S04PackageArchive({ rootDir: root, packagePath: missingPayloadPath, expectedPayloadRelativePaths: ["Default/Preferences", "Default/Local Storage/leveldb/000003.log"] })).toThrow(VerifyFailure);
+    expect(() =>
+      inspectM005S04PackageArchive({
+        rootDir: root,
+        packagePath: missingPayloadPath,
+        expectedPayloadRelativePaths: ["Default/Preferences", "Default/Local Storage/leveldb/000003.log"],
+      }),
+    ).toThrow(VerifyFailure);
   });
 
   it("asserts copied-profile store, stopped runtime, restored cookies, and restored payload files", () => {
@@ -533,58 +928,167 @@ describe("verify-m005-s04 archive and diagnostics inspectors", () => {
     const profileStorePath = join(seeded.appDataRoot, "profile-store", "profiles.json");
     writeJson(profileStorePath, { storeVersion: 4, profiles: [seeded.profile, imported] });
     const importedUserDataRoot = join(seeded.appDataRoot, imported.storage.userDataDir);
-    const context = createM005S04PublicScanContext({ appDataRoot: seeded.appDataRoot, userDataRoot: importedUserDataRoot, cookieDomains: ["m005-s04-cookie.invalid"], cookieNames: ["m005_s04_session", "m005_s04_theme"], cookieValues: ["m005-s04-cookie-value", "m005-s04-second-cookie-value"] });
-    const cookies = createM005S04CookieDbFixture({ appDataRoot: seeded.appDataRoot, userDataRoot: importedUserDataRoot }, context);
+    const context = createM005S04PublicScanContext({
+      appDataRoot: seeded.appDataRoot,
+      userDataRoot: importedUserDataRoot,
+      cookieDomains: ["m005-s04-cookie.invalid"],
+      cookieNames: ["m005_s04_session", "m005_s04_theme"],
+      cookieValues: ["m005-s04-cookie-value", "m005-s04-second-cookie-value"],
+    });
+    const cookies = createM005S04CookieDbFixture(
+      { appDataRoot: seeded.appDataRoot, userDataRoot: importedUserDataRoot },
+      context,
+    );
     writeText(join(importedUserDataRoot, "Default", "Preferences"), "restored preferences\n");
-    writeText(join(importedUserDataRoot, "Default", "Local Storage", "leveldb", "000003.log"), "restored local storage\n");
-    const restored = assertM005S04CopiedProfileRestored({ profileStorePath, appDataRoot: seeded.appDataRoot, sourceProfile: seeded.profile, expectedCookieRows: cookies.value.cookies, expectedPayloadRelativePaths: ["Default/Preferences", "Default/Local Storage/leveldb/000003.log"] }, context);
+    writeText(
+      join(importedUserDataRoot, "Default", "Local Storage", "leveldb", "000003.log"),
+      "restored local storage\n",
+    );
+    const restored = assertM005S04CopiedProfileRestored(
+      {
+        profileStorePath,
+        appDataRoot: seeded.appDataRoot,
+        sourceProfile: seeded.profile,
+        expectedCookieRows: cookies.value.cookies,
+        expectedPayloadRelativePaths: ["Default/Preferences", "Default/Local Storage/leveldb/000003.log"],
+      },
+      context,
+    );
     expect(restored.value.profile.id).toBe(imported.id);
-    expect(restored.log).toMatchObject({ copiedProfile: "restored", sourcePreserved: true, copiedIdDistinct: true, nameConflictResolved: true, runtimeStatus: "stopped", expectedCookiesPresent: true, payloadFilesRestored: 2 });
+    expect(restored.log).toMatchObject({
+      copiedProfile: "restored",
+      sourcePreserved: true,
+      copiedIdDistinct: true,
+      nameConflictResolved: true,
+      runtimeStatus: "stopped",
+      expectedCookiesPresent: true,
+      payloadFilesRestored: 2,
+    });
     expect(findM005S04ForbiddenPublicMarker(restored.log, context)).toBeNull();
 
-    writeJson(profileStorePath, { storeVersion: 4, profiles: [seeded.profile, { ...imported, name: "Wrong Imported Name" }] });
-    expect(() => assertM005S04CopiedProfileRestored({ profileStorePath, appDataRoot: seeded.appDataRoot, sourceProfile: seeded.profile, expectedCookieRows: cookies.value.cookies }, context)).toThrow(VerifyFailure);
+    writeJson(profileStorePath, {
+      storeVersion: 4,
+      profiles: [seeded.profile, { ...imported, name: "Wrong Imported Name" }],
+    });
+    expect(() =>
+      assertM005S04CopiedProfileRestored(
+        {
+          profileStorePath,
+          appDataRoot: seeded.appDataRoot,
+          sourceProfile: seeded.profile,
+          expectedCookieRows: cookies.value.cookies,
+        },
+        context,
+      ),
+    ).toThrow(VerifyFailure);
   });
 
   it("validates exported cookie files and runtime bookkeeping without leaking cookie material or owner tokens", () => {
     const seeded = seedPackagedProfileStore({ profileName: "M005 Packaged Portability Smoke Runtime Unit" });
     const exportPath = join(seeded.smokeContext.smokeRoot, "fixtures", "exported.json");
-    const cookies = [
-      { domain: "m005-s04-export.invalid", name: "m005_s04_export", value: "m005-s04-export-value" },
-    ];
+    const cookies = [{ domain: "m005-s04-export.invalid", name: "m005_s04_export", value: "m005-s04-export-value" }];
     writeJson(exportPath, cookies);
-    const context = createM005S04PublicScanContext({ appDataRoot: seeded.appDataRoot, selectedPaths: [exportPath], cookieDomains: cookies.map((cookie) => cookie.domain), cookieNames: cookies.map((cookie) => cookie.name), cookieValues: cookies.map((cookie) => cookie.value) });
+    const context = createM005S04PublicScanContext({
+      appDataRoot: seeded.appDataRoot,
+      selectedPaths: [exportPath],
+      cookieDomains: cookies.map((cookie) => cookie.domain),
+      cookieNames: cookies.map((cookie) => cookie.name),
+      cookieValues: cookies.map((cookie) => cookie.value),
+    });
     const inspected = inspectM005S04CookieExportFile({ exportPath, expectedRows: cookies }, context);
-    expect(inspected.log).toMatchObject({ cookieExportFile: "valid", cookieRowCount: 1, expectedRowsPresent: true, selectionPrivate: true });
+    expect(inspected.log).toMatchObject({
+      cookieExportFile: "valid",
+      cookieRowCount: 1,
+      expectedRowsPresent: true,
+      selectionPrivate: true,
+    });
 
     const runtimePath = join(seeded.appDataRoot, "profile-store", "runtime", "chromium-processes.json");
-    writeJson(runtimePath, { registryVersion: 1, processes: { [seeded.profile.id]: { profileId: seeded.profile.id, pid: 12345, startedAt: "2026-01-01T00:00:00.000Z", userDataDir: seeded.profile.storage.userDataDir, ownerToken: "private-owner-token" } } });
-    const running = assertM005S04RuntimeBookkeeping({ appDataRoot: seeded.appDataRoot, profile: seeded.profile, expectedRunning: true, expectedRunningCount: 1 }, createM005S04PublicScanContext({ appDataRoot: seeded.appDataRoot }));
-    expect(running.log).toMatchObject({ runtimeBookkeeping: "running", profileRecord: "present", runningCount: 1, userDataScope: "safe-relative" });
+    writeJson(runtimePath, {
+      registryVersion: 1,
+      processes: {
+        [seeded.profile.id]: {
+          profileId: seeded.profile.id,
+          pid: 12345,
+          startedAt: "2026-01-01T00:00:00.000Z",
+          userDataDir: seeded.profile.storage.userDataDir,
+          ownerToken: "private-owner-token",
+        },
+      },
+    });
+    const running = assertM005S04RuntimeBookkeeping(
+      { appDataRoot: seeded.appDataRoot, profile: seeded.profile, expectedRunning: true, expectedRunningCount: 1 },
+      createM005S04PublicScanContext({ appDataRoot: seeded.appDataRoot }),
+    );
+    expect(running.log).toMatchObject({
+      runtimeBookkeeping: "running",
+      profileRecord: "present",
+      runningCount: 1,
+      userDataScope: "safe-relative",
+    });
     expect(JSON.stringify(running.log)).not.toContain("private-owner-token");
     expect(findM005S04ForbiddenPublicMarker([inspected.log, running.log], context)).toBeNull();
 
     writeJson(runtimePath, { registryVersion: 1, processes: {} });
-    const stopped = assertM005S04RuntimeBookkeeping({ appDataRoot: seeded.appDataRoot, profile: seeded.profile, expectedRunning: false, expectedRunningCount: 0 }, context);
+    const stopped = assertM005S04RuntimeBookkeeping(
+      { appDataRoot: seeded.appDataRoot, profile: seeded.profile, expectedRunning: false, expectedRunningCount: 0 },
+      context,
+    );
     expect(stopped.log).toMatchObject({ runtimeBookkeeping: "stopped", profileRecord: "absent", runningCount: 0 });
-    writeJson(runtimePath, { registryVersion: 1, processes: { [seeded.profile.id]: { profileId: seeded.profile.id, pid: "bad" } } });
-    expect(() => assertM005S04RuntimeBookkeeping({ appDataRoot: seeded.appDataRoot, profile: seeded.profile, expectedRunning: true }, context)).toThrow(VerifyFailure);
+    writeJson(runtimePath, {
+      registryVersion: 1,
+      processes: { [seeded.profile.id]: { profileId: seeded.profile.id, pid: "bad" } },
+    });
+    expect(() =>
+      assertM005S04RuntimeBookkeeping(
+        { appDataRoot: seeded.appDataRoot, profile: seeded.profile, expectedRunning: true },
+        context,
+      ),
+    ).toThrow(VerifyFailure);
   });
 
   it("accepts only typed PORTABILITY_PROFILE_BUSY direct sidecar envelopes", () => {
     const context = createM005S04PublicScanContext({ selectedPaths: ["/private/busy-output.tpkg"] });
     const transcript = {
-      response: { id: "busy", ok: false, protocolVersion: "1.0.0", durationMs: 4, error: { code: "PORTABILITY_PROFILE_BUSY", message: "Profile must be stopped before package portability.", recoverable: true, detailRef: "sidecar-busy-ref" } },
-      diagnostic: diagnosticRow("portability.profile_package.export", { requestId: "busy", status: "error", errorCode: "PORTABILITY_PROFILE_BUSY", detailRef: "sidecar-busy-ref" }),
+      response: {
+        id: "busy",
+        ok: false,
+        protocolVersion: "1.0.0",
+        durationMs: 4,
+        error: {
+          code: "PORTABILITY_PROFILE_BUSY",
+          message: "Profile must be stopped before package portability.",
+          recoverable: true,
+          detailRef: "sidecar-busy-ref",
+        },
+      },
+      diagnostic: diagnosticRow("portability.profile_package.export", {
+        requestId: "busy",
+        status: "error",
+        errorCode: "PORTABILITY_PROFILE_BUSY",
+        detailRef: "sidecar-busy-ref",
+      }),
     };
     const busy = assertM005S04BusyGuardTranscript({ transcript, requestId: "busy" }, context);
-    expect(busy.log).toMatchObject({ busyGuard: "blocked", errorCode: "PORTABILITY_PROFILE_BUSY", detailRef: "observed", diagnosticStatus: "error" });
+    expect(busy.log).toMatchObject({
+      busyGuard: "blocked",
+      errorCode: "PORTABILITY_PROFILE_BUSY",
+      detailRef: "observed",
+      diagnosticStatus: "error",
+    });
     expect(findM005S04ForbiddenPublicMarker(busy.log, context)).toBeNull();
 
-    const malformed = { ...transcript, response: { ...transcript.response, error: { ...transcript.response.error, debugPort: "9222" } } };
-    expect(() => assertM005S04BusyGuardTranscript({ transcript: malformed, requestId: "busy" }, context)).toThrow(VerifyFailure);
+    const malformed = {
+      ...transcript,
+      response: { ...transcript.response, error: { ...transcript.response.error, debugPort: "9222" } },
+    };
+    expect(() => assertM005S04BusyGuardTranscript({ transcript: malformed, requestId: "busy" }, context)).toThrow(
+      VerifyFailure,
+    );
     const unexpectedSuccess = { ...transcript, response: { id: "busy", ok: true, result: {} } };
-    expect(() => assertM005S04BusyGuardTranscript({ transcript: unexpectedSuccess, requestId: "busy" }, context)).toThrow(VerifyFailure);
+    expect(() =>
+      assertM005S04BusyGuardTranscript({ transcript: unexpectedSuccess, requestId: "busy" }, context),
+    ).toThrow(VerifyFailure);
   });
 
   it("parses bounded diagnostics JSONL into safe aggregate counts and rejects forbidden raw fields", () => {
@@ -593,11 +1097,22 @@ describe("verify-m005-s04 archive and diagnostics inspectors", () => {
       diagnosticRow("portability.cookies.export"),
       diagnosticRow("portability.cookies.replace"),
       diagnosticRow("portability.profile_package.export"),
-      diagnosticRow("portability.profile_package.import", { status: "error", errorCode: "PORTABILITY_PACKAGE_INVALID", detailRef: "sidecar-safe-ref" }),
+      diagnosticRow("portability.profile_package.import", {
+        status: "error",
+        errorCode: "PORTABILITY_PACKAGE_INVALID",
+        detailRef: "sidecar-safe-ref",
+      }),
     ]);
     const context = createM005S04PublicScanContext({ appDataRoot });
     const diagnostics = inspectM005S04Diagnostics({ appDataRoot }, context);
-    expect(diagnostics.log).toMatchObject({ diagnostics: "parsed", validRows: 4, malformedRows: 0, okRows: 3, errorRows: 1, typedErrorCodes: ["PORTABILITY_PACKAGE_INVALID"] });
+    expect(diagnostics.log).toMatchObject({
+      diagnostics: "parsed",
+      validRows: 4,
+      malformedRows: 0,
+      okRows: 3,
+      errorRows: 1,
+      typedErrorCodes: ["PORTABILITY_PACKAGE_INVALID"],
+    });
     expect(diagnostics.log.required["portability.cookies.export"]).toMatchObject({ observed: 1, okRows: 1 });
     expect(findM005S04ForbiddenPublicMarker(diagnostics.log, context)).toBeNull();
 
@@ -621,25 +1136,59 @@ describe("verify-m005-s04 packaged UI and cleanup wrappers", () => {
       readMetricValue: async () => "0",
     });
     expect(calls).toEqual(["visible-text", "visible-element", "initial-ui", "create-profile", "profile-card"]);
-    expect(proof.log).toMatchObject({ sourceProfile: "created-visible-ui", profileCard: "visible", cardTextObserved: true, portabilityActionsObserved: true, metricReader: "available" });
+    expect(proof.log).toMatchObject({
+      sourceProfile: "created-visible-ui",
+      profileCard: "visible",
+      cardTextObserved: true,
+      portabilityActionsObserved: true,
+      metricReader: "available",
+    });
     expect(findM005S04ForbiddenPublicMarker(proof.log)).toBeNull();
   });
 
   it("suppresses S06 cleanup output and removes the smoke root on successful non-keep-temp cleanup", async () => {
     const { smokeContext } = seedPackagedProfileStore();
-    expect(readFileSync(join(smokeContext.smokeRoot, "data", "theprivator-app-data", "profile-store", "profiles.json"), "utf8")).toContain("profiles");
-    const cleanup = await cleanupM005S04PackagedHarness({
-      runtime: { smokeContext },
-      passed: true,
-      keepTemp: false,
-      cleanupPackagedSmoke: async () => {
-        console.log(JSON.stringify({ event: "verify.s06", smokeRoot: smokeContext.smokeRoot }));
-        return { webdriverSession: { status: "quit" }, driverProcess: { status: "stopped" }, ownedChromium: "not-observed" };
+    expect(
+      readFileSync(
+        join(smokeContext.smokeRoot, "data", "theprivator-app-data", "profile-store", "profiles.json"),
+        "utf8",
+      ),
+    ).toContain("profiles");
+    const cleanup = await cleanupM005S04PackagedHarness(
+      {
+        runtime: { smokeContext },
+        passed: true,
+        keepTemp: false,
+        cleanupPackagedSmoke: async () => {
+          console.log(JSON.stringify({ event: "verify.s06", smokeRoot: smokeContext.smokeRoot }));
+          return {
+            webdriverSession: { status: "quit" },
+            driverProcess: { status: "stopped" },
+            ownedChromium: "not-observed",
+          };
+        },
       },
-    }, createM005S04PublicScanContext({ tempRoot: smokeContext.smokeRoot }));
-    expect(cleanup.log).toMatchObject({ webdriverSession: "quit", driverProcess: "stopped", ownedChromium: "not-observed", tempState: "removed", retained: false, foreignOutputSuppressed: true });
-    expect(() => readFileSync(join(smokeContext.smokeRoot, "data", "theprivator-app-data", "profile-store", "profiles.json"), "utf8")).toThrow();
-    expect(findM005S04ForbiddenPublicMarker(cleanup.log, createM005S04PublicScanContext({ tempRoot: smokeContext.smokeRoot }))).toBeNull();
+      createM005S04PublicScanContext({ tempRoot: smokeContext.smokeRoot }),
+    );
+    expect(cleanup.log).toMatchObject({
+      webdriverSession: "quit",
+      driverProcess: "stopped",
+      ownedChromium: "not-observed",
+      tempState: "removed",
+      retained: false,
+      foreignOutputSuppressed: true,
+    });
+    expect(() =>
+      readFileSync(
+        join(smokeContext.smokeRoot, "data", "theprivator-app-data", "profile-store", "profiles.json"),
+        "utf8",
+      ),
+    ).toThrow();
+    expect(
+      findM005S04ForbiddenPublicMarker(
+        cleanup.log,
+        createM005S04PublicScanContext({ tempRoot: smokeContext.smokeRoot }),
+      ),
+    ).toBeNull();
   });
 });
-

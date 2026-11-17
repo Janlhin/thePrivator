@@ -1,15 +1,29 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { getMachineInfo, getPreferences, vaultOperation, normalizeSidecarError, type MachineInfo, type VaultStatus, type Preferences, saveInterfacePreferences } from "../sidecar/client";
+import {
+  getMachineInfo,
+  getPreferences,
+  vaultOperation,
+  normalizeSidecarError,
+  type MachineInfo,
+  type VaultStatus,
+  type Preferences,
+  saveInterfacePreferences,
+} from "../sidecar/client";
 import { useDocumentLanguage, useT } from "../i18n";
 import { subscribeToSidecarEvent } from "../sidecarEvents";
 import styles from "../features/settings/SettingsPage.module.css";
 
-const PreferencesContext = createContext<{ preferences: Preferences; save: (patch: Pick<Preferences, "tableLayout" | "sidebarCollapsed">) => void } | null>(null);
+const PreferencesContext = createContext<{
+  preferences: Preferences;
+  save: (patch: Pick<Preferences, "tableLayout" | "sidebarCollapsed">) => void;
+} | null>(null);
 export const usePreferences = () => useContext(PreferencesContext);
 const MachineContext = createContext<MachineInfo | null>(null);
 export const useMachineInfo = () => useContext(MachineContext);
 export const VAULT_CHANGED = "theprivator-vault-changed";
-export function notifyVaultChanged() { window.dispatchEvent(new Event(VAULT_CHANGED)); }
+export function notifyVaultChanged() {
+  window.dispatchEvent(new Event(VAULT_CHANGED));
+}
 export function applyTheme(theme: "system" | "light" | "dark") {
   if (theme === "system") document.documentElement.removeAttribute("data-theme");
   else document.documentElement.setAttribute("data-theme", theme);
@@ -30,37 +44,99 @@ export function DesktopSession({ children }: { children: ReactNode }) {
       applyTheme(preferences.theme);
       setPreferences(preferences);
       setVault(status);
-    } catch (caught) { setError(normalizeSidecarError(caught).message); }
+    } catch (caught) {
+      setError(normalizeSidecarError(caught).message);
+    }
   }, []);
   useEffect(() => {
     void refresh();
-    void getMachineInfo().then(setMachine).catch(() => {});
-    const changed = () => { void refresh(); };
+    void getMachineInfo()
+      .then(setMachine)
+      .catch(() => {});
+    const changed = () => {
+      void refresh();
+    };
     window.addEventListener(VAULT_CHANGED, changed);
     const off = subscribeToSidecarEvent("theprivator://vault-close-failed", () => {
       setError(t("The vault could not be locked. The app remains open. Check free space and retry locking."));
       void refresh();
     });
-    return () => { window.removeEventListener(VAULT_CHANGED, changed); off(); };
+    return () => {
+      window.removeEventListener(VAULT_CHANGED, changed);
+      off();
+    };
   }, [refresh]);
   const save = useCallback((patch: Pick<Preferences, "tableLayout" | "sidebarCollapsed">) => {
     setPreferences((current) => ({ ...current, ...patch }));
     void saveInterfacePreferences(patch).catch((caught) => setError(normalizeSidecarError(caught).message));
   }, []);
-  if (vault && !vault.locked) return <PreferencesContext.Provider value={{ preferences, save }}><MachineContext.Provider value={machine}>
-    {error ? <p role="alert">{error} <button onClick={() => setError("")}>{t("Dismiss")}</button></p> : null}{children}
-  </MachineContext.Provider></PreferencesContext.Provider>;
-  return <main className={styles.page} style={{ maxWidth: 480, margin: "12vh auto" }}>
-    <h1>{vault ? t("Unlock ThePrivator") : t("Opening ThePrivator…")}</h1>
-    {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-    {vault?.recoveryRequired ? <p>{t("The previous session did not finish locking. Enter your password to recover its latest data, then lock again to protect it.")}</p> : null}
-    {vault ? <form onSubmit={(event) => {
-      event.preventDefault(); setBusy(true); setError("");
-      const value = password; setPassword("");
-      void vaultOperation("unlock", value).then(setVault).catch((caught) => setError(normalizeSidecarError(caught).message)).finally(() => setBusy(false));
-    }}>
-      <label>{t("PIN or password")} <input autoFocus type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} /></label>
-      <button className={styles.primary} disabled={busy || !password}>{busy ? t("Unlocking…") : t("Unlock")}</button>
-    </form> : error ? <button onClick={() => { setError(""); void refresh(); }}>{t("Retry")}</button> : null}
-  </main>;
+  if (vault && !vault.locked)
+    return (
+      <PreferencesContext.Provider value={{ preferences, save }}>
+        <MachineContext.Provider value={machine}>
+          {error ? (
+            <p role="alert">
+              {error} <button onClick={() => setError("")}>{t("Dismiss")}</button>
+            </p>
+          ) : null}
+          {children}
+        </MachineContext.Provider>
+      </PreferencesContext.Provider>
+    );
+  return (
+    <main className={styles.page} style={{ maxWidth: 480, margin: "12vh auto" }}>
+      <h1>{vault ? t("Unlock ThePrivator") : t("Opening ThePrivator…")}</h1>
+      {error ? (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      ) : null}
+      {vault?.recoveryRequired ? (
+        <p>
+          {t(
+            "The previous session did not finish locking. Enter your password to recover its latest data, then lock again to protect it.",
+          )}
+        </p>
+      ) : null}
+      {vault ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setBusy(true);
+            setError("");
+            const value = password;
+            setPassword("");
+            void vaultOperation("unlock", value)
+              .then(setVault)
+              .catch((caught) => setError(normalizeSidecarError(caught).message))
+              .finally(() => setBusy(false));
+          }}
+        >
+          <label>
+            {t("PIN or password")}{" "}
+            <input
+              autoFocus
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={busy}
+            />
+          </label>
+          <button className={styles.primary} disabled={busy || !password}>
+            {busy ? t("Unlocking…") : t("Unlock")}
+          </button>
+        </form>
+      ) : error ? (
+        <button
+          onClick={() => {
+            setError("");
+            void refresh();
+          }}
+        >
+          {t("Retry")}
+        </button>
+      ) : null}
+    </main>
+  );
 }
