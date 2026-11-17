@@ -83,3 +83,57 @@
 - 被否决的替代方案与理由：在门禁里排除该用例 —— 否决，红灯豁免只会被继续扩大；只告警不阻断 —— 否决，阈值不生效等于没接。
 - 影响面：`npm run test`、CI、`verify.ps1` 的 check 顺序。
 - 复核标准与复核时间：语句覆盖率 ≥80%、分支覆盖率 ≥70%，`npm run verify` 在未达标时退出非零；2027-02-17 复核。
+
+## D-010 lint 走 oxlint 直接调用，不修补 `vp lint`
+
+- 日期：2026-11-17
+- 决策：`npm run lint` 转发到 `scripts/verify.ps1`，内部直接执行 `node_modules/.bin/oxlint.ps1`；不修补 `vp lint`。
+- 背景：`vp lint` 依赖 `tsrs-lint` 的 `.bin` 可执行文件，当前 Deno 安装布局不生成该 shim，命令以 `Unable to resolve type-aware lint executable` 失败。在 `.bin` 手造 shim 属于自建包装器，与「禁包装器」直接冲突。
+- 被否决的替代方案与理由：自建 `tsrs-lint` shim —— 否决，包装器掩盖上游缺失，升级后行为不可预测；改用 ESLint —— 否决，见 D-005，Vite+ 已内置 oxlint，同时维护两套规则源必然漂移。
+- 影响面：`package.json` 的 `lint`、`scripts/verify.ps1`、CI 的 lint 步骤。
+- 复核标准与复核时间：`npm run lint` 退出码 0 且输出 `Found 0 warnings and 0 errors.`；Vite+ 修复该入口后重新评估；2027-01-17 复核。
+
+## D-011 markdown 不纳入格式化范围
+
+- 日期：2026-11-17
+- 决策：`scripts/verify.ps1` 的 format 步骤只覆盖 `src`、`tests`、`scripts`；markdown 与 `docs/` 一律不交给 oxfmt。
+- 背景：实测 120 列配置下，oxfmt 会按 prose 规则重排段落，中文正文被拆行后阅读成本上升，且每次改动都产生与内容无关的噪声。
+- 被否决的替代方案与理由：把 markdown 一并格式化求「全绿」—— 否决，中文文档的可读性受损且不可控；给 markdown 单独配置忽略 —— 否决，oxfmt 无 per-language 开关，配置面做不到。
+- 影响面：`verify.ps1` 的 format 步骤、`lint-staged` 对 `*.md` 的处理。
+- 复核标准与复核时间：`npm run format:check` 的检查清单里不出现任何 `.md`；2027-01-17 复核。
+
+## D-012 覆盖率只统计交付源码
+
+- 日期：2026-11-17
+- 决策：Vitest 的 `coverage.include` 只含 `src/**/*.{ts,tsx}`，并排除 `*.test.*`、`src/testing/**`、`src/vite-env.d.ts`；阈值取语句 80%、分支 70%、函数与行 80%。
+- 背景：不设 include 时测量把 47 个测试文件自身也算进去，得出 59% 的假低值；排除后真实覆盖为语句 87.51%、分支 82.08%。用错误口径设阈值会让门禁永远红或过早放宽。
+- 被否决的替代方案与理由：把阈值降到 59% 迁就旧口径 —— 否决，等于把测量错误固化成标准；关闭阈值只存报告 —— 否决，见 D-009。
+- 影响面：`vite.config.ts` 的 `test.coverage`、`npm test`、CI。
+- 复核标准与复核时间：`npm test` 在语句覆盖率低于 80% 或分支低于 70% 时退出非零；2027-02-17 复核。
+
+## D-013 四条 oxlint 规则长期关闭并写明理由
+
+- 日期：2026-11-17
+- 决策：关闭 `vitest/require-mock-type-parameters`、`vitest/no-conditional-expect`、`react/set-state-in-effect`、`no-control-regex` 四条规则，理由写在 `.oxlintrc.json` 与提交正文里。
+- 背景：四条规则在本仓库的告警分别是 174、39、10、1 条。前两条要求的是测试写法与类型标注，而类型已由 tsc 强制、断言在参数化循环里本就写在循环内；set-state-in-effect 指向一次用户可见的交互重构，硬改会把行为变更混进格式提交；no-control-regex 的命中是剪贴板清洗正则，匹配控制字符是它的目的。
+- 被否决的替代方案与理由：为清零而重写 174 处测试类型标注 —— 否决，收益是消除噪声而非发现缺陷，且会与 tsc 重复；把 set-state-in-effect 的 10 处硬改 —— 否决，属于功能变更，需单独提交与评审（见 T-016）。
+- 影响面：`.oxlintrc.json`、`npm run lint` 的告警预算。
+- 复核标准与复核时间：`npm run lint` 输出 `Found 0 warnings and 0 errors.`；T-016 完成后重新评估该条；2027-01-17 复核。
+
+## D-014 knip 与 jscpd 的排除项写进配置文件
+
+- 日期：2026-11-17
+- 决策：`knip.json` 把 `scripts/**/*.mjs`、`tests/**/*.cjs` 登记为 entry，`ignoreExportsUsedInFile` 打开，`ignoreBinaries` 含 `pwsh`、`rustc`，`ignoreDependencies` 含 `vite`、`@commitlint/cli`、`jscpd`、`lint-staged`；`.jscpd.json` 排除 `tokens.css`、测试文件与 `src/i18n/messages/**`。
+- 背景：knip 只解析 JS 生态的引用，无法看到 PowerShell 脚本里调用的 CLI，也无法区分主题 token 的同名声明与真实重复。不把这些排除项写进配置，`npm run deadcode` 会长期红，团队就会习惯性忽略门禁。
+- 被否决的替代方案与理由：关掉 knip 的依赖检查 —— 否决，未使用依赖正是要抓的项；把阈值调到 0 —— 否决，dupes 阈值是 3%，调 0 等于永久红。
+- 影响面：`npm run deadcode`、`npm run dupes`、CI。
+- 复核标准与复核时间：两条命令均退出 0，且 `knip` 不再输出 `Configuration hints`；2027-01-17 复核。
+
+## D-015 npm 脚本只做转发，串联逻辑只在 `scripts/verify.ps1`
+
+- 日期：2026-11-17
+- 决策：`package.json` 里每个校验脚本都写成 `pwsh -NoLogo -NoProfile -File scripts/verify.ps1 [-Only <step>]`；git 钩子逻辑放在 `scripts/hooks/*.ps1`，`.husky/` 文件只有一行 `exec pwsh`。
+- 背景：入口一多就会漂移：CI 跑一套、钩子跑一套、开发者手跑第三套。三套中任一套漏步骤，绿灯就不代表同一件事。
+- 被否决的替代方案与理由：脚本里直接写 `npx` 命令链 —— 否决，Windows 上 `npx` 经 `cmd.exe` 启动，与「禁 cmd」冲突且不可控；把逻辑写在 `.husky` 的 sh 里 —— 否决，sh 无法调用 pwsh 之外的判定，且跨平台行为不一致。
+- 影响面：`package.json`、`.husky/`、`scripts/hooks/`、CI。
+- 复核标准与复核时间：`grep -c "pwsh -NoLogo -NoProfile -File" package.json` 等于校验脚本条数；`.husky/pre-commit` 与 `.husky/commit-msg` 各自只有一行 `exec pwsh`；2027-01-17 复核。

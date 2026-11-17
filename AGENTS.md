@@ -16,7 +16,7 @@
 | Lint | `npm run lint` | 警告即失败 |
 | 样式检查 | `npm run stylelint` | |
 | 死代码 / 重复 | `npm run deadcode` / `npm run dupes` | `knip` / `jscpd` |
-| E2E | `npm run test:e2e` | Playwright |
+| E2E | 暂无（T-018） | 当前由 `scripts/verify-s06.mjs` 的 WebDriver 路径覆盖打包 UI，需真实浏览器 |
 | **全量验收** | **`npm run verify`** | 唯一验收入口，提交前必须通过 |
 | sidecar 构建 | `npm run sidecar:build` | PyInstaller |
 | 打包 | `npm run tauri build` | 每平台单独构建，无交叉编译 |
