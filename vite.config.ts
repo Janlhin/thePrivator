@@ -17,5 +17,18 @@ export default defineConfig({
     globals: true,
     setupFiles: "./vitest.setup.ts",
     css: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "lcov"],
+      reportsDirectory: "tmp/coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/testing/**", "src/vite-env.d.ts"],
+      thresholds: {
+        statements: 80,
+        branches: 70,
+        functions: 80,
+        lines: 80,
+      },
+    },
   },
 });
