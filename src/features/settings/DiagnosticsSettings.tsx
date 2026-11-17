@@ -58,7 +58,9 @@ export function DiagnosticsSettings() {
       <header className={styles.header}>
         <h1>{t("Diagnostics")}</h1>
         <p className={styles.lede}>
-          {t("When something fails, ThePrivator shows a short reference instead of the full detail. Paste one here to see what was recorded.")}
+          {t(
+            "When something fails, ThePrivator shows a short reference instead of the full detail. Paste one here to see what was recorded.",
+          )}
         </p>
       </header>
 

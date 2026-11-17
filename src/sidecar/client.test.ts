@@ -48,7 +48,13 @@ import {
   validateIdentity,
   validateProxy,
 } from "./client";
-import { SIDECAR_BRIDGE_ERROR, SIDECAR_PROTOCOL_ERROR, type CookieExportFormat, type ProfileIdentity, type ProfileProxyDraft } from "./types";
+import {
+  SIDECAR_BRIDGE_ERROR,
+  SIDECAR_PROTOCOL_ERROR,
+  type CookieExportFormat,
+  type ProfileIdentity,
+  type ProfileProxyDraft,
+} from "./types";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
@@ -94,7 +100,13 @@ function cookieReplaceResult(overrides: Record<string, unknown> = {}) {
     replacedCount: 2,
     skippedCount: 1,
     warningCount: 1,
-    warnings: [cookieWarning({ code: "IMPORT_DUPLICATE_REPLACED", message: "Duplicate imported cookies were resolved deterministically by domain, path, and name.", count: 1 })],
+    warnings: [
+      cookieWarning({
+        code: "IMPORT_DUPLICATE_REPLACED",
+        message: "Duplicate imported cookies were resolved deterministically by domain, path, and name.",
+        count: 1,
+      }),
+    ],
     ...overrides,
   };
 }
@@ -188,12 +200,18 @@ function profilePackageEnvelope(result: unknown, overrides: Record<string, unkno
 
 function tooManyProfilePackageWarnings() {
   return Array.from({ length: 21 }, (_item, index) =>
-    profilePackageWarning({ code: `PACKAGE_SAFE_WARNING_${index}`, message: `Safe package warning ${index}.`, count: 1 }),
+    profilePackageWarning({
+      code: `PACKAGE_SAFE_WARNING_${index}`,
+      message: `Safe package warning ${index}.`,
+      count: 1,
+    }),
   );
 }
 
-const UNSAFE_PROFILE_PACKAGE_CONTEXT = "manifest.json payload/Default/Cookies theprivator-cookies.json /tmp/theprivator-selected/research.tpkg profile-store/profiles/abc/user-data cookie domain private.example.invalid cookie name sessionid cookie value cookie-value-should-not-render proxy-user-should-not-leak proxy-pass-should-not-leak tpapi-secret-token DevToolsActivePort ws://127.0.0.1:9222/devtools/browser/abc --remote-debugging-port=9222 --user-data-dir=/private/profile raw diagnostics stdout stderr traceback stack trace";
-const UNSAFE_PROFILE_PACKAGE_PATTERN = /manifest\.json|payload\/Default\/Cookies|theprivator-cookies\.json|theprivator-selected|profile-store\/profiles|private\.example\.invalid|sessionid|cookie-value-should-not-render|proxy-user-should-not-leak|proxy-pass-should-not-leak|tpapi-secret-token|DevToolsActivePort|ws:\/\/127\.0\.0\.1|--remote-debugging-port|--user-data-dir|raw diagnostics|stdout|stderr|traceback|stack trace/i;
+const UNSAFE_PROFILE_PACKAGE_CONTEXT =
+  "manifest.json payload/Default/Cookies theprivator-cookies.json /tmp/theprivator-selected/research.tpkg profile-store/profiles/abc/user-data cookie domain private.example.invalid cookie name sessionid cookie value cookie-value-should-not-render proxy-user-should-not-leak proxy-pass-should-not-leak tpapi-secret-token DevToolsActivePort ws://127.0.0.1:9222/devtools/browser/abc --remote-debugging-port=9222 --user-data-dir=/private/profile raw diagnostics stdout stderr traceback stack trace";
+const UNSAFE_PROFILE_PACKAGE_PATTERN =
+  /manifest\.json|payload\/Default\/Cookies|theprivator-cookies\.json|theprivator-selected|profile-store\/profiles|private\.example\.invalid|sessionid|cookie-value-should-not-render|proxy-user-should-not-leak|proxy-pass-should-not-leak|tpapi-secret-token|DevToolsActivePort|ws:\/\/127\.0\.0\.1|--remote-debugging-port|--user-data-dir|raw diagnostics|stdout|stderr|traceback|stack trace/i;
 
 function profilePackageCommandError(code: string, message: string, detailRef: string) {
   return {
@@ -270,7 +288,10 @@ function automationApiStopped(overrides: Record<string, unknown> = {}) {
   });
 }
 
-function automationApiTokenCopy(token = "tpapi-sentinel-token-should-not-render", overrides: Record<string, unknown> = {}) {
+function automationApiTokenCopy(
+  token = "tpapi-sentinel-token-should-not-render",
+  overrides: Record<string, unknown> = {},
+) {
   return {
     token,
     ...overrides,
@@ -316,7 +337,8 @@ function presetIdentity(overrides: Record<string, unknown> = {}): ProfileIdentit
     presetId: "windows-10-chrome-120",
     browser: {
       mode: "masked",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       clientHints: {
         platform: "Windows",
         platformVersion: "10.0.0",
@@ -649,33 +671,81 @@ function proxyCheckEnvelope(result: unknown, overrides: Record<string, unknown> 
 
 describe("cookie bot UTC timestamps", () => {
   function envelope(createdAt: string) {
-    return proxyCheckEnvelope({ job: {
-      jobId: "job", profileId: COOKIE_PROFILE_ID, status: "completed",
-      config: { urls: ["https://example.test/"], maxPages: 10, maxDepth: 1, dwellSeconds: 5, maxDurationSeconds: 120, closeAfterCompletion: false },
-      createdAt, finishedAt: createdAt, currentUrl: null,
-      visitedPages: 1, failedPages: 0, errors: [], stopReason: "queue-exhausted",
-    } });
+    return proxyCheckEnvelope({
+      job: {
+        jobId: "job",
+        profileId: COOKIE_PROFILE_ID,
+        status: "completed",
+        config: {
+          urls: ["https://example.test/"],
+          maxPages: 10,
+          maxDepth: 1,
+          dwellSeconds: 5,
+          maxDurationSeconds: 120,
+          closeAfterCompletion: false,
+        },
+        createdAt,
+        finishedAt: createdAt,
+        currentUrl: null,
+        visitedPages: 1,
+        failedPages: 0,
+        errors: [],
+        stopReason: "queue-exhausted",
+      },
+    });
   }
-  it.each(["2026-09-07T12:34:56.123Z", "2026-09-07T12:34:56.123456+00:00", "2026-09-07T12:34:56+00:00"])("accepts canonical and legacy UTC timestamps %s", async (timestamp) => {
-    mockInvoke.mockResolvedValue(envelope(timestamp));
-    const result = await getCookieBotStatus(COOKIE_PROFILE_ID);
-    expect(result.job?.createdAt).toBe(timestamp.replace(/\+00:00$/, "Z"));
-    expect(result.job?.finishedAt).toBe(timestamp.replace(/\+00:00$/, "Z"));
-  });
-  it.each(["2026-09-07T12:34:56+02:00", "2026-09-07", "September 7, 2026 Z", "2026-02-30T12:34:56Z", "2026-09-07T24:00:00Z"])("rejects malformed or non-UTC timestamps %s", async (timestamp) => {
+  it.each(["2026-09-07T12:34:56.123Z", "2026-09-07T12:34:56.123456+00:00", "2026-09-07T12:34:56+00:00"])(
+    "accepts canonical and legacy UTC timestamps %s",
+    async (timestamp) => {
+      mockInvoke.mockResolvedValue(envelope(timestamp));
+      const result = await getCookieBotStatus(COOKIE_PROFILE_ID);
+      expect(result.job?.createdAt).toBe(timestamp.replace(/\+00:00$/, "Z"));
+      expect(result.job?.finishedAt).toBe(timestamp.replace(/\+00:00$/, "Z"));
+    },
+  );
+  it.each([
+    "2026-09-07T12:34:56+02:00",
+    "2026-09-07",
+    "September 7, 2026 Z",
+    "2026-02-30T12:34:56Z",
+    "2026-09-07T24:00:00Z",
+  ])("rejects malformed or non-UTC timestamps %s", async (timestamp) => {
     mockInvoke.mockResolvedValue(envelope(timestamp));
     await expect(getCookieBotStatus(COOKIE_PROFILE_ID)).rejects.toMatchObject({ code: SIDECAR_PROTOCOL_ERROR });
   });
 });
 
 describe("proxy exit country code compatibility", () => {
-  it.each([{}, { countryCode: null }, { countryCode: "DE" }])("accepts old and current location fields: %j", async (extra) => {
-    mockInvoke.mockResolvedValue(proxyCheckEnvelope(proxyCheckResult({ ipHiding: proxyCheckIpHidingDirect({ publicExitIpClaimed: true, publicExitIp: "203.0.113.9", publicExitLocation: { country: "Germany", region: null, city: null, timezone: null, isp: null, ...extra } }) })));
-    const result = await checkProfileProxy(PROXY_CHECK_PROFILE_ID);
-    expect(result.ipHiding.publicExitLocation?.countryCode).toBe("countryCode" in extra ? extra.countryCode : null);
-  });
+  it.each([{}, { countryCode: null }, { countryCode: "DE" }])(
+    "accepts old and current location fields: %j",
+    async (extra) => {
+      mockInvoke.mockResolvedValue(
+        proxyCheckEnvelope(
+          proxyCheckResult({
+            ipHiding: proxyCheckIpHidingDirect({
+              publicExitIpClaimed: true,
+              publicExitIp: "203.0.113.9",
+              publicExitLocation: { country: "Germany", region: null, city: null, timezone: null, isp: null, ...extra },
+            }),
+          }),
+        ),
+      );
+      const result = await checkProfileProxy(PROXY_CHECK_PROFILE_ID);
+      expect(result.ipHiding.publicExitLocation?.countryCode).toBe("countryCode" in extra ? extra.countryCode : null);
+    },
+  );
   it.each(["de", "DEU", "ZZ", "1A", "", 12, undefined])("rejects malformed country code %s", async (countryCode) => {
-    mockInvoke.mockResolvedValue(proxyCheckEnvelope(proxyCheckResult({ ipHiding: proxyCheckIpHidingDirect({ publicExitIpClaimed: true, publicExitIp: "203.0.113.9", publicExitLocation: { country: null, region: null, city: null, timezone: null, isp: null, countryCode } }) })));
+    mockInvoke.mockResolvedValue(
+      proxyCheckEnvelope(
+        proxyCheckResult({
+          ipHiding: proxyCheckIpHidingDirect({
+            publicExitIpClaimed: true,
+            publicExitIp: "203.0.113.9",
+            publicExitLocation: { country: null, region: null, city: null, timezone: null, isp: null, countryCode },
+          }),
+        }),
+      ),
+    );
     await expect(checkProfileProxy(PROXY_CHECK_PROFILE_ID)).rejects.toMatchObject({ code: SIDECAR_PROTOCOL_ERROR });
   });
 });
@@ -750,7 +820,10 @@ function derivedFingerprintMode(identity: unknown): string {
 function profileRecord(overrides: Record<string, unknown> = {}) {
   const id = typeof overrides.id === "string" ? overrides.id : "11111111-1111-1111-1111-111111111111";
   const proxy = overrides.proxy ?? directProxySummary();
-  const proxyMode = typeof proxy === "object" && proxy !== null && (proxy as { mode?: unknown }).mode === "fixedServer" ? "fixedServer" : "direct";
+  const proxyMode =
+    typeof proxy === "object" && proxy !== null && (proxy as { mode?: unknown }).mode === "fixedServer"
+      ? "fixedServer"
+      : "direct";
   const identity = overrides.identity ?? defaultIdentity();
   const launch = overrides.launch ?? profileLaunch();
   return {
@@ -799,7 +872,8 @@ function profileEnvelope(result: unknown, overrides: Record<string, unknown> = {
 }
 
 function chromiumRunningProfile(overrides: Record<string, unknown> = {}) {
-  const profileId = typeof overrides.profileId === "string" ? overrides.profileId : "11111111-1111-1111-1111-111111111111";
+  const profileId =
+    typeof overrides.profileId === "string" ? overrides.profileId : "11111111-1111-1111-1111-111111111111";
   return {
     profileId,
     status: "running",
@@ -811,7 +885,8 @@ function chromiumRunningProfile(overrides: Record<string, unknown> = {}) {
 }
 
 function chromiumStoppedProfile(overrides: Record<string, unknown> = {}) {
-  const profileId = typeof overrides.profileId === "string" ? overrides.profileId : "11111111-1111-1111-1111-111111111111";
+  const profileId =
+    typeof overrides.profileId === "string" ? overrides.profileId : "11111111-1111-1111-1111-111111111111";
   return {
     profileId,
     status: "stopped",
@@ -861,9 +936,12 @@ function auditPage(overrides: Record<string, unknown> = {}) {
     category: "browserleaks",
     url: "https://browserleaks.com/webgl",
     surfaces: ["webgl"],
-    comparisonNote: "Compare configured WebGL vendor and renderer when masked or custom; noise only means a stable per-profile altered signature.",
+    comparisonNote:
+      "Compare configured WebGL vendor and renderer when masked or custom; noise only means a stable per-profile altered signature.",
     requiresUserAction: false,
-    expectedRows: [auditExpectedRow("webgl", { label: "WebGL", expected: "Real host WebGL vendor and renderer values." })],
+    expectedRows: [
+      auditExpectedRow("webgl", { label: "WebGL", expected: "Real host WebGL vendor and renderer values." }),
+    ],
     ...overrides,
   };
 }
@@ -875,7 +953,8 @@ function auditPlanResult(overrides: Record<string, unknown> = {}) {
       label: "BrowserLeaks Client Hints",
       url: "https://browserleaks.com/client-hints",
       surfaces: ["browser", "clientHints"],
-      comparisonNote: "Compare User-Agent Client Hints platform, architecture, bitness, model, and mobile flag where the public page exposes them.",
+      comparisonNote:
+        "Compare User-Agent Client Hints platform, architecture, bitness, model, and mobile flag where the public page exposes them.",
       expectedRows: [auditExpectedRow("browser"), auditExpectedRow("clientHints", { label: "Client Hints" })],
     }),
     auditPage({
@@ -883,16 +962,28 @@ function auditPlanResult(overrides: Record<string, unknown> = {}) {
       label: "BrowserLeaks JavaScript",
       url: "https://browserleaks.com/javascript",
       surfaces: ["browser", "navigator", "screen", "locale"],
-      comparisonNote: "Compare User-Agent, navigator platform and hardware, languages, timezone, screen, and viewport values manually.",
-      expectedRows: [auditExpectedRow("browser"), auditExpectedRow("navigator"), auditExpectedRow("screen"), auditExpectedRow("locale")],
+      comparisonNote:
+        "Compare User-Agent, navigator platform and hardware, languages, timezone, screen, and viewport values manually.",
+      expectedRows: [
+        auditExpectedRow("browser"),
+        auditExpectedRow("navigator"),
+        auditExpectedRow("screen"),
+        auditExpectedRow("locale"),
+      ],
     }),
     auditPage({
       id: "browserleaks-canvas",
       label: "BrowserLeaks Canvas",
       url: "https://browserleaks.com/canvas",
       surfaces: ["canvas"],
-      comparisonNote: "For noise mode, expect a stable per-profile altered signature rather than a known hash or universal score.",
-      expectedRows: [auditExpectedRow("canvas", { label: "Canvas", expected: "Stable per-profile altered signature from configured noise." })],
+      comparisonNote:
+        "For noise mode, expect a stable per-profile altered signature rather than a known hash or universal score.",
+      expectedRows: [
+        auditExpectedRow("canvas", {
+          label: "Canvas",
+          expected: "Stable per-profile altered signature from configured noise.",
+        }),
+      ],
     }),
     auditPage(),
     auditPage({
@@ -900,7 +991,8 @@ function auditPlanResult(overrides: Record<string, unknown> = {}) {
       label: "BrowserLeaks WebRTC",
       url: "https://browserleaks.com/webrtc",
       surfaces: ["webrtc"],
-      comparisonNote: "For restricted policies, compare whether non-proxied UDP or local IP candidates are absent; external network behavior is checker-dependent.",
+      comparisonNote:
+        "For restricted policies, compare whether non-proxied UDP or local IP candidates are absent; external network behavior is checker-dependent.",
       expectedRows: [auditExpectedRow("webrtc", { label: "WebRTC", expected: "Real host WebRTC behavior." })],
     }),
     auditPage({
@@ -909,8 +1001,19 @@ function auditPlanResult(overrides: Record<string, unknown> = {}) {
       category: "consistency",
       url: "https://pixelscan.net/fingerprint-check",
       surfaces: ["browser", "clientHints", "navigator", "screen", "locale", "canvas", "webgl", "audio", "webrtc"],
-      comparisonNote: "Treat flags and scores as advisory consistency hints; compare contradictions instead of treating one score as authoritative.",
-      expectedRows: [auditExpectedRow("browser"), auditExpectedRow("clientHints"), auditExpectedRow("navigator"), auditExpectedRow("screen"), auditExpectedRow("locale"), auditExpectedRow("canvas"), auditExpectedRow("webgl"), auditExpectedRow("audio"), auditExpectedRow("webrtc")],
+      comparisonNote:
+        "Treat flags and scores as advisory consistency hints; compare contradictions instead of treating one score as authoritative.",
+      expectedRows: [
+        auditExpectedRow("browser"),
+        auditExpectedRow("clientHints"),
+        auditExpectedRow("navigator"),
+        auditExpectedRow("screen"),
+        auditExpectedRow("locale"),
+        auditExpectedRow("canvas"),
+        auditExpectedRow("webgl"),
+        auditExpectedRow("audio"),
+        auditExpectedRow("webrtc"),
+      ],
     }),
     auditPage({
       id: "browserscan-browser-checker",
@@ -918,8 +1021,18 @@ function auditPlanResult(overrides: Record<string, unknown> = {}) {
       category: "consistency",
       url: "https://www.browserscan.net/browser-checker",
       surfaces: ["browser", "clientHints", "navigator", "screen", "locale", "canvas", "webgl", "webrtc"],
-      comparisonNote: "Use the report as a cross-check for browser, kernel, timezone, and surface mismatches, not as an authoritative result.",
-      expectedRows: [auditExpectedRow("browser"), auditExpectedRow("clientHints"), auditExpectedRow("navigator"), auditExpectedRow("screen"), auditExpectedRow("locale"), auditExpectedRow("canvas"), auditExpectedRow("webgl"), auditExpectedRow("webrtc")],
+      comparisonNote:
+        "Use the report as a cross-check for browser, kernel, timezone, and surface mismatches, not as an authoritative result.",
+      expectedRows: [
+        auditExpectedRow("browser"),
+        auditExpectedRow("clientHints"),
+        auditExpectedRow("navigator"),
+        auditExpectedRow("screen"),
+        auditExpectedRow("locale"),
+        auditExpectedRow("canvas"),
+        auditExpectedRow("webgl"),
+        auditExpectedRow("webrtc"),
+      ],
     }),
     auditPage({
       id: "amiunique-fingerprint",
@@ -927,8 +1040,19 @@ function auditPlanResult(overrides: Record<string, unknown> = {}) {
       category: "privacy",
       url: "https://amiunique.org/fingerprint",
       surfaces: ["browser", "clientHints", "navigator", "screen", "locale", "canvas", "webgl", "audio", "webrtc"],
-      comparisonNote: "Use attributes and similarity ratios for interpretation; uniqueness reporting is not a pass or fail assertion.",
-      expectedRows: [auditExpectedRow("browser"), auditExpectedRow("clientHints"), auditExpectedRow("navigator"), auditExpectedRow("screen"), auditExpectedRow("locale"), auditExpectedRow("canvas"), auditExpectedRow("webgl"), auditExpectedRow("audio"), auditExpectedRow("webrtc")],
+      comparisonNote:
+        "Use attributes and similarity ratios for interpretation; uniqueness reporting is not a pass or fail assertion.",
+      expectedRows: [
+        auditExpectedRow("browser"),
+        auditExpectedRow("clientHints"),
+        auditExpectedRow("navigator"),
+        auditExpectedRow("screen"),
+        auditExpectedRow("locale"),
+        auditExpectedRow("canvas"),
+        auditExpectedRow("webgl"),
+        auditExpectedRow("audio"),
+        auditExpectedRow("webrtc"),
+      ],
     }),
     auditPage({
       id: "cover-your-tracks",
@@ -936,18 +1060,29 @@ function auditPlanResult(overrides: Record<string, unknown> = {}) {
       category: "privacy",
       url: "https://coveryourtracks.eff.org/",
       surfaces: ["browser", "clientHints", "navigator", "canvas", "webgl", "audio", "webrtc"],
-      comparisonNote: "The page requires a user-started test and collects anonymous data according to its site copy; use results as privacy guidance only.",
+      comparisonNote:
+        "The page requires a user-started test and collects anonymous data according to its site copy; use results as privacy guidance only.",
       requiresUserAction: true,
-      expectedRows: [auditExpectedRow("browser"), auditExpectedRow("clientHints"), auditExpectedRow("navigator"), auditExpectedRow("canvas"), auditExpectedRow("webgl"), auditExpectedRow("audio"), auditExpectedRow("webrtc")],
+      expectedRows: [
+        auditExpectedRow("browser"),
+        auditExpectedRow("clientHints"),
+        auditExpectedRow("navigator"),
+        auditExpectedRow("canvas"),
+        auditExpectedRow("webgl"),
+        auditExpectedRow("audio"),
+        auditExpectedRow("webrtc"),
+      ],
     }),
   ];
 
   return {
     auditVersion: 1,
     copy: {
-      advisory: "This guide is advisory and does not promise invisibility, checker success scores, or stable public-page assertions.",
+      advisory:
+        "This guide is advisory and does not promise invisibility, checker success scores, or stable public-page assertions.",
       localProof: "Use ThePrivator local proof for contractual app behavior; public pages are manual comparison aids.",
-      publicCheckerInstability: "Public checker pages can change labels, scoring, collection rules, and exposed fields without notice.",
+      publicCheckerInstability:
+        "Public checker pages can change labels, scoring, collection rules, and exposed fields without notice.",
     },
     pages,
     ...overrides,
@@ -996,17 +1131,23 @@ function auditPageResult(overrides: Record<string, unknown> = {}) {
 
 function auditCollectResult(overrides: Record<string, unknown> = {}) {
   const plan = auditPlanResult();
-  const pages = overrides.pages ?? (plan.pages as Array<Record<string, unknown>>).map((page) => auditPageResult({
-    id: page.id,
-    label: page.label,
-    category: page.category,
-    url: page.url,
-    status: page.requiresUserAction ? "needs-user-action" : "captured",
-    title: page.requiresUserAction ? "Manual test required" : `${page.label} result`,
-    summary: page.requiresUserAction ? "Open this checker in the profile and start the site test before reading results." : `${page.label} fields were captured.`,
-    extractedRows: page.requiresUserAction ? [] : [{ label: "Observed", value: "Public checker value" }],
-    notes: page.requiresUserAction ? ["This site requires a user-started public test."] : [],
-  }));
+  const pages =
+    overrides.pages ??
+    (plan.pages as Array<Record<string, unknown>>).map((page) =>
+      auditPageResult({
+        id: page.id,
+        label: page.label,
+        category: page.category,
+        url: page.url,
+        status: page.requiresUserAction ? "needs-user-action" : "captured",
+        title: page.requiresUserAction ? "Manual test required" : `${page.label} result`,
+        summary: page.requiresUserAction
+          ? "Open this checker in the profile and start the site test before reading results."
+          : `${page.label} fields were captured.`,
+        extractedRows: page.requiresUserAction ? [] : [{ label: "Observed", value: "Public checker value" }],
+        notes: page.requiresUserAction ? ["This site requires a user-started public test."] : [],
+      }),
+    );
   return {
     auditVersion: 1,
     profileId: AUDIT_PROFILE_ID,
@@ -1093,9 +1234,15 @@ function legacyImportResult(overrides: Record<string, unknown> = {}) {
   return {
     importVersion: 1,
     requestedCount: Array.isArray(outcomes) ? outcomes.length : 1,
-    successCount: Array.isArray(outcomes) ? outcomes.filter((outcome) => (outcome as { status?: unknown })?.status === "success").length : 0,
-    partialCount: Array.isArray(outcomes) ? outcomes.filter((outcome) => (outcome as { status?: unknown })?.status === "partial").length : 0,
-    failedCount: Array.isArray(outcomes) ? outcomes.filter((outcome) => (outcome as { status?: unknown })?.status === "failed").length : 0,
+    successCount: Array.isArray(outcomes)
+      ? outcomes.filter((outcome) => (outcome as { status?: unknown })?.status === "success").length
+      : 0,
+    partialCount: Array.isArray(outcomes)
+      ? outcomes.filter((outcome) => (outcome as { status?: unknown })?.status === "partial").length
+      : 0,
+    failedCount: Array.isArray(outcomes)
+      ? outcomes.filter((outcome) => (outcome as { status?: unknown })?.status === "failed").length
+      : 0,
     outcomes,
     ...overrides,
   };
@@ -1243,19 +1390,46 @@ describe("sidecar client", () => {
     ["mismatched response detailRef", diagnosticLookupResult({ detailRef: "sidecar-other-detail" })],
     ["unknown reason", diagnosticLookupResult({ reason: "archived" })],
     ["found without entries", diagnosticLookupResult({ entries: [] })],
-    ["missing entries", { found: true, detailRef: "sidecar-duplicate-detail", logPath: "profile-store/diagnostics/events.jsonl", reason: "found" }],
+    [
+      "missing entries",
+      {
+        found: true,
+        detailRef: "sidecar-duplicate-detail",
+        logPath: "profile-store/diagnostics/events.jsonl",
+        reason: "found",
+      },
+    ],
     ["missing entry timestamp", diagnosticLookupResult({ entries: [diagnosticEntry({ ts: undefined })] })],
     ["missing entry detailRef", diagnosticLookupResult({ entries: [diagnosticEntry({ detailRef: undefined })] })],
     ["unknown source", diagnosticLookupResult({ entries: [diagnosticEntry({ source: "webview" })] })],
     ["unknown event", diagnosticLookupResult({ entries: [diagnosticEntry({ event: "sidecar.stdout" })] })],
     ["unknown status", diagnosticLookupResult({ entries: [diagnosticEntry({ status: "warning" })] })],
-    ["invalid source-event-status combination", diagnosticLookupResult({ entries: [diagnosticEntry({ source: "rust-bridge", event: "sidecar.request" })] })],
-    ["non-finite duration", diagnosticLookupResult({ entries: [diagnosticEntry({ durationMs: Number.POSITIVE_INFINITY })] })],
-    ["malformed UI-local response", diagnosticLookupResult({ found: false, detailRef: "ui-protocol-local", logPath: "profile-store/diagnostics/events.jsonl", reason: "not-persisted", entries: [] })],
+    [
+      "invalid source-event-status combination",
+      diagnosticLookupResult({ entries: [diagnosticEntry({ source: "rust-bridge", event: "sidecar.request" })] }),
+    ],
+    [
+      "non-finite duration",
+      diagnosticLookupResult({ entries: [diagnosticEntry({ durationMs: Number.POSITIVE_INFINITY })] }),
+    ],
+    [
+      "malformed UI-local response",
+      diagnosticLookupResult({
+        found: false,
+        detailRef: "ui-protocol-local",
+        logPath: "profile-store/diagnostics/events.jsonl",
+        reason: "not-persisted",
+        entries: [],
+      }),
+    ],
   ])("maps malformed diagnostic lookup payloads to protocol errors: %s", async (_caseName, payload) => {
     mockInvoke.mockResolvedValueOnce(payload);
 
-    await expect(lookupDiagnosticDetail(_caseName === "malformed UI-local response" ? "ui-protocol-local" : "sidecar-duplicate-detail")).rejects.toMatchObject({
+    await expect(
+      lookupDiagnosticDetail(
+        _caseName === "malformed UI-local response" ? "ui-protocol-local" : "sidecar-duplicate-detail",
+      ),
+    ).rejects.toMatchObject({
       code: SIDECAR_PROTOCOL_ERROR,
       recoverable: true,
       source: "protocol",
@@ -1266,10 +1440,37 @@ describe("sidecar client", () => {
 
   it.each([
     ["unsafe response logPath", diagnosticLookupResult({ logPath: "/tmp/events.jsonl" })],
-    ["unsafe entry logPath", diagnosticLookupResult({ entries: [diagnosticEntry({ logPath: "https://example.invalid/events.jsonl" })] })],
+    [
+      "unsafe entry logPath",
+      diagnosticLookupResult({ entries: [diagnosticEntry({ logPath: "https://example.invalid/events.jsonl" })] }),
+    ],
     ["path-like requestId", diagnosticLookupResult({ entries: [diagnosticEntry({ requestId: "/tmp/profile-root" })] })],
-    ["arbitrary legacy context key", diagnosticLookupResult({ entries: [diagnosticEntry({ event: "legacy.import.outcome", status: "failed", method: "legacy.import", context: { legacyId: "legacy-safe-id", rawPath: "/secret" } })] })],
-    ["path-like legacy context value", diagnosticLookupResult({ entries: [diagnosticEntry({ event: "legacy.import.outcome", status: "failed", method: "legacy.import", context: { legacyId: "legacy-/secret" } })] })],
+    [
+      "arbitrary legacy context key",
+      diagnosticLookupResult({
+        entries: [
+          diagnosticEntry({
+            event: "legacy.import.outcome",
+            status: "failed",
+            method: "legacy.import",
+            context: { legacyId: "legacy-safe-id", rawPath: "/secret" },
+          }),
+        ],
+      }),
+    ],
+    [
+      "path-like legacy context value",
+      diagnosticLookupResult({
+        entries: [
+          diagnosticEntry({
+            event: "legacy.import.outcome",
+            status: "failed",
+            method: "legacy.import",
+            context: { legacyId: "legacy-/secret" },
+          }),
+        ],
+      }),
+    ],
   ])("rejects unsafe diagnostic lookup paths and context values: %s", async (_caseName, payload) => {
     mockInvoke.mockResolvedValueOnce(payload);
 
@@ -1472,7 +1673,9 @@ describe("sidecar client", () => {
       "aws-checkip",
       "webbrowsertools-webrtc",
     ]);
-    expect(JSON.stringify(snapshot)).not.toMatch(/storeRoot|proxy-user|proxy-pass|"username"|"password"|"credentials"|debugPort|webSocketDebuggerUrl|checkerContent|rawContent/i);
+    expect(JSON.stringify(snapshot)).not.toMatch(
+      /storeRoot|proxy-user|proxy-pass|"username"|"password"|"credentials"|debugPort|webSocketDebuggerUrl|checkerContent|rawContent/i,
+    );
   });
 
   it("parses proved proxy-check output with WebRTC restriction as advisory public-checker guidance", async () => {
@@ -1526,56 +1729,108 @@ describe("sidecar client", () => {
   it.each([
     ["non-object result", proxyCheckEnvelope("not-object")],
     ["unknown root key", proxyCheckEnvelope(proxyCheckResult({ checkerContent: "raw public checker transcript" }))],
-    ["profile id mismatch", proxyCheckEnvelope(proxyCheckResult({ profileId: "22222222-2222-2222-2222-222222222222" }))],
-    ["unknown route status", proxyCheckEnvelope(proxyCheckResult({ routeProof: proxyCheckRouteProofDirect({ status: "maybe" }) }))],
-    ["proved route missing fixture", proxyCheckEnvelope(proxyCheckResult({ routeProof: proxyCheckRouteProofProved({ fixture: null }) }))],
-    ["direct route has non-zero observations", proxyCheckEnvelope(proxyCheckResult({ routeProof: proxyCheckRouteProofDirect({ observationCounts: { proxy: 1, target: 0 } }) }))],
-    ["ip hiding public claim", proxyCheckEnvelope(proxyCheckResult({ ipHiding: proxyCheckIpHidingProved({ publicExitIpClaimed: true, publicExitIp: null }) }))],
-    ["malformed WebRTC warning", proxyCheckEnvelope(proxyCheckResult({ webRtc: proxyCheckWebRtcRestricted({ policy: "block", localIpExposure: "non-proxied-udp-disabled" }) }))],
-    ["HTTP checker URL", () => {
-      const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
-      result.publicCheckers.pages[0]!.url = "http://www.cloudflare.com/cdn-cgi/trace";
-      return proxyCheckEnvelope(result);
-    }],
-    ["duplicate checker ids", () => {
-      const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
-      result.publicCheckers.pages[1]!.id = result.publicCheckers.pages[0]!.id;
-      return proxyCheckEnvelope(result);
-    }],
-    ["missing checker id", () => {
-      const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
-      result.publicCheckers.pages = result.publicCheckers.pages.slice(0, 2);
-      return proxyCheckEnvelope(result);
-    }],
-    ["raw checker transcript field", () => {
-      const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
-      result.publicCheckers.pages[0]!.rawTranscript = "HTTP/2 200 raw checker body";
-      return proxyCheckEnvelope(result);
-    }],
-  ] as Array<[string, unknown | (() => unknown)]>)("maps malformed proxy-check payloads to protocol errors: %s", async (_caseName, envelopeOrFactory) => {
-    mockInvoke.mockResolvedValueOnce(typeof envelopeOrFactory === "function" ? envelopeOrFactory() : envelopeOrFactory);
-
-    await expect(checkProfileProxy(PROXY_CHECK_PROFILE_ID)).rejects.toMatchObject({
-      code: SIDECAR_PROTOCOL_ERROR,
-      recoverable: true,
-      source: "protocol",
-      phase: "bridge-error",
-      detailRef: expect.stringMatching(/^ui-protocol-/),
-    });
-  });
-
-  it.each(["credentials", "username", "password", "storeRoot", "userDataDir", "debugPort", "argv", "webSocketDebuggerUrl", "rawCheckerContent"])(
-    "rejects forbidden proxy-check field %s before UI state sees it",
-    async (field) => {
-      mockInvoke.mockResolvedValueOnce(proxyCheckEnvelope(proxyCheckResult({ [field]: "unsafe-runtime-or-secret-detail" })));
+    [
+      "profile id mismatch",
+      proxyCheckEnvelope(proxyCheckResult({ profileId: "22222222-2222-2222-2222-222222222222" })),
+    ],
+    [
+      "unknown route status",
+      proxyCheckEnvelope(proxyCheckResult({ routeProof: proxyCheckRouteProofDirect({ status: "maybe" }) })),
+    ],
+    [
+      "proved route missing fixture",
+      proxyCheckEnvelope(proxyCheckResult({ routeProof: proxyCheckRouteProofProved({ fixture: null }) })),
+    ],
+    [
+      "direct route has non-zero observations",
+      proxyCheckEnvelope(
+        proxyCheckResult({ routeProof: proxyCheckRouteProofDirect({ observationCounts: { proxy: 1, target: 0 } }) }),
+      ),
+    ],
+    [
+      "ip hiding public claim",
+      proxyCheckEnvelope(
+        proxyCheckResult({ ipHiding: proxyCheckIpHidingProved({ publicExitIpClaimed: true, publicExitIp: null }) }),
+      ),
+    ],
+    [
+      "malformed WebRTC warning",
+      proxyCheckEnvelope(
+        proxyCheckResult({
+          webRtc: proxyCheckWebRtcRestricted({ policy: "block", localIpExposure: "non-proxied-udp-disabled" }),
+        }),
+      ),
+    ],
+    [
+      "HTTP checker URL",
+      () => {
+        const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
+        result.publicCheckers.pages[0]!.url = "http://www.cloudflare.com/cdn-cgi/trace";
+        return proxyCheckEnvelope(result);
+      },
+    ],
+    [
+      "duplicate checker ids",
+      () => {
+        const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
+        result.publicCheckers.pages[1]!.id = result.publicCheckers.pages[0]!.id;
+        return proxyCheckEnvelope(result);
+      },
+    ],
+    [
+      "missing checker id",
+      () => {
+        const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
+        result.publicCheckers.pages = result.publicCheckers.pages.slice(0, 2);
+        return proxyCheckEnvelope(result);
+      },
+    ],
+    [
+      "raw checker transcript field",
+      () => {
+        const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
+        result.publicCheckers.pages[0]!.rawTranscript = "HTTP/2 200 raw checker body";
+        return proxyCheckEnvelope(result);
+      },
+    ],
+  ] as Array<[string, unknown | (() => unknown)]>)(
+    "maps malformed proxy-check payloads to protocol errors: %s",
+    async (_caseName, envelopeOrFactory) => {
+      mockInvoke.mockResolvedValueOnce(
+        typeof envelopeOrFactory === "function" ? envelopeOrFactory() : envelopeOrFactory,
+      );
 
       await expect(checkProfileProxy(PROXY_CHECK_PROFILE_ID)).rejects.toMatchObject({
         code: SIDECAR_PROTOCOL_ERROR,
+        recoverable: true,
         source: "protocol",
         phase: "bridge-error",
+        detailRef: expect.stringMatching(/^ui-protocol-/),
       });
     },
   );
+
+  it.each([
+    "credentials",
+    "username",
+    "password",
+    "storeRoot",
+    "userDataDir",
+    "debugPort",
+    "argv",
+    "webSocketDebuggerUrl",
+    "rawCheckerContent",
+  ])("rejects forbidden proxy-check field %s before UI state sees it", async (field) => {
+    mockInvoke.mockResolvedValueOnce(
+      proxyCheckEnvelope(proxyCheckResult({ [field]: "unsafe-runtime-or-secret-detail" })),
+    );
+
+    await expect(checkProfileProxy(PROXY_CHECK_PROFILE_ID)).rejects.toMatchObject({
+      code: SIDECAR_PROTOCOL_ERROR,
+      source: "protocol",
+      phase: "bridge-error",
+    });
+  });
 
   it("preserves typed sidecar and bridge errors for proxy-check calls", async () => {
     mockInvoke
@@ -1621,10 +1876,14 @@ describe("sidecar client", () => {
   });
 
   it("rejects legacy Netscape exports before invoking while preserving imports", async () => {
-    await expect(exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.txt", "netscape")).rejects.toMatchObject({ code: SIDECAR_PROTOCOL_ERROR });
+    await expect(exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.txt", "netscape")).rejects.toMatchObject({
+      code: SIDECAR_PROTOCOL_ERROR,
+    });
     expect(mockInvoke).not.toHaveBeenCalled();
     mockInvoke.mockResolvedValueOnce(cookieEnvelope(cookieReplaceResult({ format: "netscape" })));
-    await expect(replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.txt")).resolves.toMatchObject({ format: "netscape" });
+    await expect(replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.txt")).resolves.toMatchObject({
+      format: "netscape",
+    });
   });
 
   it("exports and replaces profile cookies through fixed commands with safe DTO snapshots", async () => {
@@ -1674,28 +1933,63 @@ describe("sidecar client", () => {
       warningCount: 0,
       warnings: [],
     });
-    expect(JSON.stringify(exported)).not.toMatch(/\/selected\/private|storeRoot|sourcePath|destinationPath|cookieDomain|host_key|"domain"|"name"|"value"/i);
-    expect(JSON.stringify(replaced)).not.toMatch(/\/selected\/private|storeRoot|sourcePath|destinationPath|cookieDomain|host_key|"domain"|"name"|"value"/i);
+    expect(JSON.stringify(exported)).not.toMatch(
+      /\/selected\/private|storeRoot|sourcePath|destinationPath|cookieDomain|host_key|"domain"|"name"|"value"/i,
+    );
+    expect(JSON.stringify(replaced)).not.toMatch(
+      /\/selected\/private|storeRoot|sourcePath|destinationPath|cookieDomain|host_key|"domain"|"name"|"value"/i,
+    );
   });
 
   it.each([
-    ["zero-cookie export", () => cookieEnvelope(cookieExportResult({ exportedCount: 0, skippedCount: 0, warningCount: 0, warnings: [] })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/empty.cookies", "theprivator-json")],
-    ["zero-cookie replace", () => cookieEnvelope(cookieReplaceResult({ importedCount: 0, replacedCount: 0, skippedCount: 0, warningCount: 0, warnings: [] })), () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/empty.cookies.json")],
-    ["bounded warning count", () => cookieEnvelope(cookieReplaceResult({ warningCount: 1, warnings: [cookieWarning({ code: "IMPORT_DUPLICATE_REPLACED", count: 4 })], skippedCount: 4 })), () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/duplicates.cookies.json")],
-  ] as Array<[string, () => unknown, () => Promise<unknown>]>)("accepts cookie portability boundary conditions: %s", async (_caseName, envelopeFactory, callClient) => {
-    mockInvoke.mockResolvedValueOnce(envelopeFactory());
+    [
+      "zero-cookie export",
+      () => cookieEnvelope(cookieExportResult({ exportedCount: 0, skippedCount: 0, warningCount: 0, warnings: [] })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/empty.cookies", "theprivator-json"),
+    ],
+    [
+      "zero-cookie replace",
+      () =>
+        cookieEnvelope(
+          cookieReplaceResult({ importedCount: 0, replacedCount: 0, skippedCount: 0, warningCount: 0, warnings: [] }),
+        ),
+      () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/empty.cookies.json"),
+    ],
+    [
+      "bounded warning count",
+      () =>
+        cookieEnvelope(
+          cookieReplaceResult({
+            warningCount: 1,
+            warnings: [cookieWarning({ code: "IMPORT_DUPLICATE_REPLACED", count: 4 })],
+            skippedCount: 4,
+          }),
+        ),
+      () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/duplicates.cookies.json"),
+    ],
+  ] as Array<[string, () => unknown, () => Promise<unknown>]>)(
+    "accepts cookie portability boundary conditions: %s",
+    async (_caseName, envelopeFactory, callClient) => {
+      mockInvoke.mockResolvedValueOnce(envelopeFactory());
 
-    await expect(callClient()).resolves.toMatchObject({
-      portabilityVersion: 1,
-      profileId: COOKIE_PROFILE_ID,
-    });
-  });
+      await expect(callClient()).resolves.toMatchObject({
+        portabilityVersion: 1,
+        profileId: COOKIE_PROFILE_ID,
+      });
+    },
+  );
 
   it.each([
     ["blank export profile id", () => exportProfileCookies(" ", "/tmp/export.cookies", "theprivator-json")],
-    ["path-like export profile id", () => exportProfileCookies("profile/../secret", "/tmp/export.cookies", "theprivator-json")],
+    [
+      "path-like export profile id",
+      () => exportProfileCookies("profile/../secret", "/tmp/export.cookies", "theprivator-json"),
+    ],
     ["blank export destination", () => exportProfileCookies(COOKIE_PROFILE_ID, " ", "theprivator-json")],
-    ["unsupported export format", () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "json" as CookieExportFormat)],
+    [
+      "unsupported export format",
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "json" as CookieExportFormat),
+    ],
     ["blank replace profile id", () => replaceProfileCookies("", "/tmp/import.cookies")],
     ["blank replace source", () => replaceProfileCookies(COOKIE_PROFILE_ID, "")],
   ])("rejects malformed cookie wrapper inputs before invoking Tauri: %s", async (_caseName, callClient) => {
@@ -1710,32 +2004,95 @@ describe("sidecar client", () => {
   });
 
   it.each([
-    ["wrong portability version", () => cookieEnvelope(cookieExportResult({ portabilityVersion: 2 })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["missing exported count", () => cookieEnvelope(cookieExportResult({ exportedCount: undefined })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["negative skipped count", () => cookieEnvelope(cookieExportResult({ skippedCount: -1 })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["non-integer warning count", () => cookieEnvelope(cookieExportResult({ warningCount: 1.5 })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["unsafe integer count", () => cookieEnvelope(cookieExportResult({ exportedCount: Number.MAX_SAFE_INTEGER + 1 })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["mismatched profile id", () => cookieEnvelope(cookieExportResult({ profileId: PROXY_CHECK_PROFILE_ID })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["wrong export operation", () => cookieEnvelope(cookieExportResult({ operation: "replace" })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["wrong export format", () => cookieEnvelope(cookieExportResult({ format: "netscape" })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["warning count mismatch", () => cookieEnvelope(cookieExportResult({ warningCount: 0 })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["too many warnings", () => cookieEnvelope(cookieExportResult({ warningCount: 21, warnings: tooManyCookieWarnings() })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["duplicate warning codes", () => cookieEnvelope(cookieExportResult({ warningCount: 2, warnings: [cookieWarning(), cookieWarning()] })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["zero warning item count", () => cookieEnvelope(cookieExportResult({ warnings: [cookieWarning({ count: 0 })] })), () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")],
-    ["wrong replace operation", () => cookieEnvelope(cookieReplaceResult({ operation: "export" })), () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.cookies")],
-    ["unsupported replace format", () => cookieEnvelope(cookieReplaceResult({ format: "json" })), () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.cookies")],
-    ["replaced count exceeds imported count", () => cookieEnvelope(cookieReplaceResult({ importedCount: 1, replacedCount: 2 })), () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.cookies")],
-  ] as Array<[string, () => unknown, () => Promise<unknown>]>)("maps malformed cookie portability payloads to protocol errors: %s", async (_caseName, envelopeFactory, callClient) => {
-    mockInvoke.mockResolvedValueOnce(envelopeFactory());
+    [
+      "wrong portability version",
+      () => cookieEnvelope(cookieExportResult({ portabilityVersion: 2 })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "missing exported count",
+      () => cookieEnvelope(cookieExportResult({ exportedCount: undefined })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "negative skipped count",
+      () => cookieEnvelope(cookieExportResult({ skippedCount: -1 })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "non-integer warning count",
+      () => cookieEnvelope(cookieExportResult({ warningCount: 1.5 })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "unsafe integer count",
+      () => cookieEnvelope(cookieExportResult({ exportedCount: Number.MAX_SAFE_INTEGER + 1 })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "mismatched profile id",
+      () => cookieEnvelope(cookieExportResult({ profileId: PROXY_CHECK_PROFILE_ID })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "wrong export operation",
+      () => cookieEnvelope(cookieExportResult({ operation: "replace" })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "wrong export format",
+      () => cookieEnvelope(cookieExportResult({ format: "netscape" })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "warning count mismatch",
+      () => cookieEnvelope(cookieExportResult({ warningCount: 0 })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "too many warnings",
+      () => cookieEnvelope(cookieExportResult({ warningCount: 21, warnings: tooManyCookieWarnings() })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "duplicate warning codes",
+      () => cookieEnvelope(cookieExportResult({ warningCount: 2, warnings: [cookieWarning(), cookieWarning()] })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "zero warning item count",
+      () => cookieEnvelope(cookieExportResult({ warnings: [cookieWarning({ count: 0 })] })),
+      () => exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ],
+    [
+      "wrong replace operation",
+      () => cookieEnvelope(cookieReplaceResult({ operation: "export" })),
+      () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.cookies"),
+    ],
+    [
+      "unsupported replace format",
+      () => cookieEnvelope(cookieReplaceResult({ format: "json" })),
+      () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.cookies"),
+    ],
+    [
+      "replaced count exceeds imported count",
+      () => cookieEnvelope(cookieReplaceResult({ importedCount: 1, replacedCount: 2 })),
+      () => replaceProfileCookies(COOKIE_PROFILE_ID, "/tmp/import.cookies"),
+    ],
+  ] as Array<[string, () => unknown, () => Promise<unknown>]>)(
+    "maps malformed cookie portability payloads to protocol errors: %s",
+    async (_caseName, envelopeFactory, callClient) => {
+      mockInvoke.mockResolvedValueOnce(envelopeFactory());
 
-    await expect(callClient()).rejects.toMatchObject({
-      code: SIDECAR_PROTOCOL_ERROR,
-      recoverable: true,
-      source: "protocol",
-      phase: "bridge-error",
-      detailRef: expect.stringMatching(/^ui-protocol-/),
-    });
-  });
+      await expect(callClient()).rejects.toMatchObject({
+        code: SIDECAR_PROTOCOL_ERROR,
+        recoverable: true,
+        source: "protocol",
+        phase: "bridge-error",
+        detailRef: expect.stringMatching(/^ui-protocol-/),
+      });
+    },
+  );
 
   it.each([
     ["selected destination path", { destinationPath: "/selected/private/export.cookies" }],
@@ -1749,7 +2106,9 @@ describe("sidecar client", () => {
   ])("rejects unsafe cookie portability result field before UI state sees it: %s", async (_caseName, extraFields) => {
     mockInvoke.mockResolvedValueOnce(cookieEnvelope(cookieExportResult(extraFields)));
 
-    await expect(exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")).rejects.toMatchObject({
+    await expect(
+      exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ).rejects.toMatchObject({
       code: SIDECAR_PROTOCOL_ERROR,
       source: "protocol",
       phase: "bridge-error",
@@ -1758,12 +2117,17 @@ describe("sidecar client", () => {
 
   it.each([
     ["unsafe warning field", [cookieWarning({ domain: "private.example.invalid" })]],
-    ["absolute path in warning text", [cookieWarning({ message: "Cookie import skipped /Users/alice/private/Cookies." })]],
+    [
+      "absolute path in warning text",
+      [cookieWarning({ message: "Cookie import skipped /Users/alice/private/Cookies." })],
+    ],
     ["raw diagnostics in warning text", [cookieWarning({ message: "See raw diagnostics stderr for details." })]],
   ])("rejects unsafe cookie portability warnings: %s", async (_caseName, warnings) => {
     mockInvoke.mockResolvedValueOnce(cookieEnvelope(cookieExportResult({ warnings, warningCount: warnings.length })));
 
-    await expect(exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")).rejects.toMatchObject({
+    await expect(
+      exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ).rejects.toMatchObject({
       code: SIDECAR_PROTOCOL_ERROR,
       source: "protocol",
       phase: "bridge-error",
@@ -1797,7 +2161,9 @@ describe("sidecar client", () => {
         detailRef: "bridge-cookie-protocol-detail",
       });
 
-    await expect(exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")).rejects.toMatchObject({
+    await expect(
+      exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ).rejects.toMatchObject({
       code: "PORTABILITY_PROFILE_BUSY",
       message: "Stop this profile before importing or exporting cookies.",
       recoverable: true,
@@ -1811,7 +2177,9 @@ describe("sidecar client", () => {
       source: "sidecar",
       phase: "recoverable-error",
     });
-    await expect(exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json")).rejects.toMatchObject({
+    await expect(
+      exportProfileCookies(COOKIE_PROFILE_ID, "/tmp/export.cookies", "theprivator-json"),
+    ).rejects.toMatchObject({
       code: "SIDECAR_TIMEOUT",
       detailRef: "bridge-cookie-timeout-detail",
       source: "bridge",
@@ -1844,7 +2212,9 @@ describe("sidecar client", () => {
     });
     for (const [command, params] of mockInvoke.mock.calls) {
       expect(command).toMatch(/^profile_package_(export|import)$/);
-      expect(JSON.stringify(params)).not.toMatch(/storeRoot|method|portability\.profile_package|manifest|payload|cookie/i);
+      expect(JSON.stringify(params)).not.toMatch(
+        /storeRoot|method|portability\.profile_package|manifest|payload|cookie/i,
+      );
     }
     expect(exported).toMatchObject({
       portabilityVersion: 1,
@@ -1879,22 +2249,84 @@ describe("sidecar client", () => {
     expect(exported).not.toHaveProperty("format");
     expect(imported).not.toHaveProperty("profile");
     expect(imported).not.toHaveProperty("format");
-    expect(JSON.stringify({ exported, imported })).not.toMatch(/\/selected\/private|profile-store|profileDir|userDataDir|manifest\.json|theprivator-cookies\.json|payload\/|cookieCount|payloadByteCount|skippedCookieCount|importedCookieCount|replacedCookieCount/i);
+    expect(JSON.stringify({ exported, imported })).not.toMatch(
+      /\/selected\/private|profile-store|profileDir|userDataDir|manifest\.json|theprivator-cookies\.json|payload\/|cookieCount|payloadByteCount|skippedCookieCount|importedCookieCount|replacedCookieCount/i,
+    );
   });
 
   it.each([
-    ["zero-count package export", () => profilePackageEnvelope(profilePackageExportResult({ cookieCount: 0, skippedCookieCount: 0, payloadFileCount: 0, payloadByteCount: 0, warningCount: 0, warnings: [] })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/empty.tpkg")],
-    ["zero-count package import", () => profilePackageEnvelope(profilePackageImportResult({ cookieCount: 0, importedCookieCount: 0, replacedCookieCount: 0, payloadFileCount: 0, payloadByteCount: 0, warningCount: 0, warnings: [] })), () => importProfilePackage("/tmp/empty.tpkg")],
-    ["conflict-resolved import", () => profilePackageEnvelope(profilePackageImportResult({ nameConflictResolved: true, profileName: "Research Copy 2", profile: profilePackageImportProfile({ name: "Research Copy 2" }) })), () => importProfilePackage("/tmp/conflict.tpkg")],
-    ["bounded package warnings", () => profilePackageEnvelope(profilePackageExportResult({ warningCount: 2, warnings: [profilePackageWarning({ count: 4 }), profilePackageWarning({ code: "PACKAGE_EXPORT_DESTINATION_SKIPPED", message: "The selected package destination was excluded from the payload snapshot.", count: 1 })] })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/warnings.tpkg")],
-  ] as Array<[string, () => unknown, () => Promise<unknown>]>)("accepts profile package boundary conditions: %s", async (_caseName, envelopeFactory, callClient) => {
-    mockInvoke.mockResolvedValueOnce(envelopeFactory());
+    [
+      "zero-count package export",
+      () =>
+        profilePackageEnvelope(
+          profilePackageExportResult({
+            cookieCount: 0,
+            skippedCookieCount: 0,
+            payloadFileCount: 0,
+            payloadByteCount: 0,
+            warningCount: 0,
+            warnings: [],
+          }),
+        ),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/empty.tpkg"),
+    ],
+    [
+      "zero-count package import",
+      () =>
+        profilePackageEnvelope(
+          profilePackageImportResult({
+            cookieCount: 0,
+            importedCookieCount: 0,
+            replacedCookieCount: 0,
+            payloadFileCount: 0,
+            payloadByteCount: 0,
+            warningCount: 0,
+            warnings: [],
+          }),
+        ),
+      () => importProfilePackage("/tmp/empty.tpkg"),
+    ],
+    [
+      "conflict-resolved import",
+      () =>
+        profilePackageEnvelope(
+          profilePackageImportResult({
+            nameConflictResolved: true,
+            profileName: "Research Copy 2",
+            profile: profilePackageImportProfile({ name: "Research Copy 2" }),
+          }),
+        ),
+      () => importProfilePackage("/tmp/conflict.tpkg"),
+    ],
+    [
+      "bounded package warnings",
+      () =>
+        profilePackageEnvelope(
+          profilePackageExportResult({
+            warningCount: 2,
+            warnings: [
+              profilePackageWarning({ count: 4 }),
+              profilePackageWarning({
+                code: "PACKAGE_EXPORT_DESTINATION_SKIPPED",
+                message: "The selected package destination was excluded from the payload snapshot.",
+                count: 1,
+              }),
+            ],
+          }),
+        ),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/warnings.tpkg"),
+    ],
+  ] as Array<[string, () => unknown, () => Promise<unknown>]>)(
+    "accepts profile package boundary conditions: %s",
+    async (_caseName, envelopeFactory, callClient) => {
+      mockInvoke.mockResolvedValueOnce(envelopeFactory());
 
-    await expect(callClient()).resolves.toMatchObject({
-      portabilityVersion: 1,
-      packageVersion: 3,
-    });
-  });
+      await expect(callClient()).resolves.toMatchObject({
+        portabilityVersion: 1,
+        packageVersion: 3,
+      });
+    },
+  );
 
   it.each([
     ["blank export profile id", () => exportProfilePackage(" ", "/tmp/export.tpkg")],
@@ -1913,34 +2345,114 @@ describe("sidecar client", () => {
   });
 
   it.each([
-    ["wrong package version", () => profilePackageEnvelope(profilePackageExportResult({ packageVersion: 2 })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["superseded package version", () => profilePackageEnvelope(profilePackageExportResult({ packageVersion: 1 })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["wrong package format", () => profilePackageEnvelope(profilePackageExportResult({ format: "zip" })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["missing payload count", () => profilePackageEnvelope(profilePackageExportResult({ payloadFileCount: undefined })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["negative payload bytes", () => profilePackageEnvelope(profilePackageExportResult({ payloadByteCount: -1 })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["non-integer warning count", () => profilePackageEnvelope(profilePackageExportResult({ warningCount: 1.5 })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["unsafe integer count", () => profilePackageEnvelope(profilePackageExportResult({ payloadFileCount: Number.MAX_SAFE_INTEGER + 1 })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["mismatched export profile id", () => profilePackageEnvelope(profilePackageExportResult({ profileId: PROXY_CHECK_PROFILE_ID })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["wrong export operation", () => profilePackageEnvelope(profilePackageExportResult({ operation: "import" })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["wrong import operation", () => profilePackageEnvelope(profilePackageImportResult({ operation: "export" })), () => importProfilePackage("/tmp/import.tpkg")],
-    ["warning count mismatch", () => profilePackageEnvelope(profilePackageExportResult({ warningCount: 0 })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["too many warnings", () => profilePackageEnvelope(profilePackageExportResult({ warningCount: 21, warnings: tooManyProfilePackageWarnings() })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["duplicate warning codes", () => profilePackageEnvelope(profilePackageExportResult({ warningCount: 2, warnings: [profilePackageWarning(), profilePackageWarning()] })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["zero warning item count", () => profilePackageEnvelope(profilePackageExportResult({ warnings: [profilePackageWarning({ count: 0 })] })), () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")],
-    ["imported sessions exceed portable sessions", () => profilePackageEnvelope(profilePackageImportResult({ cookieCount: 1, importedCookieCount: 2 })), () => importProfilePackage("/tmp/import.tpkg")],
-    ["replaced sessions exceed imported sessions", () => profilePackageEnvelope(profilePackageImportResult({ importedCookieCount: 1, replacedCookieCount: 2 })), () => importProfilePackage("/tmp/import.tpkg")],
-    ["import profile reference mismatch", () => profilePackageEnvelope(profilePackageImportResult({ profile: profilePackageImportProfile({ id: PACKAGE_PROFILE_ID }) })), () => importProfilePackage("/tmp/import.tpkg")],
-  ] as Array<[string, () => unknown, () => Promise<unknown>]>)("maps malformed profile package payloads to protocol errors: %s", async (_caseName, envelopeFactory, callClient) => {
-    mockInvoke.mockResolvedValueOnce(envelopeFactory());
+    [
+      "wrong package version",
+      () => profilePackageEnvelope(profilePackageExportResult({ packageVersion: 2 })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "superseded package version",
+      () => profilePackageEnvelope(profilePackageExportResult({ packageVersion: 1 })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "wrong package format",
+      () => profilePackageEnvelope(profilePackageExportResult({ format: "zip" })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "missing payload count",
+      () => profilePackageEnvelope(profilePackageExportResult({ payloadFileCount: undefined })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "negative payload bytes",
+      () => profilePackageEnvelope(profilePackageExportResult({ payloadByteCount: -1 })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "non-integer warning count",
+      () => profilePackageEnvelope(profilePackageExportResult({ warningCount: 1.5 })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "unsafe integer count",
+      () => profilePackageEnvelope(profilePackageExportResult({ payloadFileCount: Number.MAX_SAFE_INTEGER + 1 })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "mismatched export profile id",
+      () => profilePackageEnvelope(profilePackageExportResult({ profileId: PROXY_CHECK_PROFILE_ID })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "wrong export operation",
+      () => profilePackageEnvelope(profilePackageExportResult({ operation: "import" })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "wrong import operation",
+      () => profilePackageEnvelope(profilePackageImportResult({ operation: "export" })),
+      () => importProfilePackage("/tmp/import.tpkg"),
+    ],
+    [
+      "warning count mismatch",
+      () => profilePackageEnvelope(profilePackageExportResult({ warningCount: 0 })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "too many warnings",
+      () =>
+        profilePackageEnvelope(
+          profilePackageExportResult({ warningCount: 21, warnings: tooManyProfilePackageWarnings() }),
+        ),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "duplicate warning codes",
+      () =>
+        profilePackageEnvelope(
+          profilePackageExportResult({ warningCount: 2, warnings: [profilePackageWarning(), profilePackageWarning()] }),
+        ),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "zero warning item count",
+      () => profilePackageEnvelope(profilePackageExportResult({ warnings: [profilePackageWarning({ count: 0 })] })),
+      () => exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg"),
+    ],
+    [
+      "imported sessions exceed portable sessions",
+      () => profilePackageEnvelope(profilePackageImportResult({ cookieCount: 1, importedCookieCount: 2 })),
+      () => importProfilePackage("/tmp/import.tpkg"),
+    ],
+    [
+      "replaced sessions exceed imported sessions",
+      () => profilePackageEnvelope(profilePackageImportResult({ importedCookieCount: 1, replacedCookieCount: 2 })),
+      () => importProfilePackage("/tmp/import.tpkg"),
+    ],
+    [
+      "import profile reference mismatch",
+      () =>
+        profilePackageEnvelope(
+          profilePackageImportResult({ profile: profilePackageImportProfile({ id: PACKAGE_PROFILE_ID }) }),
+        ),
+      () => importProfilePackage("/tmp/import.tpkg"),
+    ],
+  ] as Array<[string, () => unknown, () => Promise<unknown>]>)(
+    "maps malformed profile package payloads to protocol errors: %s",
+    async (_caseName, envelopeFactory, callClient) => {
+      mockInvoke.mockResolvedValueOnce(envelopeFactory());
 
-    await expect(callClient()).rejects.toMatchObject({
-      code: SIDECAR_PROTOCOL_ERROR,
-      recoverable: true,
-      source: "protocol",
-      phase: "bridge-error",
-      detailRef: expect.stringMatching(/^ui-protocol-/),
-    });
-  });
+      await expect(callClient()).rejects.toMatchObject({
+        code: SIDECAR_PROTOCOL_ERROR,
+        recoverable: true,
+        source: "protocol",
+        phase: "bridge-error",
+        detailRef: expect.stringMatching(/^ui-protocol-/),
+      });
+    },
+  );
 
   it.each([
     ["selected destination path", { destinationPath: "/selected/private/research.tpkg" }],
@@ -1981,18 +2493,48 @@ describe("sidecar client", () => {
 
   it.each([
     ["unsafe warning field", [profilePackageWarning({ member: "payload/Default/Preferences" })]],
-    ["absolute path in warning text", [profilePackageWarning({ message: "Profile package skipped /Users/alice/private/Default/Preferences." })]],
+    [
+      "absolute path in warning text",
+      [profilePackageWarning({ message: "Profile package skipped /Users/alice/private/Default/Preferences." })],
+    ],
     ["manifest member in warning text", [profilePackageWarning({ message: "Skipped manifest.json from payload." })]],
     ["cookie detail in warning text", [profilePackageWarning({ message: "Cookie value sid=secret was skipped." })]],
-    ["proxy credential in warning text", [profilePackageWarning({ message: "Proxy credentials proxy-user-should-not-leak proxy-pass-should-not-leak were rejected." })]],
-    ["Automation API token in warning text", [profilePackageWarning({ message: "Automation API token tpapi-secret-token was rejected." })]],
-    ["debug endpoint in warning text", [profilePackageWarning({ message: "See ws://127.0.0.1:9222/devtools/browser/abc." })]],
-    ["CDP endpoint in warning text", [profilePackageWarning({ message: "CDP endpoint cdp://127.0.0.1:9222/devtools/browser/abc was rejected." })]],
-    ["launch args in warning text", [profilePackageWarning({ message: "Launch args --user-data-dir=/private/profile were rejected." })]],
-    ["raw diagnostics in warning text", [profilePackageWarning({ message: "See raw diagnostics stderr for details." })]],
-    ["stack trace in warning text", [profilePackageWarning({ message: "Traceback and stack trace output was rejected." })]],
+    [
+      "proxy credential in warning text",
+      [
+        profilePackageWarning({
+          message: "Proxy credentials proxy-user-should-not-leak proxy-pass-should-not-leak were rejected.",
+        }),
+      ],
+    ],
+    [
+      "Automation API token in warning text",
+      [profilePackageWarning({ message: "Automation API token tpapi-secret-token was rejected." })],
+    ],
+    [
+      "debug endpoint in warning text",
+      [profilePackageWarning({ message: "See ws://127.0.0.1:9222/devtools/browser/abc." })],
+    ],
+    [
+      "CDP endpoint in warning text",
+      [profilePackageWarning({ message: "CDP endpoint cdp://127.0.0.1:9222/devtools/browser/abc was rejected." })],
+    ],
+    [
+      "launch args in warning text",
+      [profilePackageWarning({ message: "Launch args --user-data-dir=/private/profile were rejected." })],
+    ],
+    [
+      "raw diagnostics in warning text",
+      [profilePackageWarning({ message: "See raw diagnostics stderr for details." })],
+    ],
+    [
+      "stack trace in warning text",
+      [profilePackageWarning({ message: "Traceback and stack trace output was rejected." })],
+    ],
   ])("rejects unsafe profile package warnings: %s", async (_caseName, warnings) => {
-    mockInvoke.mockResolvedValueOnce(profilePackageEnvelope(profilePackageExportResult({ warnings, warningCount: warnings.length })));
+    mockInvoke.mockResolvedValueOnce(
+      profilePackageEnvelope(profilePackageExportResult({ warnings, warningCount: warnings.length })),
+    );
 
     await expect(exportProfilePackage(PACKAGE_PROFILE_ID, "/tmp/export.tpkg")).rejects.toMatchObject({
       code: SIDECAR_PROTOCOL_ERROR,
@@ -2000,7 +2542,9 @@ describe("sidecar client", () => {
       phase: "bridge-error",
     });
 
-    mockInvoke.mockResolvedValueOnce(profilePackageEnvelope(profilePackageImportResult({ warnings, warningCount: warnings.length })));
+    mockInvoke.mockResolvedValueOnce(
+      profilePackageEnvelope(profilePackageImportResult({ warnings, warningCount: warnings.length })),
+    );
 
     await expect(importProfilePackage("/tmp/import.tpkg")).rejects.toMatchObject({
       code: SIDECAR_PROTOCOL_ERROR,
@@ -2078,38 +2622,52 @@ describe("sidecar client", () => {
 
   it.each([
     ["PORTABILITY_PACKAGE_INVALID", "Profile package is invalid.", "sidecar-package-invalid-detail"],
-    ["PORTABILITY_PACKAGE_CHECKSUM_MISMATCH", "Profile package checksum verification failed.", "sidecar-package-checksum-detail"],
+    [
+      "PORTABILITY_PACKAGE_CHECKSUM_MISMATCH",
+      "Profile package checksum verification failed.",
+      "sidecar-package-checksum-detail",
+    ],
     ["PORTABILITY_PACKAGE_TOO_LARGE", "Profile package is too large.", "sidecar-package-too-large-detail"],
     ["PORTABILITY_PACKAGE_READ_FAILED", "Profile package could not be read.", "sidecar-package-read-detail"],
-    ["PORTABILITY_PACKAGE_PAYLOAD_FAILED", "Profile package payload could not be restored.", "sidecar-package-payload-detail"],
+    [
+      "PORTABILITY_PACKAGE_PAYLOAD_FAILED",
+      "Profile package payload could not be restored.",
+      "sidecar-package-payload-detail",
+    ],
     ["PORTABILITY_PACKAGE_IMPORT_FAILED", "Profile package import failed.", "sidecar-package-import-detail"],
-  ])("preserves package import rejection code %s while stripping unsafe thrown context", async (code, message, detailRef) => {
-    mockInvoke.mockRejectedValueOnce(profilePackageCommandError(code, message, detailRef));
+  ])(
+    "preserves package import rejection code %s while stripping unsafe thrown context",
+    async (code, message, detailRef) => {
+      mockInvoke.mockRejectedValueOnce(profilePackageCommandError(code, message, detailRef));
 
-    let thrown: unknown;
-    try {
-      await importProfilePackage("/tmp/import.tpkg");
-    } catch (error) {
-      thrown = error;
-    }
+      let thrown: unknown;
+      try {
+        await importProfilePackage("/tmp/import.tpkg");
+      } catch (error) {
+        thrown = error;
+      }
 
-    expect(thrown).toMatchObject({
-      code,
-      message,
-      recoverable: true,
-      detailRef,
-      source: "sidecar",
-      phase: "recoverable-error",
-    });
-    expect(thrown).not.toHaveProperty("unsafeContext");
-    expect(thrown).not.toHaveProperty("rawDiagnostics");
-    expect(thrown).not.toHaveProperty("stack");
-    expect(JSON.stringify(thrown)).not.toMatch(UNSAFE_PROFILE_PACKAGE_PATTERN);
-  });
+      expect(thrown).toMatchObject({
+        code,
+        message,
+        recoverable: true,
+        detailRef,
+        source: "sidecar",
+        phase: "recoverable-error",
+      });
+      expect(thrown).not.toHaveProperty("unsafeContext");
+      expect(thrown).not.toHaveProperty("rawDiagnostics");
+      expect(thrown).not.toHaveProperty("stack");
+      expect(JSON.stringify(thrown)).not.toMatch(UNSAFE_PROFILE_PACKAGE_PATTERN);
+    },
+  );
 
   it.each([
     ["missing request id", () => profilePackageEnvelope(profilePackageExportResult(), { requestId: undefined })],
-    ["unsupported bridge protocol", () => profilePackageEnvelope(profilePackageExportResult(), { protocolVersion: "2.0.0" })],
+    [
+      "unsupported bridge protocol",
+      () => profilePackageEnvelope(profilePackageExportResult(), { protocolVersion: "2.0.0" }),
+    ],
     ["non-object result", () => profilePackageEnvelope(null)],
     ["unknown result field", () => profilePackageEnvelope(profilePackageExportResult({ harmlessExtra: true }))],
   ])("maps malformed profile package envelopes to protocol errors: %s", async (_caseName, envelopeFactory) => {
@@ -2146,7 +2704,11 @@ describe("sidecar client", () => {
       .mockResolvedValueOnce(identityEnvelope({ identityVersion: 2, presets: [preset], count: 1 }))
       .mockResolvedValueOnce(identityEnvelope({ identityVersion: 2, identity: suspicious, warnings: [warning] }))
       .mockResolvedValueOnce(profileEnvelope(profileResult({ profile, profiles: [profile], warnings: [] })))
-      .mockResolvedValueOnce(profileEnvelope(profileResult({ profile: suspiciousProfile, profiles: [suspiciousProfile], warnings: [warning] })));
+      .mockResolvedValueOnce(
+        profileEnvelope(
+          profileResult({ profile: suspiciousProfile, profiles: [suspiciousProfile], warnings: [warning] }),
+        ),
+      );
 
     const presets = await listIdentityPresets();
     const validation = await validateIdentity(suspicious);
@@ -2175,15 +2737,42 @@ describe("sidecar client", () => {
     const identity = configuredSurfacesIdentity();
     const geolocationOnly = defaultIdentity({
       label: "Geolocation only",
-      geolocation: { mode: "custom", permission: "block", latitude: -33.868821, longitude: 151.209296, accuracy: 1, altitude: 58.5 },
+      geolocation: {
+        mode: "custom",
+        permission: "block",
+        latitude: -33.868821,
+        longitude: 151.209296,
+        accuracy: 1,
+        altitude: 58.5,
+      },
     });
     const profile = profileRecord({ identity });
     const geolocationProfile = profileRecord({ id: "55555555-5555-5555-5555-555555555555", identity: geolocationOnly });
     const warnings = [
-      identityWarning({ code: "IDENTITY_GEOLOCATION_WITHOUT_PERMISSION", message: "A fixed position is set but the page can never ask for it.", surface: "geolocation", path: "geolocation.permission" }),
-      identityWarning({ code: "IDENTITY_GEOLOCATION_TIMEZONE_MISMATCH", message: "The fixed position is far from the masked timezone.", surface: "geolocation", path: "geolocation.latitude" }),
-      identityWarning({ code: "IDENTITY_MEDIA_DEVICES_UNUSUAL", message: "The device counts are valid but uncommon for desktop Chromium.", surface: "mediaDevices", path: "mediaDevices.audioInputs" }),
-      identityWarning({ code: "IDENTITY_PORTS_ALLOWLIST_BROAD", message: "The allowed port list is broad enough to be distinctive.", surface: "ports", path: "ports.allowedPorts" }),
+      identityWarning({
+        code: "IDENTITY_GEOLOCATION_WITHOUT_PERMISSION",
+        message: "A fixed position is set but the page can never ask for it.",
+        surface: "geolocation",
+        path: "geolocation.permission",
+      }),
+      identityWarning({
+        code: "IDENTITY_GEOLOCATION_TIMEZONE_MISMATCH",
+        message: "The fixed position is far from the masked timezone.",
+        surface: "geolocation",
+        path: "geolocation.latitude",
+      }),
+      identityWarning({
+        code: "IDENTITY_MEDIA_DEVICES_UNUSUAL",
+        message: "The device counts are valid but uncommon for desktop Chromium.",
+        surface: "mediaDevices",
+        path: "mediaDevices.audioInputs",
+      }),
+      identityWarning({
+        code: "IDENTITY_PORTS_ALLOWLIST_BROAD",
+        message: "The allowed port list is broad enough to be distinctive.",
+        surface: "ports",
+        path: "ports.allowedPorts",
+      }),
     ];
     mockInvoke
       .mockResolvedValueOnce(identityEnvelope({ identityVersion: 2, identity, warnings }))
@@ -2209,17 +2798,32 @@ describe("sidecar client", () => {
     ["blocked real geolocation", { geolocation: { mode: "real", permission: "block" } }],
     ["single allowed port", { ports: { mode: "custom", allowedPorts: [65535] } }],
     ["empty allowed port list", { ports: { mode: "custom", allowedPorts: [] } }],
-    ["boundary coordinates", { geolocation: { mode: "custom", permission: "allow", latitude: -90, longitude: 180, accuracy: 100000, altitude: -1000 } }],
+    [
+      "boundary coordinates",
+      {
+        geolocation: {
+          mode: "custom",
+          permission: "allow",
+          latitude: -90,
+          longitude: 180,
+          accuracy: 100000,
+          altitude: -1000,
+        },
+      },
+    ],
     ["minimum device counts", { mediaDevices: { mode: "custom", videoInputs: 0, audioInputs: 1, audioOutputs: 1 } }],
     // The sidecar counts label bounds in code points, so a 128-code-point label
     // ending in an emoji is a value it accepts and persists.
     ["code-point label bound", { label: `${"a".repeat(127)}🙂` }],
-  ] as Array<[string, Record<string, unknown>]>)("accepts identity surface boundary conditions: %s", async (_caseName, overrides) => {
-    const identity = defaultIdentity(overrides);
-    mockInvoke.mockResolvedValueOnce(identityEnvelope({ identityVersion: 2, identity, warnings: [] }));
+  ] as Array<[string, Record<string, unknown>]>)(
+    "accepts identity surface boundary conditions: %s",
+    async (_caseName, overrides) => {
+      const identity = defaultIdentity(overrides);
+      mockInvoke.mockResolvedValueOnce(identityEnvelope({ identityVersion: 2, identity, warnings: [] }));
 
-    await expect(validateIdentity(identity)).resolves.toMatchObject({ identityVersion: 2, identity });
-  });
+      await expect(validateIdentity(identity)).resolves.toMatchObject({ identityVersion: 2, identity });
+    },
+  );
 
   it("describes identity surfaces through the fixed Tauri command", async () => {
     mockInvoke.mockResolvedValueOnce(identityEnvelope(identitySurfacesDescribeResult()));
@@ -2229,25 +2833,127 @@ describe("sidecar client", () => {
     expect(mockInvoke).toHaveBeenCalledWith("identity_surfaces_describe");
     expect(described.requestId).toBe("bridge-identity-1");
     expect(described.identityVersion).toBe(2);
-    expect(described.surfaces.map((surface) => surface.id)).toEqual(["browser", "geolocation", "mediaDevices", "ports"]);
+    expect(described.surfaces.map((surface) => surface.id)).toEqual([
+      "browser",
+      "geolocation",
+      "mediaDevices",
+      "ports",
+    ]);
     expect(described.surfaces[1]!.modes).toEqual(["custom", "real"]);
-    expect(described.surfaces[1]!.fields[0]).toEqual({ name: "permission", type: "enum", options: ["allow", "block", "prompt"], required: true });
-    expect(described.surfaces[1]!.fields[4]).toEqual({ name: "altitude", type: "number", min: -1000, max: 100000, required: false });
-    expect(described.surfaces[3]!.fields[0]).toEqual({ name: "allowedPorts", type: "list", maxItems: 50, required: true });
+    expect(described.surfaces[1]!.fields[0]).toEqual({
+      name: "permission",
+      type: "enum",
+      options: ["allow", "block", "prompt"],
+      required: true,
+    });
+    expect(described.surfaces[1]!.fields[4]).toEqual({
+      name: "altitude",
+      type: "number",
+      min: -1000,
+      max: 100000,
+      required: false,
+    });
+    expect(described.surfaces[3]!.fields[0]).toEqual({
+      name: "allowedPorts",
+      type: "list",
+      maxItems: 50,
+      required: true,
+    });
   });
 
   it.each([
     ["superseded identity version", identityEnvelope(identitySurfacesDescribeResult({ identityVersion: 1 }))],
     ["unknown result key", identityEnvelope({ ...identitySurfacesDescribeResult(), surfaceCount: 4 })],
-    ["unknown surface id", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "gpu", modes: ["real"], fields: [] }] }))],
-    ["unknown surface key", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["real"], fields: [], label: "Ports" }] }))],
-    ["repeated surface id", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["real"], fields: [] }, { id: "ports", modes: ["real"], fields: [] }] }))],
-    ["unsorted modes", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["real", "custom"], fields: [] }] }))],
-    ["unknown mode", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["derived"], fields: [] }] }))],
-    ["unknown field key", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["real"], fields: [{ name: "allowedPorts", type: "list", maxItems: 50, required: true, help: "Ports" }] }] }))],
-    ["unknown field type", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["real"], fields: [{ name: "allowedPorts", type: "portlist", maxItems: 50, required: true }] }] }))],
-    ["inverted field bounds", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "geolocation", modes: ["real"], fields: [{ name: "latitude", type: "number", min: 90, max: -90, required: true }] }] }))],
-    ["repeated field name", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "geolocation", modes: ["real"], fields: [{ name: "latitude", type: "number", min: -90, max: 90, required: true }, { name: "latitude", type: "number", min: -90, max: 90, required: true }] }] }))],
+    [
+      "unknown surface id",
+      identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "gpu", modes: ["real"], fields: [] }] })),
+    ],
+    [
+      "unknown surface key",
+      identityEnvelope(
+        identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["real"], fields: [], label: "Ports" }] }),
+      ),
+    ],
+    [
+      "repeated surface id",
+      identityEnvelope(
+        identitySurfacesDescribeResult({
+          surfaces: [
+            { id: "ports", modes: ["real"], fields: [] },
+            { id: "ports", modes: ["real"], fields: [] },
+          ],
+        }),
+      ),
+    ],
+    [
+      "unsorted modes",
+      identityEnvelope(
+        identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["real", "custom"], fields: [] }] }),
+      ),
+    ],
+    [
+      "unknown mode",
+      identityEnvelope(identitySurfacesDescribeResult({ surfaces: [{ id: "ports", modes: ["derived"], fields: [] }] })),
+    ],
+    [
+      "unknown field key",
+      identityEnvelope(
+        identitySurfacesDescribeResult({
+          surfaces: [
+            {
+              id: "ports",
+              modes: ["real"],
+              fields: [{ name: "allowedPorts", type: "list", maxItems: 50, required: true, help: "Ports" }],
+            },
+          ],
+        }),
+      ),
+    ],
+    [
+      "unknown field type",
+      identityEnvelope(
+        identitySurfacesDescribeResult({
+          surfaces: [
+            {
+              id: "ports",
+              modes: ["real"],
+              fields: [{ name: "allowedPorts", type: "portlist", maxItems: 50, required: true }],
+            },
+          ],
+        }),
+      ),
+    ],
+    [
+      "inverted field bounds",
+      identityEnvelope(
+        identitySurfacesDescribeResult({
+          surfaces: [
+            {
+              id: "geolocation",
+              modes: ["real"],
+              fields: [{ name: "latitude", type: "number", min: 90, max: -90, required: true }],
+            },
+          ],
+        }),
+      ),
+    ],
+    [
+      "repeated field name",
+      identityEnvelope(
+        identitySurfacesDescribeResult({
+          surfaces: [
+            {
+              id: "geolocation",
+              modes: ["real"],
+              fields: [
+                { name: "latitude", type: "number", min: -90, max: 90, required: true },
+                { name: "latitude", type: "number", min: -90, max: 90, required: true },
+              ],
+            },
+          ],
+        }),
+      ),
+    ],
     ["empty surface list", identityEnvelope(identitySurfacesDescribeResult({ surfaces: [] }))],
   ])("maps malformed identity surface descriptions to protocol errors: %s", async (_caseName, envelope) => {
     mockInvoke.mockResolvedValueOnce(envelope);
@@ -2279,7 +2985,12 @@ describe("sidecar client", () => {
   });
 
   it("imports selected legacy profiles through the fixed Tauri command and validates outcome variants", async () => {
-    const success = legacyOutcome({ legacyId: "legacy-success", targetName: "Imported Success", status: "success", copyStatus: "copied" });
+    const success = legacyOutcome({
+      legacyId: "legacy-success",
+      targetName: "Imported Success",
+      status: "success",
+      copyStatus: "copied",
+    });
     const partial = legacyOutcome({
       legacyId: "legacy-partial",
       targetName: "Imported Partial",
@@ -2323,14 +3034,53 @@ describe("sidecar client", () => {
   });
 
   it.each([
-    ["missing candidate legacyId", legacyEnvelope(legacyScanResult({ candidates: [legacyCandidate({ legacyId: "" })] })), () => scanLegacyProfiles("/legacy")],
-    ["invalid candidate user-data status", legacyEnvelope(legacyScanResult({ candidates: [legacyCandidate({ userData: { status: "unknown" } })] })), () => scanLegacyProfiles("/legacy")],
-    ["non-array import items", legacyEnvelope(legacyImportResult({ outcomes: {} })), () => importLegacyProfiles("/legacy", [])],
-    ["unknown outcome status", legacyEnvelope(legacyImportResult({ outcomes: [legacyOutcome({ status: "done" })] })), () => importLegacyProfiles("/legacy", [])],
-    ["unknown copy status", legacyEnvelope(legacyImportResult({ outcomes: [legacyOutcome({ copyStatus: "linked" })] })), () => importLegacyProfiles("/legacy", [])],
-    ["missing outcome error detailRef", legacyEnvelope(legacyImportResult({ outcomes: [legacyOutcome({ status: "failed", copyStatus: "skipped", profileId: undefined, error: legacyError({ detailRef: undefined }) })] })), () => importLegacyProfiles("/legacy", [])],
+    [
+      "missing candidate legacyId",
+      legacyEnvelope(legacyScanResult({ candidates: [legacyCandidate({ legacyId: "" })] })),
+      () => scanLegacyProfiles("/legacy"),
+    ],
+    [
+      "invalid candidate user-data status",
+      legacyEnvelope(legacyScanResult({ candidates: [legacyCandidate({ userData: { status: "unknown" } })] })),
+      () => scanLegacyProfiles("/legacy"),
+    ],
+    [
+      "non-array import items",
+      legacyEnvelope(legacyImportResult({ outcomes: {} })),
+      () => importLegacyProfiles("/legacy", []),
+    ],
+    [
+      "unknown outcome status",
+      legacyEnvelope(legacyImportResult({ outcomes: [legacyOutcome({ status: "done" })] })),
+      () => importLegacyProfiles("/legacy", []),
+    ],
+    [
+      "unknown copy status",
+      legacyEnvelope(legacyImportResult({ outcomes: [legacyOutcome({ copyStatus: "linked" })] })),
+      () => importLegacyProfiles("/legacy", []),
+    ],
+    [
+      "missing outcome error detailRef",
+      legacyEnvelope(
+        legacyImportResult({
+          outcomes: [
+            legacyOutcome({
+              status: "failed",
+              copyStatus: "skipped",
+              profileId: undefined,
+              error: legacyError({ detailRef: undefined }),
+            }),
+          ],
+        }),
+      ),
+      () => importLegacyProfiles("/legacy", []),
+    ],
     ["legacy count mismatch", legacyEnvelope(legacyScanResult({ count: 2 })), () => scanLegacyProfiles("/legacy")],
-    ["unknown protocol version", legacyEnvelope(legacyScanResult(), { protocolVersion: "9.9.9" }), () => scanLegacyProfiles("/legacy")],
+    [
+      "unknown protocol version",
+      legacyEnvelope(legacyScanResult(), { protocolVersion: "9.9.9" }),
+      () => scanLegacyProfiles("/legacy"),
+    ],
   ])("maps malformed legacy payloads to protocol errors: %s", async (_caseName, envelope, callClient) => {
     mockInvoke.mockResolvedValueOnce(envelope);
 
@@ -2366,9 +3116,7 @@ describe("sidecar client", () => {
   });
 
   it("parses safe automation API running and stopped lifecycle snapshots", async () => {
-    mockInvoke
-      .mockResolvedValueOnce(automationApiStatus())
-      .mockResolvedValueOnce(automationApiStopped());
+    mockInvoke.mockResolvedValueOnce(automationApiStatus()).mockResolvedValueOnce(automationApiStopped());
 
     const running = await getAutomationApiStatus();
     const stopped = await getAutomationApiStatus();
@@ -2433,12 +3181,28 @@ describe("sidecar client", () => {
     ["unknown lifecycle phase", automationApiStatus({ status: "starting" })],
     ["running flag mismatch", automationApiStatus({ running: false })],
     ["missing running endpoint", automationApiStatus({ api: undefined })],
-    ["non-loopback URL", automationApiStatus({ api: { host: "127.0.0.1", port: 43123, url: "http://198.51.100.1:43123", scope: "loopback" } })],
+    [
+      "non-loopback URL",
+      automationApiStatus({
+        api: { host: "127.0.0.1", port: 43123, url: "http://198.51.100.1:43123", scope: "loopback" },
+      }),
+    ],
     ["unsafe token field", automationApiStatus({ token: "tpapi-sentinel-token-should-not-render" })],
     ["unsafe store root field", automationApiStatus({ storeRoot: "/tmp/theprivator-app-data-root-should-not-leak" })],
-    ["unsafe debug endpoint field", automationApiStatus({ webSocketDebuggerUrl: "ws://127.0.0.1:9222/devtools/browser" })],
-    ["missing last error detailRef", automationApiStopped({ lastError: automationApiLastError({ detailRef: undefined }) })],
-    ["token in last error text", automationApiStopped({ lastError: automationApiLastError({ message: "tpapi-sentinel-token-should-not-render" }) })],
+    [
+      "unsafe debug endpoint field",
+      automationApiStatus({ webSocketDebuggerUrl: "ws://127.0.0.1:9222/devtools/browser" }),
+    ],
+    [
+      "missing last error detailRef",
+      automationApiStopped({ lastError: automationApiLastError({ detailRef: undefined }) }),
+    ],
+    [
+      "token in last error text",
+      automationApiStopped({
+        lastError: automationApiLastError({ message: "tpapi-sentinel-token-should-not-render" }),
+      }),
+    ],
   ])("rejects malformed or unsafe automation API payloads: %s", async (_caseName, payload) => {
     mockInvoke.mockResolvedValueOnce(payload);
 
@@ -2452,7 +3216,10 @@ describe("sidecar client", () => {
   });
 
   it.each([
-    ["extra copy-token field", automationApiTokenCopy(undefined, { storeRoot: "/tmp/theprivator-app-data-root-should-not-leak" })],
+    [
+      "extra copy-token field",
+      automationApiTokenCopy(undefined, { storeRoot: "/tmp/theprivator-app-data-root-should-not-leak" }),
+    ],
     ["malformed token", automationApiTokenCopy("not-a-valid-local-token")],
   ])("rejects malformed automation API token-copy responses: %s", async (_caseName, payload) => {
     mockInvoke.mockResolvedValueOnce(payload);
@@ -2523,18 +3290,60 @@ describe("sidecar client", () => {
   });
 
   it.each([
-    ["empty profile id", chromiumEnvelope(chromiumStatusResult({ profiles: [chromiumRunningProfile({ profileId: "" })] })), getChromiumStatus],
-    ["malformed pid", chromiumEnvelope({ ...chromiumRunningProfile({ pid: "4242" }), runningCount: 1 }), () => launchChromiumProfile("11111111-1111-1111-1111-111111111111")],
-    ["non-positive pid", chromiumEnvelope({ ...chromiumRunningProfile({ pid: 0 }), runningCount: 1 }), () => launchChromiumProfile("11111111-1111-1111-1111-111111111111")],
-    ["bad started timestamp", chromiumEnvelope({ ...chromiumRunningProfile({ startedAt: "2026-05-04 18:05" }), runningCount: 1 }), () => launchChromiumProfile("11111111-1111-1111-1111-111111111111")],
-    ["unknown running status", chromiumEnvelope(chromiumStatusResult({ profiles: [chromiumRunningProfile({ status: "starting" })] })), getChromiumStatus],
-    ["unknown termination", chromiumEnvelope({ ...chromiumStoppedProfile({ termination: "sigterm" }), runningCount: 0 }), () => stopChromiumProfile("11111111-1111-1111-1111-111111111111")],
-    ["absolute userDataDir", chromiumEnvelope(chromiumStatusResult({ profiles: [chromiumRunningProfile({ userDataDir: "/tmp/profile/user-data" })] })), getChromiumStatus],
+    [
+      "empty profile id",
+      chromiumEnvelope(chromiumStatusResult({ profiles: [chromiumRunningProfile({ profileId: "" })] })),
+      getChromiumStatus,
+    ],
+    [
+      "malformed pid",
+      chromiumEnvelope({ ...chromiumRunningProfile({ pid: "4242" }), runningCount: 1 }),
+      () => launchChromiumProfile("11111111-1111-1111-1111-111111111111"),
+    ],
+    [
+      "non-positive pid",
+      chromiumEnvelope({ ...chromiumRunningProfile({ pid: 0 }), runningCount: 1 }),
+      () => launchChromiumProfile("11111111-1111-1111-1111-111111111111"),
+    ],
+    [
+      "bad started timestamp",
+      chromiumEnvelope({ ...chromiumRunningProfile({ startedAt: "2026-05-04 18:05" }), runningCount: 1 }),
+      () => launchChromiumProfile("11111111-1111-1111-1111-111111111111"),
+    ],
+    [
+      "unknown running status",
+      chromiumEnvelope(chromiumStatusResult({ profiles: [chromiumRunningProfile({ status: "starting" })] })),
+      getChromiumStatus,
+    ],
+    [
+      "unknown termination",
+      chromiumEnvelope({ ...chromiumStoppedProfile({ termination: "sigterm" }), runningCount: 0 }),
+      () => stopChromiumProfile("11111111-1111-1111-1111-111111111111"),
+    ],
+    [
+      "absolute userDataDir",
+      chromiumEnvelope(
+        chromiumStatusResult({ profiles: [chromiumRunningProfile({ userDataDir: "/tmp/profile/user-data" })] }),
+      ),
+      getChromiumStatus,
+    ],
     ["missing running count", chromiumEnvelope({ profiles: [], reconciled: [] }), getChromiumStatus],
-    ["launch running count zero", chromiumEnvelope({ ...chromiumRunningProfile(), runningCount: 0 }), () => launchChromiumProfile("11111111-1111-1111-1111-111111111111")],
+    [
+      "launch running count zero",
+      chromiumEnvelope({ ...chromiumRunningProfile(), runningCount: 0 }),
+      () => launchChromiumProfile("11111111-1111-1111-1111-111111111111"),
+    ],
     ["non-array running profiles", chromiumEnvelope(chromiumStatusResult({ profiles: {} })), getChromiumStatus],
-    ["non-array reconciled profiles", chromiumEnvelope(chromiumStatusResult({ profiles: [], reconciled: {} })), getChromiumStatus],
-    ["running count mismatch", chromiumEnvelope(chromiumStatusResult({ profiles: [chromiumRunningProfile()], runningCount: 2 })), getChromiumStatus],
+    [
+      "non-array reconciled profiles",
+      chromiumEnvelope(chromiumStatusResult({ profiles: [], reconciled: {} })),
+      getChromiumStatus,
+    ],
+    [
+      "running count mismatch",
+      chromiumEnvelope(chromiumStatusResult({ profiles: [chromiumRunningProfile()], runningCount: 2 })),
+      getChromiumStatus,
+    ],
   ])("maps malformed Chromium runtime payloads to protocol errors: %s", async (_caseName, envelope, callClient) => {
     mockInvoke.mockResolvedValueOnce(envelope);
 
@@ -2549,7 +3358,11 @@ describe("sidecar client", () => {
 
   it.each([
     ["CHROMIUM_EXECUTABLE_NOT_FOUND", "Chromium executable was not found.", () => launchChromiumProfile("profile-id")],
-    ["CHROMIUM_ALREADY_RUNNING", "Chromium is already running for this profile.", () => launchChromiumProfile("profile-id")],
+    [
+      "CHROMIUM_ALREADY_RUNNING",
+      "Chromium is already running for this profile.",
+      () => launchChromiumProfile("profile-id"),
+    ],
     ["CHROMIUM_STOP_FAILED", "Chromium process could not be stopped.", () => stopChromiumProfile("profile-id")],
     ["PROFILE_NOT_FOUND", "Profile not found.", () => launchChromiumProfile("missing-profile")],
   ])("preserves typed recoverable Chromium lifecycle errors: %s", async (code, message, callClient) => {
@@ -2614,7 +3427,9 @@ describe("sidecar client", () => {
     expect(snapshot.pages).toHaveLength(9);
     expect(snapshot.pages.map((page) => page.id)).toContain("cover-your-tracks");
     expect(snapshot.pages.find((page) => page.id === "cover-your-tracks")?.requiresUserAction).toBe(true);
-    expect(JSON.stringify(snapshot)).not.toMatch(/targetId|debugPort|webSocketDebuggerUrl|storeRoot|extensionDir|DevToolsActivePort|ws:\/\//i);
+    expect(JSON.stringify(snapshot)).not.toMatch(
+      /targetId|debugPort|webSocketDebuggerUrl|storeRoot|extensionDir|DevToolsActivePort|ws:\/\//i,
+    );
   });
 
   it("opens an audit catalog page through safe profile/page identifiers only", async () => {
@@ -2644,7 +3459,9 @@ describe("sidecar client", () => {
     });
     expect(launched.launched).toBe(true);
     expect(existing.page.url).toBe("https://browserleaks.com/webgl");
-    expect(JSON.stringify(existing)).not.toMatch(/pid|userDataDir|targetId|debugPort|webSocketDebuggerUrl|storeRoot|command|extensionDir|ws:\/\//i);
+    expect(JSON.stringify(existing)).not.toMatch(
+      /pid|userDataDir|targetId|debugPort|webSocketDebuggerUrl|storeRoot|command|extensionDir|ws:\/\//i,
+    );
   });
 
   it("collects bounded audit website results through a safe profile identifier only", async () => {
@@ -2663,57 +3480,106 @@ describe("sidecar client", () => {
     expect(snapshot.pages).toHaveLength(9);
     expect(snapshot.pages.find((page) => page.id === "cover-your-tracks")?.status).toBe("needs-user-action");
     expect(snapshot.pages[0]!.extractedRows[0]).toMatchObject({ label: "Observed", value: "Public checker value" });
-    expect(JSON.stringify(snapshot)).not.toMatch(/pid|userDataDir|targetId|debugPort|webSocketDebuggerUrl|storeRoot|command|extensionDir|ws:\/\//i);
+    expect(JSON.stringify(snapshot)).not.toMatch(
+      /pid|userDataDir|targetId|debugPort|webSocketDebuggerUrl|storeRoot|command|extensionDir|ws:\/\//i,
+    );
   });
 
   it.each([
     ["empty profile id", null, () => getIdentityAuditPlan(" ")],
     ["empty collect profile id", null, () => collectIdentityAuditResults(" ")],
     ["empty page id", null, () => openIdentityAuditPage(AUDIT_PROFILE_ID, "")],
-    ["mismatched open profile id", () => auditEnvelope(auditOpenResult({ profileId: "22222222-2222-2222-2222-222222222222" })), () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
-    ["mismatched open page id", () => auditEnvelope(auditOpenResult({ pageId: "browserleaks-canvas" })), () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
-    ["plan page count mismatch", () => auditEnvelope(auditPlanResult({ pages: (auditPlanResult().pages as unknown[]).slice(0, 8) })), () => getIdentityAuditPlan(AUDIT_PROFILE_ID)],
-    ["duplicate catalog ids", () => {
-      const plan = cloneJson(auditPlanResult()) as unknown as { pages: Array<Record<string, unknown>> };
-      plan.pages[1]!.id = plan.pages[0]!.id;
-      return auditEnvelope(plan);
-    }, () => getIdentityAuditPlan(AUDIT_PROFILE_ID)],
-    ["invalid audit URL protocol", () => {
-      const plan = cloneJson(auditPlanResult()) as unknown as { pages: Array<Record<string, unknown>> };
-      plan.pages[3]!.url = "http://browserleaks.com/webgl";
-      return auditEnvelope(plan);
-    }, () => getIdentityAuditPlan(AUDIT_PROFILE_ID)],
-    ["unknown audit page field", () => auditEnvelope(auditOpenResult({ targetId: "page-target" })), () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
-    ["unknown audit result field", () => auditEnvelope(auditCollectResult({ targetId: "page-target" })), () => collectIdentityAuditResults(AUDIT_PROFILE_ID)],
-    ["mismatched collect profile id", () => auditEnvelope(auditCollectResult({ profileId: "22222222-2222-2222-2222-222222222222" })), () => collectIdentityAuditResults(AUDIT_PROFILE_ID)],
-    ["unsafe audit result string", () => {
-      const result = cloneJson(auditCollectResult()) as unknown as { pages: Array<{ summary: string }> };
-      result.pages[0]!.summary = "Open ws://127.0.0.1:9222/json for details.";
-      return auditEnvelope(result);
-    }, () => collectIdentityAuditResults(AUDIT_PROFILE_ID)],
-    ["unsafe audit guidance string", () => {
-      const result = cloneJson(auditOpenResult()) as { page: { expectedRows: Array<Record<string, unknown>> } };
-      result.page.expectedRows[0]!.guidance = "Open ws://127.0.0.1:9222/json for details.";
-      return auditEnvelope(result);
-    }, () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
-    ["negative running count", () => auditEnvelope(auditOpenResult({ runningCount: -1 })), () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
-  ] as Array<[string, null | (() => unknown), () => Promise<unknown>]>)("maps malformed audit payloads to protocol errors: %s", async (_caseName, envelopeFactory, callClient) => {
-    if (envelopeFactory) {
-      mockInvoke.mockResolvedValueOnce(envelopeFactory());
-    }
+    [
+      "mismatched open profile id",
+      () => auditEnvelope(auditOpenResult({ profileId: "22222222-2222-2222-2222-222222222222" })),
+      () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl"),
+    ],
+    [
+      "mismatched open page id",
+      () => auditEnvelope(auditOpenResult({ pageId: "browserleaks-canvas" })),
+      () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl"),
+    ],
+    [
+      "plan page count mismatch",
+      () => auditEnvelope(auditPlanResult({ pages: (auditPlanResult().pages as unknown[]).slice(0, 8) })),
+      () => getIdentityAuditPlan(AUDIT_PROFILE_ID),
+    ],
+    [
+      "duplicate catalog ids",
+      () => {
+        const plan = cloneJson(auditPlanResult()) as unknown as { pages: Array<Record<string, unknown>> };
+        plan.pages[1]!.id = plan.pages[0]!.id;
+        return auditEnvelope(plan);
+      },
+      () => getIdentityAuditPlan(AUDIT_PROFILE_ID),
+    ],
+    [
+      "invalid audit URL protocol",
+      () => {
+        const plan = cloneJson(auditPlanResult()) as unknown as { pages: Array<Record<string, unknown>> };
+        plan.pages[3]!.url = "http://browserleaks.com/webgl";
+        return auditEnvelope(plan);
+      },
+      () => getIdentityAuditPlan(AUDIT_PROFILE_ID),
+    ],
+    [
+      "unknown audit page field",
+      () => auditEnvelope(auditOpenResult({ targetId: "page-target" })),
+      () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl"),
+    ],
+    [
+      "unknown audit result field",
+      () => auditEnvelope(auditCollectResult({ targetId: "page-target" })),
+      () => collectIdentityAuditResults(AUDIT_PROFILE_ID),
+    ],
+    [
+      "mismatched collect profile id",
+      () => auditEnvelope(auditCollectResult({ profileId: "22222222-2222-2222-2222-222222222222" })),
+      () => collectIdentityAuditResults(AUDIT_PROFILE_ID),
+    ],
+    [
+      "unsafe audit result string",
+      () => {
+        const result = cloneJson(auditCollectResult()) as unknown as { pages: Array<{ summary: string }> };
+        result.pages[0]!.summary = "Open ws://127.0.0.1:9222/json for details.";
+        return auditEnvelope(result);
+      },
+      () => collectIdentityAuditResults(AUDIT_PROFILE_ID),
+    ],
+    [
+      "unsafe audit guidance string",
+      () => {
+        const result = cloneJson(auditOpenResult()) as { page: { expectedRows: Array<Record<string, unknown>> } };
+        result.page.expectedRows[0]!.guidance = "Open ws://127.0.0.1:9222/json for details.";
+        return auditEnvelope(result);
+      },
+      () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl"),
+    ],
+    [
+      "negative running count",
+      () => auditEnvelope(auditOpenResult({ runningCount: -1 })),
+      () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl"),
+    ],
+  ] as Array<[string, null | (() => unknown), () => Promise<unknown>]>)(
+    "maps malformed audit payloads to protocol errors: %s",
+    async (_caseName, envelopeFactory, callClient) => {
+      if (envelopeFactory) {
+        mockInvoke.mockResolvedValueOnce(envelopeFactory());
+      }
 
-    await expect(callClient()).rejects.toMatchObject({
-      code: SIDECAR_PROTOCOL_ERROR,
-      recoverable: true,
-      source: "protocol",
-      phase: "bridge-error",
-      detailRef: expect.stringMatching(/^ui-protocol-/),
-    });
+      await expect(callClient()).rejects.toMatchObject({
+        code: SIDECAR_PROTOCOL_ERROR,
+        recoverable: true,
+        source: "protocol",
+        phase: "bridge-error",
+        detailRef: expect.stringMatching(/^ui-protocol-/),
+      });
 
-    if (!envelopeFactory) {
-      expect(mockInvoke).not.toHaveBeenCalled();
-    }
-  });
+      if (!envelopeFactory) {
+        expect(mockInvoke).not.toHaveBeenCalled();
+      }
+    },
+  );
 
   it.each(["targetId", "debugPort", "webSocketDebuggerUrl", "storeRoot", "command", "extensionDir"])(
     "rejects forbidden raw audit runtime field %s before UI state sees it",
@@ -2769,33 +3635,218 @@ describe("sidecar client", () => {
     ["missing defaults", profileEnvelope(profileResult({ profiles: [profileRecord({ defaults: undefined })] }))],
     ["missing identity", profileEnvelope(profileResult({ profiles: [profileRecord({ identity: undefined })] }))],
     ["missing proxy", profileEnvelope(profileResult({ profiles: [profileRecord({ proxy: undefined })] }))],
-    ["invalid proxy credential state", profileEnvelope(profileResult({ profiles: [profileRecord({ proxy: fixedProxySummary({ credentialState: "visible" }) })] }))],
-    ["proxy defaults mismatch", profileEnvelope(profileResult({ profiles: [profileRecord({ proxy: fixedProxySummary(), defaults: { browser: "chromium", startUrl: "about:blank", proxyMode: "direct", fingerprintMode: "disabled" } })] }))],
-    ["proxy summary mismatch", profileEnvelope(profileResult({ profiles: [profileRecord({ proxy: fixedProxySummary({ summary: "http://user:pass@proxy.example:8080" }) })] }))],
-    ["unknown identity surface mode", profileEnvelope(profileResult({ profiles: [profileRecord({ identity: defaultIdentity({ browser: { mode: "private" } }) })] }))],
-    ["invalid language array", profileEnvelope(profileResult({ profiles: [profileRecord({ identity: presetIdentity({ locale: { mode: "masked", locale: "en-US", languages: ["not a tag"], timezoneId: "America/New_York" } }) })] }))],
-    ["invalid noise seed", profileEnvelope(profileResult({ profiles: [profileRecord({ identity: presetIdentity({ canvas: { mode: "noise", noiseSeed: 1000001 } }) })] }))],
+    [
+      "invalid proxy credential state",
+      profileEnvelope(
+        profileResult({ profiles: [profileRecord({ proxy: fixedProxySummary({ credentialState: "visible" }) })] }),
+      ),
+    ],
+    [
+      "proxy defaults mismatch",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              proxy: fixedProxySummary(),
+              defaults: {
+                browser: "chromium",
+                startUrl: "about:blank",
+                proxyMode: "direct",
+                fingerprintMode: "disabled",
+              },
+            }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "proxy summary mismatch",
+      profileEnvelope(
+        profileResult({
+          profiles: [profileRecord({ proxy: fixedProxySummary({ summary: "http://user:pass@proxy.example:8080" }) })],
+        }),
+      ),
+    ],
+    [
+      "unknown identity surface mode",
+      profileEnvelope(
+        profileResult({ profiles: [profileRecord({ identity: defaultIdentity({ browser: { mode: "private" } }) })] }),
+      ),
+    ],
+    [
+      "invalid language array",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              identity: presetIdentity({
+                locale: { mode: "masked", locale: "en-US", languages: ["not a tag"], timezoneId: "America/New_York" },
+              }),
+            }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "invalid noise seed",
+      profileEnvelope(
+        profileResult({
+          profiles: [profileRecord({ identity: presetIdentity({ canvas: { mode: "noise", noiseSeed: 1000001 } }) })],
+        }),
+      ),
+    ],
     ["missing relative storage fields", profileEnvelope(profileResult({ profiles: [profileRecord({ storage: {} })] }))],
-    ["absolute storage path", profileEnvelope(profileResult({ profiles: [profileRecord({ storage: { profileDir: "/tmp/profile", userDataDir: "/tmp/profile/user-data" } })] }))],
+    [
+      "absolute storage path",
+      profileEnvelope(
+        profileResult({
+          profiles: [profileRecord({ storage: { profileDir: "/tmp/profile", userDataDir: "/tmp/profile/user-data" } })],
+        }),
+      ),
+    ],
     ["non-number count", profileEnvelope(profileResult({ count: "one" }))],
     ["non-string timestamp", profileEnvelope(profileResult({ profiles: [profileRecord({ createdAt: 42 })] }))],
-    ["missing organization", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: undefined })] }))],
+    [
+      "missing organization",
+      profileEnvelope(profileResult({ profiles: [profileRecord({ organization: undefined })] })),
+    ],
     ["missing launch", profileEnvelope(profileResult({ profiles: [profileRecord({ launch: undefined })] }))],
     ["missing lifecycle", profileEnvelope(profileResult({ profiles: [profileRecord({ lifecycle: undefined })] }))],
     ["missing sync", profileEnvelope(profileResult({ profiles: [profileRecord({ sync: undefined })] }))],
-    ["unknown organization field", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: { ...profileOrganization(), archived: true } })] }))],
-    ["too many organization tags", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: profileOrganization({ tags: Array.from({ length: 11 }, (_item, index) => `tag-${index}`) }) })] }))],
-    ["organization tag outside the tag character set", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: profileOrganization({ tags: ["ops/prod"] }) })] }))],
-    ["organization tag beyond the length bound", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: profileOrganization({ tags: ["t".repeat(33)] }) })] }))],
-    ["organization notes beyond the length bound", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: profileOrganization({ notes: "n".repeat(1501) }) })] }))],
-    ["organization notes containing a control character", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: profileOrganization({ notes: "Rotate the key\u0007then restart." }) })] }))],
-    ["organization color outside the hex form", profileEnvelope(profileResult({ profiles: [profileRecord({ organization: profileOrganization({ color: "#12345" }) })] }))],
-    ["start URL with a non-http scheme", profileEnvelope(profileResult({ profiles: [profileRecord({ launch: profileLaunch({ startUrls: ["file:///etc/passwd"] }) })] }))],
-    ["too many start URLs", profileEnvelope(profileResult({ profiles: [profileRecord({ launch: profileLaunch({ startUrls: Array.from({ length: 11 }, (_item, index) => `https://example.com/${index}`) }) })] }))],
-    ["launch argument that is not a switch", profileEnvelope(profileResult({ profiles: [profileRecord({ launch: profileLaunch({ args: ["--disable-features=Translate", "https://example.com/"] }) })] }))],
-    ["too many launch arguments", profileEnvelope(profileResult({ profiles: [profileRecord({ launch: profileLaunch({ args: Array.from({ length: 21 }, (_item, index) => `--flag-${index}`) }) })] }))],
-    ["defaults start URL disagreeing with the launch block", profileEnvelope(profileResult({ profiles: [profileRecord({ launch: profileLaunch({ startUrls: ["https://example.com/start"] }), defaults: { browser: "chromium", startUrl: "about:blank", proxyMode: "direct", fingerprintMode: "disabled" } })] }))],
-    ["defaults fingerprint mode disagreeing with the identity surfaces", profileEnvelope(profileResult({ profiles: [profileRecord({ identity: presetIdentity(), defaults: { browser: "chromium", startUrl: "about:blank", proxyMode: "direct", fingerprintMode: "disabled" } })] }))],
+    [
+      "unknown organization field",
+      profileEnvelope(
+        profileResult({ profiles: [profileRecord({ organization: { ...profileOrganization(), archived: true } })] }),
+      ),
+    ],
+    [
+      "too many organization tags",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              organization: profileOrganization({ tags: Array.from({ length: 11 }, (_item, index) => `tag-${index}`) }),
+            }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "organization tag outside the tag character set",
+      profileEnvelope(
+        profileResult({ profiles: [profileRecord({ organization: profileOrganization({ tags: ["ops/prod"] }) })] }),
+      ),
+    ],
+    [
+      "organization tag beyond the length bound",
+      profileEnvelope(
+        profileResult({ profiles: [profileRecord({ organization: profileOrganization({ tags: ["t".repeat(33)] }) })] }),
+      ),
+    ],
+    [
+      "organization notes beyond the length bound",
+      profileEnvelope(
+        profileResult({
+          profiles: [profileRecord({ organization: profileOrganization({ notes: "n".repeat(1501) }) })],
+        }),
+      ),
+    ],
+    [
+      "organization notes containing a control character",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({ organization: profileOrganization({ notes: "Rotate the key\u0007then restart." }) }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "organization color outside the hex form",
+      profileEnvelope(
+        profileResult({ profiles: [profileRecord({ organization: profileOrganization({ color: "#12345" }) })] }),
+      ),
+    ],
+    [
+      "start URL with a non-http scheme",
+      profileEnvelope(
+        profileResult({ profiles: [profileRecord({ launch: profileLaunch({ startUrls: ["file:///etc/passwd"] }) })] }),
+      ),
+    ],
+    [
+      "too many start URLs",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              launch: profileLaunch({
+                startUrls: Array.from({ length: 11 }, (_item, index) => `https://example.com/${index}`),
+              }),
+            }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "launch argument that is not a switch",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              launch: profileLaunch({ args: ["--disable-features=Translate", "https://example.com/"] }),
+            }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "too many launch arguments",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              launch: profileLaunch({ args: Array.from({ length: 21 }, (_item, index) => `--flag-${index}`) }),
+            }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "defaults start URL disagreeing with the launch block",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              launch: profileLaunch({ startUrls: ["https://example.com/start"] }),
+              defaults: {
+                browser: "chromium",
+                startUrl: "about:blank",
+                proxyMode: "direct",
+                fingerprintMode: "disabled",
+              },
+            }),
+          ],
+        }),
+      ),
+    ],
+    [
+      "defaults fingerprint mode disagreeing with the identity surfaces",
+      profileEnvelope(
+        profileResult({
+          profiles: [
+            profileRecord({
+              identity: presetIdentity(),
+              defaults: {
+                browser: "chromium",
+                startUrl: "about:blank",
+                proxyMode: "direct",
+                fingerprintMode: "disabled",
+              },
+            }),
+          ],
+        }),
+      ),
+    ],
   ])("maps malformed profile payloads to protocol errors: %s", async (_caseName, envelope) => {
     mockInvoke.mockResolvedValueOnce(envelope);
 
@@ -2821,7 +3872,10 @@ describe("sidecar client", () => {
     "command",
     "executablePath",
   ])("rejects forbidden raw proxy/profile leak field %s before UI state sees it", async (field) => {
-    const unsafeValue = field === "argv" || field === "args" ? ["--proxy-server=http://user:pass@proxy.example:8080"] : "unsafe-runtime-or-secret-detail";
+    const unsafeValue =
+      field === "argv" || field === "args"
+        ? ["--proxy-server=http://user:pass@proxy.example:8080"]
+        : "unsafe-runtime-or-secret-detail";
     const profile = profileRecord({ proxy: { ...fixedProxySummary(), [field]: unsafeValue } });
     mockInvoke.mockResolvedValueOnce(profileEnvelope(profileResult({ profiles: [profile] })));
 
@@ -2847,11 +3901,42 @@ describe("sidecar client", () => {
   });
 
   it.each([
-    ["proxy validation leaked credentials", proxyEnvelope(proxyValidationResult({ proxy: { ...fixedProxySummary(), credentials: { username: "raw-user", password: "raw-pass" } } })), () => validateProxy(directProxyDraft())],
-    ["proxy validation invalid credentialState", proxyEnvelope(proxyValidationResult({ proxy: fixedProxySummary({ credentialState: "raw" }) })), () => validateProxy(directProxyDraft())],
-    ["proxy validation non-empty warnings", proxyEnvelope(proxyValidationResult({ warnings: [{ code: "PROXY_WARNING" }] })), () => validateProxy(directProxyDraft())],
-    ["proxy update result profile absent from refreshed list", profileEnvelope(profileResult({ profile: profileRecord({ proxy: fixedProxySummary() }), profiles: [profileRecord()] })), () => updateProfileProxy("11111111-1111-1111-1111-111111111111", fixedProxyDraft())],
-    ["proxy update result profile id mismatch", profileEnvelope(profileResult({ profile: profileRecord({ id: "22222222-2222-2222-2222-222222222222", proxy: fixedProxySummary() }), profiles: [profileRecord({ id: "22222222-2222-2222-2222-222222222222", proxy: fixedProxySummary() })] })), () => updateProfileProxy("11111111-1111-1111-1111-111111111111", fixedProxyDraft())],
+    [
+      "proxy validation leaked credentials",
+      proxyEnvelope(
+        proxyValidationResult({
+          proxy: { ...fixedProxySummary(), credentials: { username: "raw-user", password: "raw-pass" } },
+        }),
+      ),
+      () => validateProxy(directProxyDraft()),
+    ],
+    [
+      "proxy validation invalid credentialState",
+      proxyEnvelope(proxyValidationResult({ proxy: fixedProxySummary({ credentialState: "raw" }) })),
+      () => validateProxy(directProxyDraft()),
+    ],
+    [
+      "proxy validation non-empty warnings",
+      proxyEnvelope(proxyValidationResult({ warnings: [{ code: "PROXY_WARNING" }] })),
+      () => validateProxy(directProxyDraft()),
+    ],
+    [
+      "proxy update result profile absent from refreshed list",
+      profileEnvelope(
+        profileResult({ profile: profileRecord({ proxy: fixedProxySummary() }), profiles: [profileRecord()] }),
+      ),
+      () => updateProfileProxy("11111111-1111-1111-1111-111111111111", fixedProxyDraft()),
+    ],
+    [
+      "proxy update result profile id mismatch",
+      profileEnvelope(
+        profileResult({
+          profile: profileRecord({ id: "22222222-2222-2222-2222-222222222222", proxy: fixedProxySummary() }),
+          profiles: [profileRecord({ id: "22222222-2222-2222-2222-222222222222", proxy: fixedProxySummary() })],
+        }),
+      ),
+      () => updateProfileProxy("11111111-1111-1111-1111-111111111111", fixedProxyDraft()),
+    ],
   ])("maps malformed proxy payloads to protocol errors: %s", async (_caseName, envelope, callClient) => {
     mockInvoke.mockResolvedValueOnce(envelope);
 
@@ -2866,7 +3951,11 @@ describe("sidecar client", () => {
 
   it.each([
     ["PROXY_INVALID", "Proxy configuration must be an object.", () => validateProxy(directProxyDraft())],
-    ["PROXY_PAC_UNSUPPORTED", "PAC proxy configuration is not supported.", () => updateProfileProxy("profile-id", directProxyDraft())],
+    [
+      "PROXY_PAC_UNSUPPORTED",
+      "PAC proxy configuration is not supported.",
+      () => updateProfileProxy("profile-id", directProxyDraft()),
+    ],
   ])("preserves typed recoverable proxy errors: %s", async (code, message, callClient) => {
     mockInvoke.mockRejectedValueOnce({
       code,
@@ -2893,26 +3982,44 @@ describe("sidecar client", () => {
     ],
     [
       "warning missing code",
-      identityEnvelope({ identityVersion: 2, identity: suspiciousIdentity(), warnings: [identityWarning({ code: undefined })] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: suspiciousIdentity(),
+        warnings: [identityWarning({ code: undefined })],
+      }),
       () => validateIdentity(suspiciousIdentity()),
     ],
     [
       "warning missing surface",
-      profileEnvelope(profileResult({ profile: profileRecord(), profiles: [profileRecord()], warnings: [identityWarning({ surface: undefined })] })),
+      profileEnvelope(
+        profileResult({
+          profile: profileRecord(),
+          profiles: [profileRecord()],
+          warnings: [identityWarning({ surface: undefined })],
+        }),
+      ),
       () => updateProfileIdentity("11111111-1111-1111-1111-111111111111", defaultIdentity()),
     ],
     [
       "warning missing message",
-      profileEnvelope(profileResult({ profile: profileRecord(), profiles: [profileRecord()], warnings: [identityWarning({ message: undefined })] })),
+      profileEnvelope(
+        profileResult({
+          profile: profileRecord(),
+          profiles: [profileRecord()],
+          warnings: [identityWarning({ message: undefined })],
+        }),
+      ),
       () => updateProfileIdentity("11111111-1111-1111-1111-111111111111", defaultIdentity()),
     ],
     [
       "apply preset response presetId mismatch",
-      profileEnvelope(profileResult({
-        profile: profileRecord({ identity: presetIdentity({ presetId: "ubuntu-linux-chrome-120" }) }),
-        profiles: [profileRecord({ identity: presetIdentity({ presetId: "ubuntu-linux-chrome-120" }) })],
-        warnings: [],
-      })),
+      profileEnvelope(
+        profileResult({
+          profile: profileRecord({ identity: presetIdentity({ presetId: "ubuntu-linux-chrome-120" }) }),
+          profiles: [profileRecord({ identity: presetIdentity({ presetId: "ubuntu-linux-chrome-120" }) })],
+          warnings: [],
+        }),
+      ),
       () => applyProfileIdentityPreset("11111111-1111-1111-1111-111111111111", "windows-10-chrome-120"),
     ],
     [
@@ -2937,92 +4044,203 @@ describe("sidecar client", () => {
     ],
     [
       "unknown geolocation field",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ geolocation: { mode: "real", permission: "prompt", heading: 90 } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ geolocation: { mode: "real", permission: "prompt", heading: 90 } }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "unknown media device field",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ mediaDevices: { mode: "real", videoInputs: 1 } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ mediaDevices: { mode: "real", videoInputs: 1 } }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "unknown port field",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ ports: { mode: "real", allowedPorts: [] } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ ports: { mode: "real", allowedPorts: [] } }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "masked geolocation mode",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ geolocation: { mode: "masked", permission: "prompt", latitude: 0, longitude: 0, accuracy: 10, altitude: null } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          geolocation: {
+            mode: "masked",
+            permission: "prompt",
+            latitude: 0,
+            longitude: 0,
+            accuracy: 10,
+            altitude: null,
+          },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "unknown geolocation permission",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ geolocation: { mode: "real", permission: "ask" } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ geolocation: { mode: "real", permission: "ask" } }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "out of range latitude",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ geolocation: { mode: "custom", permission: "allow", latitude: 91, longitude: 0, accuracy: 10, altitude: null } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          geolocation: {
+            mode: "custom",
+            permission: "allow",
+            latitude: 91,
+            longitude: 0,
+            accuracy: 10,
+            altitude: null,
+          },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "out of range longitude",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ geolocation: { mode: "custom", permission: "allow", latitude: 0, longitude: -181, accuracy: 10, altitude: null } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          geolocation: {
+            mode: "custom",
+            permission: "allow",
+            latitude: 0,
+            longitude: -181,
+            accuracy: 10,
+            altitude: null,
+          },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "zero accuracy",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ geolocation: { mode: "custom", permission: "allow", latitude: 0, longitude: 0, accuracy: 0, altitude: null } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          geolocation: { mode: "custom", permission: "allow", latitude: 0, longitude: 0, accuracy: 0, altitude: null },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "missing altitude key",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ geolocation: { mode: "custom", permission: "allow", latitude: 0, longitude: 0, accuracy: 10 } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          geolocation: { mode: "custom", permission: "allow", latitude: 0, longitude: 0, accuracy: 10 },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "media device noise seed in custom mode",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ mediaDevices: { mode: "custom", videoInputs: 1, audioInputs: 2, audioOutputs: 2, noiseSeed: 7 } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          mediaDevices: { mode: "custom", videoInputs: 1, audioInputs: 2, audioOutputs: 2, noiseSeed: 7 },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "too many video inputs",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ mediaDevices: { mode: "custom", videoInputs: 2, audioInputs: 2, audioOutputs: 2 } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          mediaDevices: { mode: "custom", videoInputs: 2, audioInputs: 2, audioOutputs: 2 },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "zero audio inputs",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ mediaDevices: { mode: "custom", videoInputs: 1, audioInputs: 0, audioOutputs: 2 } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          mediaDevices: { mode: "custom", videoInputs: 1, audioInputs: 0, audioOutputs: 2 },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "too many allowed ports",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ ports: { mode: "custom", allowedPorts: Array.from({ length: 51 }, (_item, index) => index + 1) } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({
+          ports: { mode: "custom", allowedPorts: Array.from({ length: 51 }, (_item, index) => index + 1) },
+        }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "duplicated allowed ports",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ ports: { mode: "custom", allowedPorts: [80, 80, 443] } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ ports: { mode: "custom", allowedPorts: [80, 80, 443] } }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "unsorted allowed ports",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ ports: { mode: "custom", allowedPorts: [443, 80] } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ ports: { mode: "custom", allowedPorts: [443, 80] } }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "out of range allowed port",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ ports: { mode: "custom", allowedPorts: [0] } }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ ports: { mode: "custom", allowedPorts: [0] } }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "unknown warning surface",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity(), warnings: [identityWarning({ surface: "unknownSurface", path: "unknownSurface.mode" })] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity(),
+        warnings: [identityWarning({ surface: "unknownSurface", path: "unknownSurface.mode" })],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
     [
       "label beyond the code-point bound",
-      identityEnvelope({ identityVersion: 2, identity: defaultIdentity({ label: `${"a".repeat(128)}🙂` }), warnings: [] }),
+      identityEnvelope({
+        identityVersion: 2,
+        identity: defaultIdentity({ label: `${"a".repeat(128)}🙂` }),
+        warnings: [],
+      }),
       () => validateIdentity(defaultIdentity()),
     ],
   ])("maps malformed identity payloads to protocol errors: %s", async (_caseName, envelope, callClient) => {
@@ -3039,8 +4257,16 @@ describe("sidecar client", () => {
 
   it.each([
     ["IDENTITY_INVALID", "Identity payload must be a JSON object.", () => validateIdentity(defaultIdentity())],
-    ["IDENTITY_PRESET_NOT_FOUND", "Identity preset was not found.", () => applyProfileIdentityPreset("profile-id", "missing-preset")],
-    ["IDENTITY_UNSUPPORTED_MODE", "Identity surface does not support that mode.", () => updateProfileIdentity("profile-id", defaultIdentity())],
+    [
+      "IDENTITY_PRESET_NOT_FOUND",
+      "Identity preset was not found.",
+      () => applyProfileIdentityPreset("profile-id", "missing-preset"),
+    ],
+    [
+      "IDENTITY_UNSUPPORTED_MODE",
+      "Identity surface does not support that mode.",
+      () => updateProfileIdentity("profile-id", defaultIdentity()),
+    ],
   ])("preserves typed recoverable identity errors: %s", async (code, message, callClient) => {
     mockInvoke.mockRejectedValueOnce({
       code,
@@ -3062,7 +4288,11 @@ describe("sidecar client", () => {
   it.each([
     ["PROFILE_INVALID_NAME", "Profile name is invalid.", () => createProfile("Research")],
     ["PROFILE_DUPLICATE_NAME", "Profile name already exists.", () => createProfile("Research")],
-    ["PROFILE_STORE_VERSION_TOO_NEW", "This profile store was written by a newer version of ThePrivator. Update the app to open it.", () => listProfiles()],
+    [
+      "PROFILE_STORE_VERSION_TOO_NEW",
+      "This profile store was written by a newer version of ThePrivator. Update the app to open it.",
+      () => listProfiles(),
+    ],
     ["PROFILE_START_URL_INVALID", "Start URLs must begin with https:// or http://.", () => listProfiles()],
     ["PROFILE_ORGANIZATION_INVALID", "Profile notes cannot contain control characters.", () => listProfiles()],
   ])("preserves typed recoverable profile errors: %s", async (code, message, callClient) => {
@@ -3222,9 +4452,7 @@ describe("trash commands", () => {
   });
 
   it("rejects a trash listing with an unexpected key", async () => {
-    mockInvoke.mockResolvedValueOnce(
-      profileEnvelope({ storeVersion: 4, profiles: [], count: 0, purgedBytes: 42 }),
-    );
+    mockInvoke.mockResolvedValueOnce(profileEnvelope({ storeVersion: 4, profiles: [], count: 0, purgedBytes: 42 }));
 
     await expect(listTrashedProfiles()).rejects.toMatchObject({ code: SIDECAR_PROTOCOL_ERROR });
   });
@@ -3253,7 +4481,13 @@ describe("trash commands", () => {
 
 describe("section update commands", () => {
   it("round-trips multiline notes without changing whitespace", async () => {
-    const organization = { folderId: null, tags: ["eu"], notes: "First line\n\tSecond line\r\nLast line\t", favorite: false, color: null };
+    const organization = {
+      folderId: null,
+      tags: ["eu"],
+      notes: "First line\n\tSecond line\r\nLast line\t",
+      favorite: false,
+      color: null,
+    };
     const profile = profileRecord({ organization });
     mockInvoke.mockResolvedValueOnce(profileEnvelope(profileResult({ profile, profiles: [profile] })));
     const result = await updateProfileOrganization(profile.id, organization);
@@ -3262,7 +4496,11 @@ describe("section update commands", () => {
   });
   it("accepts legacy UTC timestamps returned by favorite and tag mutations", async () => {
     const organization = { folderId: null, tags: ["eu"], notes: "", favorite: true, color: null };
-    const profile = profileRecord({ organization: profileOrganization(organization), createdAt: "2026-09-07T12:34:56.123456+00:00", updatedAt: "2026-09-07T12:35:56+00:00" });
+    const profile = profileRecord({
+      organization: profileOrganization(organization),
+      createdAt: "2026-09-07T12:34:56.123456+00:00",
+      updatedAt: "2026-09-07T12:35:56+00:00",
+    });
     mockInvoke.mockResolvedValueOnce(profileEnvelope(profileResult({ profile, profiles: [profile] })));
     const result = await updateProfileOrganization(profile.id, organization);
     expect(result.profile?.createdAt).toBe("2026-09-07T12:34:56.123456Z");
@@ -3345,9 +4583,7 @@ describe("bulk chromium commands", () => {
   });
 
   it("rejects a bulk result with an extra key", async () => {
-    mockInvoke.mockResolvedValueOnce(
-      profileEnvelope({ launched: [], failed: [], runningCount: 0, skipped: [] }),
-    );
+    mockInvoke.mockResolvedValueOnce(profileEnvelope({ launched: [], failed: [], runningCount: 0, skipped: [] }));
 
     await expect(bulkLaunchChromiumProfiles([FIRST])).rejects.toMatchObject({ code: SIDECAR_PROTOCOL_ERROR });
   });
@@ -3439,9 +4675,7 @@ describe("sync commands", () => {
   });
 
   it("reads a plan with its per-action counts", async () => {
-    mockInvoke.mockResolvedValueOnce(
-      profileEnvelope({ plans: [planEntry()], counts: counts({ push: 1 }) }),
-    );
+    mockInvoke.mockResolvedValueOnce(profileEnvelope({ plans: [planEntry()], counts: counts({ push: 1 }) }));
 
     const snapshot = await planSync();
 
@@ -3460,9 +4694,7 @@ describe("sync commands", () => {
   });
 
   it("rejects a plan entry with an action this build does not understand", async () => {
-    mockInvoke.mockResolvedValueOnce(
-      profileEnvelope({ plans: [planEntry({ action: "rebase" })], counts: counts() }),
-    );
+    mockInvoke.mockResolvedValueOnce(profileEnvelope({ plans: [planEntry({ action: "rebase" })], counts: counts() }));
 
     await expect(planSync()).rejects.toMatchObject({ code: SIDECAR_PROTOCOL_ERROR });
   });

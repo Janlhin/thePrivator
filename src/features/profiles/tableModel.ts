@@ -41,9 +41,7 @@ export function searchTerms(search: string): string[] {
 
 function haystack(profile: ProfileRecord): string {
   const proxy = profile.proxy.mode === "fixedServer" ? `${profile.proxy.host}:${profile.proxy.port}` : "direct";
-  return [profile.name, proxy, profile.organization.notes, ...profile.organization.tags]
-    .join("\n")
-    .toLocaleLowerCase();
+  return [profile.name, proxy, profile.organization.notes, ...profile.organization.tags].join("\n").toLocaleLowerCase();
 }
 
 export function matchesSearch(profile: ProfileRecord, terms: readonly string[]): boolean {

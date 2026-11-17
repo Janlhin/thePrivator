@@ -99,69 +99,89 @@ function expectThrowsSafely(callback, forbiddenText = []) {
 }
 
 function cleanSummary(context) {
-  return buildS04FinalSummary({
-    status: "pass",
-    target: {
-      targetTriple: "x86_64-test-local",
-      executableChecked: true,
-    },
-    setup: {
-      profileCount: 2,
-      identityPresetApplied: true,
-      proxyConfigured: true,
-      proxyAuth: "configured",
-      typedFailureProfile: true,
-    },
-    httpChecks: {
-      health: { statusCode: 200, healthy: true },
-      auth: [
-        { mode: "missing", statusCode: 401, errorCode: "AUTOMATION_AUTH_REQUIRED" },
-        { mode: "invalid", statusCode: 401, errorCode: "AUTOMATION_AUTH_INVALID" },
+  return buildS04FinalSummary(
+    {
+      status: "pass",
+      target: {
+        targetTriple: "x86_64-test-local",
+        executableChecked: true,
+      },
+      setup: {
+        profileCount: 2,
+        identityPresetApplied: true,
+        proxyConfigured: true,
+        proxyAuth: "configured",
+        typedFailureProfile: true,
+      },
+      httpChecks: {
+        health: { statusCode: 200, healthy: true },
+        auth: [
+          { mode: "missing", statusCode: 401, errorCode: "AUTOMATION_AUTH_REQUIRED" },
+          { mode: "invalid", statusCode: 401, errorCode: "AUTOMATION_AUTH_INVALID" },
+        ],
+      },
+      failureMatrix: [
+        {
+          caseName: "proxy-socks-auth-unsupported",
+          statusCode: 503,
+          errorCode: PROXY_SOCKS_AUTH_UNSUPPORTED,
+          errorPhase: "lease",
+          requestCorrelated: true,
+          detailRefPresent: true,
+        },
+        {
+          caseName: "released-reuse",
+          statusCode: 409,
+          errorCode: "AUTOMATION_LEASE_RELEASED",
+          errorPhase: "lease",
+          requestCorrelated: true,
+          detailRefPresent: true,
+        },
+      ],
+      leaseFlow: {
+        create: {
+          leaseStatus: "active",
+          ttlSeconds: 30,
+          runtimeStatus: "running",
+          attachAuthority: "private-on-create-only",
+        },
+        playwright: { attached: true, navigated: true, targetMarker: true, identityMatches: 6 },
+        proxyObservation: { proxyCount: 2, targetCount: 1, authAccepted: true, routeObserved: true },
+        activeStatus: { leaseStatus: "active", ttlSeconds: 30, runtimeStatus: null, runningCount: null },
+        release: { leaseStatus: "released", runtimeStatus: "stopped", runningCount: 0 },
+        releasedReuse: {
+          statusCode: 409,
+          errorCode: "AUTOMATION_LEASE_RELEASED",
+          errorPhase: "lease",
+          requestCorrelated: true,
+          detailRefPresent: true,
+        },
+        postReleaseRuntime: { runtimeRunningCount: 0, selectedStatus: "stopped" },
+        revocation: { revoked: true, probe: "playwright-attach-probe" },
+        expiry: { leaseStatus: "expired", runtimeStatus: "stopped", runningCount: 0 },
+        expiredReuse: {
+          statusCode: 409,
+          errorCode: "AUTOMATION_LEASE_EXPIRED",
+          errorPhase: "lease",
+          requestCorrelated: true,
+          detailRefPresent: true,
+        },
+        expiredRevocation: { revoked: true, probe: "playwright-attach-probe" },
+      },
+      cleanup: {
+        apiChildExit: { requested: true, exitCode: 0, signal: null },
+        listenerClosed: true,
+        proxyFixtureStopped: true,
+        runtimeRootRemoved: true,
+      },
+      redaction: { status: "clean", scanned: true },
+      checks: [
+        { name: "identity-preset", status: "pass", durationMs: 3, presetSelected: true, presetCount: 4 },
+        { name: "redaction-scan", status: "pass", durationMs: 1, scanned: true },
       ],
     },
-    failureMatrix: [
-      {
-        caseName: "proxy-socks-auth-unsupported",
-        statusCode: 503,
-        errorCode: PROXY_SOCKS_AUTH_UNSUPPORTED,
-        errorPhase: "lease",
-        requestCorrelated: true,
-        detailRefPresent: true,
-      },
-      {
-        caseName: "released-reuse",
-        statusCode: 409,
-        errorCode: "AUTOMATION_LEASE_RELEASED",
-        errorPhase: "lease",
-        requestCorrelated: true,
-        detailRefPresent: true,
-      },
-    ],
-    leaseFlow: {
-      create: { leaseStatus: "active", ttlSeconds: 30, runtimeStatus: "running", attachAuthority: "private-on-create-only" },
-      playwright: { attached: true, navigated: true, targetMarker: true, identityMatches: 6 },
-      proxyObservation: { proxyCount: 2, targetCount: 1, authAccepted: true, routeObserved: true },
-      activeStatus: { leaseStatus: "active", ttlSeconds: 30, runtimeStatus: null, runningCount: null },
-      release: { leaseStatus: "released", runtimeStatus: "stopped", runningCount: 0 },
-      releasedReuse: { statusCode: 409, errorCode: "AUTOMATION_LEASE_RELEASED", errorPhase: "lease", requestCorrelated: true, detailRefPresent: true },
-      postReleaseRuntime: { runtimeRunningCount: 0, selectedStatus: "stopped" },
-      revocation: { revoked: true, probe: "playwright-attach-probe" },
-      expiry: { leaseStatus: "expired", runtimeStatus: "stopped", runningCount: 0 },
-      expiredReuse: { statusCode: 409, errorCode: "AUTOMATION_LEASE_EXPIRED", errorPhase: "lease", requestCorrelated: true, detailRefPresent: true },
-      expiredRevocation: { revoked: true, probe: "playwright-attach-probe" },
-    },
-    cleanup: {
-      apiChildExit: { requested: true, exitCode: 0, signal: null },
-      listenerClosed: true,
-      proxyFixtureStopped: true,
-      runtimeRootRemoved: true,
-    },
-    redaction: { status: "clean", scanned: true },
-    checks: [
-      { name: "identity-preset", status: "pass", durationMs: 3, presetSelected: true, presetCount: 4 },
-      { name: "redaction-scan", status: "pass", durationMs: 1, scanned: true },
-    ],
-  }, context);
+    context,
+  );
 }
 
 afterEach(() => {
@@ -195,14 +215,18 @@ describe("verify-m004-s04 failure validators", () => {
 
   it("rejects wrong status/code fixtures without echoing sensitive context", () => {
     const { context, token, endpoint, storeRoot } = makeContext();
-    const error = expectThrowsSafely(() => assertS04DomainFailure(response("INTERNAL_ERROR", 500), {
-      expectedCode: PROXY_SOCKS_AUTH_UNSUPPORTED,
-      expectedStatusCode: 503,
-      expectedPhase: "lease",
-      context,
-      phase: "proxy-socks-auth",
-      caseName: "proxy-socks-auth-unsupported",
-    }), [token, endpoint, storeRoot]);
+    const error = expectThrowsSafely(
+      () =>
+        assertS04DomainFailure(response("INTERNAL_ERROR", 500), {
+          expectedCode: PROXY_SOCKS_AUTH_UNSUPPORTED,
+          expectedStatusCode: 503,
+          expectedPhase: "lease",
+          context,
+          phase: "proxy-socks-auth",
+          caseName: "proxy-socks-auth-unsupported",
+        }),
+      [token, endpoint, storeRoot],
+    );
 
     expect(error.details.expectedStatusCode).toBe(503);
     expect(error.details.actualStatusCode).toBe(500);
@@ -211,17 +235,8 @@ describe("verify-m004-s04 failure validators", () => {
 
 describe("verify-m004-s04 public evidence redaction", () => {
   it("catches token, credential, proxy switch, direct fallback, CDP, handoff, path, output, and stack markers", () => {
-    const {
-      context,
-      token,
-      leaseId,
-      endpoint,
-      targetUrl,
-      proxyAuthority,
-      proxyUser,
-      proxyPassword,
-      storeRoot,
-    } = makeContext();
+    const { context, token, leaseId, endpoint, targetUrl, proxyAuthority, proxyUser, proxyPassword, storeRoot } =
+      makeContext();
     const cases = [
       [{ Authorization: `Bearer ${token}` }, "auth_header", token],
       [{ value: token }, "api_value", token],
@@ -243,14 +258,18 @@ describe("verify-m004-s04 public evidence redaction", () => {
     for (const [artifact, markerClass, rawMarker] of cases) {
       const marker = findS04ForbiddenPublicMarker(artifact, context);
       expect(marker).toMatchObject({ markerClass });
-      const error = expectThrowsSafely(() => assertS04PublicEvidenceRedacted(artifact, context), [rawMarker, token, leaseId, endpoint, targetUrl, proxyAuthority, proxyUser, proxyPassword, storeRoot]);
+      const error = expectThrowsSafely(
+        () => assertS04PublicEvidenceRedacted(artifact, context),
+        [rawMarker, token, leaseId, endpoint, targetUrl, proxyAuthority, proxyUser, proxyPassword, storeRoot],
+      );
       expect(error.details.markerClass).toBe(markerClass);
       expect(error.details.fieldPath).toMatch(/^\$/);
     }
   });
 
   it("builds a clean final summary with only safe counts, booleans, statuses, and codes", () => {
-    const { context, token, leaseId, endpoint, targetUrl, proxyAuthority, proxyUser, proxyPassword, storeRoot } = makeContext();
+    const { context, token, leaseId, endpoint, targetUrl, proxyAuthority, proxyUser, proxyPassword, storeRoot } =
+      makeContext();
     const summary = cleanSummary(context);
     const encoded = JSON.stringify(summary);
 

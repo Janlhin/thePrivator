@@ -77,6 +77,11 @@ describe("cascade layer order", () => {
     const reset = styleSheets["./reset.css"] ?? "";
 
     expect(reset).toContain("@layer base {");
-    expect(reset.slice(0, reset.indexOf("@layer base {")).trim().replace(/\/\*[\s\S]*?\*\//g, "")).toBe("");
+    expect(
+      reset
+        .slice(0, reset.indexOf("@layer base {"))
+        .trim()
+        .replace(/\/\*[\s\S]*?\*\//g, ""),
+    ).toBe("");
   });
 });

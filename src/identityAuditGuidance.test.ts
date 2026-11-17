@@ -11,7 +11,8 @@ const allSurfacePage: IdentityAuditPage = {
   category: "consistency",
   url: "https://pixelscan.net/fingerprint-check",
   surfaces: ["browser", "clientHints", "navigator", "screen", "locale", "canvas", "webgl", "audio", "webrtc"],
-  comparisonNote: "Treat flags and scores as advisory consistency hints; compare contradictions instead of treating one result as authoritative.",
+  comparisonNote:
+    "Treat flags and scores as advisory consistency hints; compare contradictions instead of treating one result as authoritative.",
   requiresUserAction: false,
 };
 
@@ -100,8 +101,12 @@ describe("identity audit guidance", () => {
     expect(guidance.expectedRows.find((row) => row.surface === "locale")?.expected).toContain("America/New_York");
     expect(guidance.expectedRows.find((row) => row.surface === "webgl")?.expected).toContain("Google Inc. (Intel)");
     expect(guidance.expectedRows.find((row) => row.surface === "webrtc")?.expected).toContain("No non-proxied UDP");
-    expect(guidance.expectedRows.find((row) => row.surface === "canvas")?.expected).toBe("Stable per-profile altered signature from configured noise.");
-    expect(guidance.expectedRows.find((row) => row.surface === "audio")?.expected).toBe("Stable per-profile altered signature from configured noise.");
+    expect(guidance.expectedRows.find((row) => row.surface === "canvas")?.expected).toBe(
+      "Stable per-profile altered signature from configured noise.",
+    );
+    expect(guidance.expectedRows.find((row) => row.surface === "audio")?.expected).toBe(
+      "Stable per-profile altered signature from configured noise.",
+    );
   });
 
   it("keeps public-checker copy advisory without path, debug, or guarantee language", () => {
@@ -160,7 +165,16 @@ describe("identity audit guidance", () => {
 
     const combined = guidanceText(allSurfacePage, unsafeIdentity);
 
-    for (const marker of ["ws://", "127.0.0.1", "9222", "DevToolsActivePort", "--user-data-dir", "/tmp/secret-store", "targetId", "Traceback"]) {
+    for (const marker of [
+      "ws://",
+      "127.0.0.1",
+      "9222",
+      "DevToolsActivePort",
+      "--user-data-dir",
+      "/tmp/secret-store",
+      "targetId",
+      "Traceback",
+    ]) {
       expect(combined).not.toContain(marker);
     }
     expect(combined).toContain("[redacted]");

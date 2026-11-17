@@ -44,7 +44,10 @@ function makeContext() {
       token,
       leaseIds: [leaseId],
       handoffEndpoints: [endpoint],
-      extraSensitiveValues: ["proxy-password-should-not-leak", join(storeRoot, "profile-store/profiles/profile-a/user-data")],
+      extraSensitiveValues: [
+        "proxy-password-should-not-leak",
+        join(storeRoot, "profile-store/profiles/profile-a/user-data"),
+      ],
     }),
   };
 }
@@ -111,14 +114,15 @@ function createBody(overrides = {}) {
 }
 
 function statusBody(status = "active", overrides = {}) {
-  const lease = status === "active"
-    ? leaseRecord({ status })
-    : leaseRecord({
-        status,
-        ...(status === "released"
-          ? { releasedAt: "2026-05-14T20:00:02.000Z", cleanedUpAt: "2026-05-14T20:00:02.000Z" }
-          : { expiredAt: "2026-05-14T20:00:02.000Z", cleanedUpAt: "2026-05-14T20:00:02.000Z" }),
-      });
+  const lease =
+    status === "active"
+      ? leaseRecord({ status })
+      : leaseRecord({
+          status,
+          ...(status === "released"
+            ? { releasedAt: "2026-05-14T20:00:02.000Z", cleanedUpAt: "2026-05-14T20:00:02.000Z" }
+            : { expiredAt: "2026-05-14T20:00:02.000Z", cleanedUpAt: "2026-05-14T20:00:02.000Z" }),
+        });
   return {
     leaseApiVersion: LEASE_API_VERSION,
     lease,
@@ -189,62 +193,85 @@ describe("verify-m004-s03 lease response validators", () => {
       createBody({ lease: leaseRecord({ status: "pending" }) }),
       createBody({ handoff: { browser: "chromium", method: "connect-over-cdp", endpoint: "https://127.0.0.1:45678" } }),
       createBody({ handoff: { browser: "chromium", method: "connect-over-cdp", endpoint: "http://localhost:45678" } }),
-      createBody({ handoff: { browser: "chromium", method: "connect-over-cdp", endpoint: "ws://127.0.0.1:45678/devtools/browser/raw" } }),
+      createBody({
+        handoff: {
+          browser: "chromium",
+          method: "connect-over-cdp",
+          endpoint: "ws://127.0.0.1:45678/devtools/browser/raw",
+        },
+      }),
       createBody({ request: {} }),
     ];
 
     for (const body of badBodies) {
-      expectThrowsSafely(() => assertLeaseCreateResponse({
-        statusCode: 201,
-        body,
-        requestId: headers(),
-        location: `/v1/leases/${leaseId}`,
-        expectedProfileId: "profile-s03",
-        expectedTtlSeconds: 30,
-      }), [endpoint, leaseId, "ws://"]);
+      expectThrowsSafely(
+        () =>
+          assertLeaseCreateResponse({
+            statusCode: 201,
+            body,
+            requestId: headers(),
+            location: `/v1/leases/${leaseId}`,
+            expectedProfileId: "profile-s03",
+            expectedTtlSeconds: 30,
+          }),
+        [endpoint, leaseId, "ws://"],
+      );
     }
   });
 
   it("accepts active, released, and expired safe status surfaces", () => {
     const { context } = makeContext();
 
-    expect(assertLeaseStatusResponse({
-      statusCode: 200,
-      body: statusBody("active"),
-      requestId: headers(),
-      expectedProfileId: "profile-s03",
-      expectedStatus: "active",
-      expectedTtlSeconds: 30,
-      context,
-    })).toMatchObject({ leaseStatus: "active", runtimeStatus: null });
+    expect(
+      assertLeaseStatusResponse({
+        statusCode: 200,
+        body: statusBody("active"),
+        requestId: headers(),
+        expectedProfileId: "profile-s03",
+        expectedStatus: "active",
+        expectedTtlSeconds: 30,
+        context,
+      }),
+    ).toMatchObject({ leaseStatus: "active", runtimeStatus: null });
 
-    expect(assertLeaseReleaseResponse({
-      statusCode: 200,
-      body: statusBody("released"),
-      requestId: headers(),
-      expectedProfileId: "profile-s03",
-      expectedTtlSeconds: 30,
-      context,
-    })).toMatchObject({ leaseStatus: "released", runtimeStatus: "stopped", runningCount: 0 });
+    expect(
+      assertLeaseReleaseResponse({
+        statusCode: 200,
+        body: statusBody("released"),
+        requestId: headers(),
+        expectedProfileId: "profile-s03",
+        expectedTtlSeconds: 30,
+        context,
+      }),
+    ).toMatchObject({ leaseStatus: "released", runtimeStatus: "stopped", runningCount: 0 });
 
-    expect(assertLeaseStatusResponse({
-      statusCode: 200,
-      body: statusBody("expired"),
-      requestId: headers(),
-      expectedProfileId: "profile-s03",
-      expectedStatus: "expired",
-      expectedTtlSeconds: 30,
-      context,
-    })).toMatchObject({ leaseStatus: "expired", runtimeStatus: "stopped", runningCount: 0 });
+    expect(
+      assertLeaseStatusResponse({
+        statusCode: 200,
+        body: statusBody("expired"),
+        requestId: headers(),
+        expectedProfileId: "profile-s03",
+        expectedStatus: "expired",
+        expectedTtlSeconds: 30,
+        context,
+      }),
+    ).toMatchObject({ leaseStatus: "expired", runtimeStatus: "stopped", runningCount: 0 });
   });
 
   it("rejects forbidden handoff, debug, path, credential, token, and raw diagnostic material in status surfaces", () => {
     const { context, endpoint, storeRoot, token } = makeContext();
     const unsafeBodies = [
       statusBody("active", { handoff: { endpoint } }),
-      statusBody("released", { runtime: { ...stoppedRuntime(), webSocketDebuggerUrl: "ws://127.0.0.1:45678/devtools/browser/raw" } }),
+      statusBody("released", {
+        runtime: { ...stoppedRuntime(), webSocketDebuggerUrl: "ws://127.0.0.1:45678/devtools/browser/raw" },
+      }),
       statusBody("released", { runtime: { ...stoppedRuntime(), debugPort: 45678 } }),
-      statusBody("released", { runtime: { ...stoppedRuntime(), profile: { ...stoppedRuntime().profile, userDataDir: "profile-store/profiles/profile-s03/user-data" } } }),
+      statusBody("released", {
+        runtime: {
+          ...stoppedRuntime(),
+          profile: { ...stoppedRuntime().profile, userDataDir: "profile-store/profiles/profile-s03/user-data" },
+        },
+      }),
       statusBody("released", { runtime: { ...stoppedRuntime(), credentials: "configured" } }),
       statusBody("released", { runtime: { ...stoppedRuntime(), token } }),
       statusBody("released", { runtime: { ...stoppedRuntime(), storeRoot } }),
@@ -252,16 +279,22 @@ describe("verify-m004-s03 lease response validators", () => {
     ];
 
     for (const body of unsafeBodies) {
-      const error = expectThrowsSafely(() => assertLeaseStatusResponse({
-        statusCode: 200,
-        body,
-        requestId: headers(),
-        expectedProfileId: "profile-s03",
-        expectedStatus: body.lease.status,
-        expectedTtlSeconds: 30,
-        context,
-      }), [endpoint, storeRoot, token, "ws://", "userDataDir", "stdoutTail"]);
-      expect(error.details.fieldPath ?? JSON.stringify(error.details.actualKeys ?? [])).toMatch(/\$|redacted-key|handoff|debug|raw|token|store/i);
+      const error = expectThrowsSafely(
+        () =>
+          assertLeaseStatusResponse({
+            statusCode: 200,
+            body,
+            requestId: headers(),
+            expectedProfileId: "profile-s03",
+            expectedStatus: body.lease.status,
+            expectedTtlSeconds: 30,
+            context,
+          }),
+        [endpoint, storeRoot, token, "ws://", "userDataDir", "stdoutTail"],
+      );
+      expect(error.details.fieldPath ?? JSON.stringify(error.details.actualKeys ?? [])).toMatch(
+        /\$|redacted-key|handoff|debug|raw|token|store/i,
+      );
     }
   });
 });
@@ -274,11 +307,23 @@ describe("verify-m004-s03 public evidence redaction", () => {
       [{ event: "verify.m004.s03", value: storeRoot }, "app_root", storeRoot],
       [{ event: "verify.m004.s03", value: leaseId }, "lease_id", leaseId],
       [{ event: "verify.m004.s03", value: endpoint }, "lease_endpoint", endpoint],
-      [{ event: "verify.m004.s03", value: "lease_unregisteredShouldNotLeak" }, "lease_id", "lease_unregisteredShouldNotLeak"],
-      [{ event: "verify.m004.s03", webSocketDebuggerUrl: "ws://127.0.0.1:45678/devtools" }, "debug_endpoint", "webSocketDebuggerUrl"],
+      [
+        { event: "verify.m004.s03", value: "lease_unregisteredShouldNotLeak" },
+        "lease_id",
+        "lease_unregisteredShouldNotLeak",
+      ],
+      [
+        { event: "verify.m004.s03", webSocketDebuggerUrl: "ws://127.0.0.1:45678/devtools" },
+        "debug_endpoint",
+        "webSocketDebuggerUrl",
+      ],
       [{ event: "verify.m004.s03", debugPort: 45678 }, "debug_endpoint", "debugPort"],
       [{ event: "verify.m004.s03", credentials: "configured" }, "cred_field", "credentials"],
-      [{ event: "verify.m004.s03", userDataDir: "profile-store/profiles/profile-s03/user-data" }, "app_root", "userDataDir"],
+      [
+        { event: "verify.m004.s03", userDataDir: "profile-store/profiles/profile-s03/user-data" },
+        "app_root",
+        "userDataDir",
+      ],
       [{ event: "verify.m004.s03", stdoutTail: "redacted" }, "raw_diag", "stdoutTail"],
       [{ event: "verify.m004.s03", rawDiagnostics: "redacted" }, "raw_diag", "rawDiagnostics"],
     ];
@@ -286,7 +331,10 @@ describe("verify-m004-s03 public evidence redaction", () => {
     for (const [artifact, markerClass, rawMarker] of cases) {
       const marker = findS03ForbiddenPublicMarker(artifact, context);
       expect(marker).toMatchObject({ markerClass });
-      const error = expectThrowsSafely(() => assertS03PublicEvidenceRedacted(artifact, context), [rawMarker, token, storeRoot, leaseId, endpoint]);
+      const error = expectThrowsSafely(
+        () => assertS03PublicEvidenceRedacted(artifact, context),
+        [rawMarker, token, storeRoot, leaseId, endpoint],
+      );
       expect(error.details.markerClass).toBe(markerClass);
       expect(error.details.fieldPath).toMatch(/^\$/);
     }
@@ -298,10 +346,14 @@ describe("verify-m004-s03 public evidence redaction", () => {
 
     expect(findForbiddenLeaseSurfaceMarker(protectedStatus, context)).toBeNull();
     expect(() => assertNoForbiddenLeaseSurface(protectedStatus, context)).not.toThrow();
-    expect(findS03ForbiddenPublicMarker({ event: "verify.m004.s03", protectedStatus }, context)).toMatchObject({ markerClass: "lease_id" });
+    expect(findS03ForbiddenPublicMarker({ event: "verify.m004.s03", protectedStatus }, context)).toMatchObject({
+      markerClass: "lease_id",
+    });
 
     const unsafeProtectedStatus = statusBody("active", { handoff: { endpoint } });
-    expect(findForbiddenLeaseSurfaceMarker(unsafeProtectedStatus, context)).toMatchObject({ markerClass: "handoff_field" });
+    expect(findForbiddenLeaseSurfaceMarker(unsafeProtectedStatus, context)).toMatchObject({
+      markerClass: "handoff_field",
+    });
     expect(JSON.stringify(protectedStatus)).toContain(leaseId);
   });
 
@@ -322,7 +374,12 @@ describe("verify-m004-s03 public evidence redaction", () => {
         unknownLease: { statusCode: 404, errorCode: AUTOMATION_LEASE_NOT_FOUND },
       },
       leaseFlow: {
-        create: { leaseStatus: "active", ttlSeconds: 30, runtimeStatus: "running", attachAuthority: "private-on-create-only" },
+        create: {
+          leaseStatus: "active",
+          ttlSeconds: 30,
+          runtimeStatus: "running",
+          attachAuthority: "private-on-create-only",
+        },
         playwright: { attached: true, action: "data-url-title-and-text", titleMatched: true, textMatched: true },
         release: { leaseStatus: "released", runtimeStatus: "stopped", runningCount: 0 },
         expiry: { leaseStatus: "expired", runtimeStatus: "stopped", runningCount: 0 },

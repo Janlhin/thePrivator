@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  getChromiumStatus,
-  listProfiles,
-  listTrashedProfiles,
-  normalizeSidecarError,
-} from "../../sidecar/client";
+import { getChromiumStatus, listProfiles, listTrashedProfiles, normalizeSidecarError } from "../../sidecar/client";
 import type { ProfileRecord, SidecarClientError } from "../../sidecar/types";
 import { subscribeToProfilesChanged, subscribeToChromiumStatusChanged } from "../../sidecarEvents";
 import { useProxyChecks } from "./useProxyChecks";

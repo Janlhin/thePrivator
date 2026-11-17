@@ -9,7 +9,16 @@ import type {
 } from "./sidecar/types";
 
 export type IdentityModeValue = IdentityMaskingMode | IdentityNoiseMode;
-export type IdentityDraftFieldKind = "text" | "textarea" | "integer" | "number" | "boolean" | "language-list" | "webrtc-policy" | "geolocation-permission" | "port-list";
+export type IdentityDraftFieldKind =
+  | "text"
+  | "textarea"
+  | "integer"
+  | "number"
+  | "boolean"
+  | "language-list"
+  | "webrtc-policy"
+  | "geolocation-permission"
+  | "port-list";
 export type IdentityDraftFieldPath =
   | "label"
   | "browser.userAgent"
@@ -177,7 +186,8 @@ const NOISE_SURFACES = new Set<IdentitySurface>(["canvas", "audio"]);
 
 const FIELD_DEFAULTS: IdentityDraftFieldValues = {
   label: DEFAULT_ADVANCED_IDENTITY_LABEL,
-  "browser.userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "browser.userAgent":
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "browser.clientHints.platform": "Linux",
   "browser.clientHints.platformVersion": "",
   "browser.clientHints.architecture": "x86",
@@ -667,9 +677,9 @@ export function getIdentitySurfaceFieldDescriptors(
   surface: IdentitySurface,
 ): IdentityDraftFieldDescriptor[] {
   const mode = getIdentitySurfaceMode(identity, surface);
-  return IDENTITY_DRAFT_FIELD_DESCRIPTORS
-    .filter((descriptor) => descriptor.surface === surface && descriptor.modes.includes(mode))
-    .map((descriptor) => ({ ...descriptor, modes: [...descriptor.modes] }));
+  return IDENTITY_DRAFT_FIELD_DESCRIPTORS.filter(
+    (descriptor) => descriptor.surface === surface && descriptor.modes.includes(mode),
+  ).map((descriptor) => ({ ...descriptor, modes: [...descriptor.modes] }));
 }
 
 export function getIdentitySurfaceMode(identity: ProfileIdentity, surface: IdentitySurface): IdentityModeValue {
@@ -824,7 +834,8 @@ export function serializeIdentityDraftValues(identity: ProfileIdentity): Identit
     values["geolocation.latitude"] = String(identity.geolocation.latitude);
     values["geolocation.longitude"] = String(identity.geolocation.longitude);
     values["geolocation.accuracy"] = String(identity.geolocation.accuracy);
-    values["geolocation.altitude"] = identity.geolocation.altitude === null ? "" : String(identity.geolocation.altitude);
+    values["geolocation.altitude"] =
+      identity.geolocation.altitude === null ? "" : String(identity.geolocation.altitude);
   }
 
   if (identity.mediaDevices.mode === "masked") {
@@ -871,7 +882,11 @@ export function formatIdentityMode(mode: IdentityModeValue): string {
   return "Noise";
 }
 
-function rebuildDraftFromValues(identity: ProfileIdentity, values: IdentityDraftFieldValues, labelEdited: boolean): IdentityDraftState {
+function rebuildDraftFromValues(
+  identity: ProfileIdentity,
+  values: IdentityDraftFieldValues,
+  labelEdited: boolean,
+): IdentityDraftState {
   const parsed = buildProfileIdentityFromValues(identity, values);
   return {
     identity: parsed.ok ? parsed.identity : identity,
@@ -881,7 +896,10 @@ function rebuildDraftFromValues(identity: ProfileIdentity, values: IdentityDraft
   };
 }
 
-function buildProfileIdentityFromValues(baseIdentity: ProfileIdentity, values: IdentityDraftFieldValues): IdentityDraftParseResult {
+function buildProfileIdentityFromValues(
+  baseIdentity: ProfileIdentity,
+  values: IdentityDraftFieldValues,
+): IdentityDraftParseResult {
   const errors: IdentityDraftFieldErrors = {};
   const label = parseTextValue(values.label, {
     path: "label",
@@ -1047,12 +1065,48 @@ function buildScreenSurface(
 
   return {
     mode,
-    width: parseIntegerValue(values["screen.width"], { path: "screen.width", label: "Screen width", min: 1, max: 10000, errors }),
-    height: parseIntegerValue(values["screen.height"], { path: "screen.height", label: "Screen height", min: 1, max: 10000, errors }),
-    viewportWidth: parseIntegerValue(values["screen.viewportWidth"], { path: "screen.viewportWidth", label: "Viewport width", min: 1, max: 10000, errors }),
-    viewportHeight: parseIntegerValue(values["screen.viewportHeight"], { path: "screen.viewportHeight", label: "Viewport height", min: 1, max: 10000, errors }),
-    colorDepth: parseIntegerValue(values["screen.colorDepth"], { path: "screen.colorDepth", label: "Color depth", min: 1, max: 64, errors }),
-    pixelRatio: parseNumberValue(values["screen.pixelRatio"], { path: "screen.pixelRatio", label: "Pixel ratio", min: 0.25, max: 8, errors }),
+    width: parseIntegerValue(values["screen.width"], {
+      path: "screen.width",
+      label: "Screen width",
+      min: 1,
+      max: 10000,
+      errors,
+    }),
+    height: parseIntegerValue(values["screen.height"], {
+      path: "screen.height",
+      label: "Screen height",
+      min: 1,
+      max: 10000,
+      errors,
+    }),
+    viewportWidth: parseIntegerValue(values["screen.viewportWidth"], {
+      path: "screen.viewportWidth",
+      label: "Viewport width",
+      min: 1,
+      max: 10000,
+      errors,
+    }),
+    viewportHeight: parseIntegerValue(values["screen.viewportHeight"], {
+      path: "screen.viewportHeight",
+      label: "Viewport height",
+      min: 1,
+      max: 10000,
+      errors,
+    }),
+    colorDepth: parseIntegerValue(values["screen.colorDepth"], {
+      path: "screen.colorDepth",
+      label: "Color depth",
+      min: 1,
+      max: 64,
+      errors,
+    }),
+    pixelRatio: parseNumberValue(values["screen.pixelRatio"], {
+      path: "screen.pixelRatio",
+      label: "Pixel ratio",
+      min: 0.25,
+      max: 8,
+      errors,
+    }),
   };
 }
 
@@ -1108,7 +1162,13 @@ function buildWebGlSurface(
 
   const noiseSeedText = values["webgl.noiseSeed"].trim();
   const noiseSeed = noiseSeedText
-    ? parseIntegerValue(noiseSeedText, { path: "webgl.noiseSeed", label: "WebGL noise seed", min: 0, max: 1_000_000, errors })
+    ? parseIntegerValue(noiseSeedText, {
+        path: "webgl.noiseSeed",
+        label: "WebGL noise seed",
+        min: 0,
+        max: 1_000_000,
+        errors,
+      })
     : undefined;
 
   return compactOptionalFields({
@@ -1159,20 +1219,24 @@ function buildGeolocationSurface(
   return {
     mode,
     permission,
-    latitude: roundCoordinateValue(parseNumberValue(values["geolocation.latitude"], {
-      path: "geolocation.latitude",
-      label: "Latitude",
-      min: -90,
-      max: 90,
-      errors,
-    })),
-    longitude: roundCoordinateValue(parseNumberValue(values["geolocation.longitude"], {
-      path: "geolocation.longitude",
-      label: "Longitude",
-      min: -180,
-      max: 180,
-      errors,
-    })),
+    latitude: roundCoordinateValue(
+      parseNumberValue(values["geolocation.latitude"], {
+        path: "geolocation.latitude",
+        label: "Latitude",
+        min: -90,
+        max: 90,
+        errors,
+      }),
+    ),
+    longitude: roundCoordinateValue(
+      parseNumberValue(values["geolocation.longitude"], {
+        path: "geolocation.longitude",
+        label: "Longitude",
+        min: -180,
+        max: 180,
+        errors,
+      }),
+    ),
     accuracy: parseIntegerValue(values["geolocation.accuracy"], {
       path: "geolocation.accuracy",
       label: "Accuracy",
@@ -1181,13 +1245,15 @@ function buildGeolocationSurface(
       errors,
     }),
     altitude: altitudeText
-      ? roundCoordinateValue(parseNumberValue(altitudeText, {
-        path: "geolocation.altitude",
-        label: "Altitude",
-        min: -1_000,
-        max: 100_000,
-        errors,
-      }))
+      ? roundCoordinateValue(
+          parseNumberValue(altitudeText, {
+            path: "geolocation.altitude",
+            label: "Altitude",
+            min: -1_000,
+            max: 100_000,
+            errors,
+          }),
+        )
       : null,
   };
 }
@@ -1539,19 +1605,27 @@ function descriptorLabel(path: Exclude<IdentityDraftFieldPath, "label">): string
 function formatIdentitySurfaceExpectedValues(identity: ProfileIdentity, surface: IdentitySurface): string {
   if (surface === "browser") {
     const value = identity.browser;
-    return value.mode === "real" ? "real host browser values" : `${formatIdentityMode(value.mode)} UA ${value.userAgent}`;
+    return value.mode === "real"
+      ? "real host browser values"
+      : `${formatIdentityMode(value.mode)} UA ${value.userAgent}`;
   }
   if (surface === "navigator") {
     const value = identity.navigator;
-    return value.mode === "real" ? "real host navigator values" : `${formatIdentityMode(value.mode)} ${value.platform}, ${value.hardwareConcurrency} cores, ${value.deviceMemory} GiB`;
+    return value.mode === "real"
+      ? "real host navigator values"
+      : `${formatIdentityMode(value.mode)} ${value.platform}, ${value.hardwareConcurrency} cores, ${value.deviceMemory} GiB`;
   }
   if (surface === "screen") {
     const value = identity.screen;
-    return value.mode === "real" ? "real host screen values" : `${formatIdentityMode(value.mode)} ${value.width}×${value.height}, viewport ${value.viewportWidth}×${value.viewportHeight}, DPR ${value.pixelRatio}`;
+    return value.mode === "real"
+      ? "real host screen values"
+      : `${formatIdentityMode(value.mode)} ${value.width}×${value.height}, viewport ${value.viewportWidth}×${value.viewportHeight}, DPR ${value.pixelRatio}`;
   }
   if (surface === "locale") {
     const value = identity.locale;
-    return value.mode === "real" ? "real host locale values" : `${formatIdentityMode(value.mode)} ${value.locale}, ${value.languages.join("/")}, ${value.timezoneId}`;
+    return value.mode === "real"
+      ? "real host locale values"
+      : `${formatIdentityMode(value.mode)} ${value.locale}, ${value.languages.join("/")}, ${value.timezoneId}`;
   }
   if (surface === "canvas") {
     const value = identity.canvas;
@@ -1563,7 +1637,9 @@ function formatIdentitySurfaceExpectedValues(identity: ProfileIdentity, surface:
   }
   if (surface === "webgl") {
     const value = identity.webgl;
-    return value.mode === "real" ? "real host WebGL values" : `${formatIdentityMode(value.mode)} ${value.vendor} / ${value.renderer}`;
+    return value.mode === "real"
+      ? "real host WebGL values"
+      : `${formatIdentityMode(value.mode)} ${value.vendor} / ${value.renderer}`;
   }
   if (surface === "webrtc") {
     const value = identity.webrtc;

@@ -132,9 +132,7 @@ export function buildRowMenu(context: RowMenuContext): MenuItem[] {
   const { running, profile } = context;
 
   return [
-    running
-      ? { action: "stop", label: translate("Stop") }
-      : { action: "launch", label: translate("Launch") },
+    running ? { action: "stop", label: translate("Stop") } : { action: "launch", label: translate("Launch") },
     { action: "open", label: translate("Edit profile") },
     {
       action: "check-proxy",
@@ -152,8 +150,16 @@ export function buildRowMenu(context: RowMenuContext): MenuItem[] {
       action: "cookies",
       label: translate("Cookies"),
       children: [
-        { action: "cookies-export-json", label: translate("Export (JSON)…"), disabledReason: running ? translate("Stop the profile first") : undefined },
-        { action: "cookies-import", label: translate("Import…"), disabledReason: running ? translate("Stop the profile first") : undefined },
+        {
+          action: "cookies-export-json",
+          label: translate("Export (JSON)…"),
+          disabledReason: running ? translate("Stop the profile first") : undefined,
+        },
+        {
+          action: "cookies-import",
+          label: translate("Import…"),
+          disabledReason: running ? translate("Stop the profile first") : undefined,
+        },
       ],
     },
     { action: "cookie-bot", label: translate("Run Cookie Bot…") },
@@ -171,5 +177,11 @@ export function buildRowMenu(context: RowMenuContext): MenuItem[] {
 
 /** Actions that need a confirmation step before they run. */
 export function requiresConfirmation(action: RowAction): boolean {
-  return action === "cookies-import" || action === "delete" || action === "purge" || action === "bulk-delete" || action === "bulk-purge";
+  return (
+    action === "cookies-import" ||
+    action === "delete" ||
+    action === "purge" ||
+    action === "bulk-delete" ||
+    action === "bulk-purge"
+  );
 }

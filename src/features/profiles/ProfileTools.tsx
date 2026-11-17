@@ -149,9 +149,7 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
 
   if (profileId === null) {
     return (
-      <p className={styles.loading}>
-        {t("These tools work on a saved profile. Save this one first, then come back.")}
-      </p>
+      <p className={styles.loading}>{t("These tools work on a saved profile. Save this one first, then come back.")}</p>
     );
   }
 
@@ -166,16 +164,18 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
       const result = await exportProfilePackage(profileId, destination);
       setNote({
         tone: "ok",
-        text: t("Exported {count} files. Proxy passwords were left out on purpose -- whoever opens this will need their own.", { count: result.payloadFileCount }),
+        text: t(
+          "Exported {count} files. Proxy passwords were left out on purpose -- whoever opens this will need their own.",
+          { count: result.payloadFileCount },
+        ),
       });
     });
 
   const exportCookies = () =>
     run("cookies", async () => {
-      const destination = await pickSaveTarget(
-        t("Export cookies as JSON"),
-        [{ name: t("Browser cookies JSON"), extensions: ["json"] }],
-      );
+      const destination = await pickSaveTarget(t("Export cookies as JSON"), [
+        { name: t("Browser cookies JSON"), extensions: ["json"] },
+      ]);
       if (destination === null) {
         return;
       }
@@ -184,7 +184,10 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
         tone: result.skippedCount > 0 ? "warn" : "ok",
         text:
           result.skippedCount > 0
-            ? t("Exported {exported} cookies. {skipped} could not be represented in this format.", { exported: result.exportedCount, skipped: result.skippedCount })
+            ? t("Exported {exported} cookies. {skipped} could not be represented in this format.", {
+                exported: result.exportedCount,
+                skipped: result.skippedCount,
+              })
             : t("Exported {exported} cookies.", { exported: result.exportedCount }),
       });
     });
@@ -200,7 +203,10 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
       const result = await replaceProfileCookies(profileId, source);
       setNote({
         tone: "warn",
-        text: t("Imported {imported} cookies, replacing this profile's previous {replaced}. The old ones are gone.", { imported: result.importedCount, replaced: result.replacedCount }),
+        text: t("Imported {imported} cookies, replacing this profile's previous {replaced}. The old ones are gone.", {
+          imported: result.importedCount,
+          replaced: result.replacedCount,
+        }),
       });
     });
 
@@ -241,10 +247,14 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
       <section className={styles.fieldset}>
         <h3>{t("Cookies and packages")}</h3>
         <p className={styles.hint}>
-          {t("Importing cookies replaces the ones this profile already has; it does not merge them. A package carries the fingerprint, the proxy server and the browsing data, but never the proxy password. The browser must be stopped for all of these: copying a profile mid-write produces one that will not open.")}
+          {t(
+            "Importing cookies replaces the ones this profile already has; it does not merge them. A package carries the fingerprint, the proxy server and the browsing data, but never the proxy password. The browser must be stopped for all of these: copying a profile mid-write produces one that will not open.",
+          )}
         </p>
         <p className={styles.hint}>
-          {t("JSON import and export use the same cookie array: expirationDate is Unix seconds, session cookies use 0, and exports use storeId \"Default\". Older ThePrivator JSON and cookies.txt can still be imported.")}
+          {t(
+            'JSON import and export use the same cookie array: expirationDate is Unix seconds, session cookies use 0, and exports use storeId "Default". Older ThePrivator JSON and cookies.txt can still be imported.',
+          )}
         </p>
         <div className={styles.toolActions}>
           <button type="button" disabled={busy !== null || running} onClick={exportPackage}>
@@ -276,7 +286,9 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
       <section className={styles.fieldset}>
         <h3>{t("Fingerprint audit")}</h3>
         <p className={styles.hint}>
-          {t("Opens pages that report what a site actually sees, so the fingerprint can be compared against what this profile claims. A mask that disagrees with itself makes a profile easier to recognise, not harder.")}
+          {t(
+            "Opens pages that report what a site actually sees, so the fingerprint can be compared against what this profile claims. A mask that disagrees with itself makes a profile easier to recognise, not harder.",
+          )}
         </p>
         <div className={styles.toolActions}>
           <button type="button" disabled={busy !== null} onClick={plan}>
@@ -288,12 +300,7 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
         </div>
 
         {auditPlan !== null ? (
-          <AuditPageList
-            pages={auditPlan.pages}
-            disabled={busy !== null}
-            identity={identity}
-            onOpen={openPage}
-          />
+          <AuditPageList pages={auditPlan.pages} disabled={busy !== null} identity={identity} onOpen={openPage} />
         ) : null}
 
         {auditResults !== null ? (

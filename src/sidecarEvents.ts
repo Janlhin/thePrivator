@@ -21,10 +21,7 @@ export const CHROMIUM_STATUS_CHANGED_EVENT = "theprivator://chromium-status-chan
 export type SidecarChangeSource = string;
 
 type TauriEventModule = {
-  listen?: (
-    event: string,
-    handler: (message: { payload?: unknown }) => void,
-  ) => Promise<() => void>;
+  listen?: (event: string, handler: (message: { payload?: unknown }) => void) => Promise<() => void>;
 };
 
 /** Removes the subscription. Safe to call before the listener finished attaching. */
@@ -49,10 +46,7 @@ function readSource(payload: unknown): SidecarChangeSource {
  * records the intent and detaches once the handle exists, rather than assuming
  * it already does.
  */
-export function subscribeToSidecarEvent(
-  event: string,
-  handler: (source: SidecarChangeSource) => void,
-): Unsubscribe {
+export function subscribeToSidecarEvent(event: string, handler: (source: SidecarChangeSource) => void): Unsubscribe {
   let disposed = false;
   let detach: (() => void) | null = null;
 
@@ -85,14 +79,10 @@ export function subscribeToSidecarEvent(
   };
 }
 
-export function subscribeToProfilesChanged(
-  handler: (source: SidecarChangeSource) => void,
-): Unsubscribe {
+export function subscribeToProfilesChanged(handler: (source: SidecarChangeSource) => void): Unsubscribe {
   return subscribeToSidecarEvent(PROFILES_CHANGED_EVENT, handler);
 }
 
-export function subscribeToChromiumStatusChanged(
-  handler: (source: SidecarChangeSource) => void,
-): Unsubscribe {
+export function subscribeToChromiumStatusChanged(handler: (source: SidecarChangeSource) => void): Unsubscribe {
   return subscribeToSidecarEvent(CHROMIUM_STATUS_CHANGED_EVENT, handler);
 }

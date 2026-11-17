@@ -42,9 +42,7 @@ function commandName(command, args) {
 }
 
 function executable(command) {
-  return process.platform === "win32" && ["npm", "cargo", "rustc"].includes(command)
-    ? `${command}.cmd`
-    : command;
+  return process.platform === "win32" && ["npm", "cargo", "rustc"].includes(command) ? `${command}.cmd` : command;
 }
 
 function normalizeOutput(value) {
@@ -156,10 +154,7 @@ function assertTauriConfig() {
   const externalBin = tauriConfig.bundle?.externalBin;
 
   assert(Array.isArray(externalBin), "bundle.externalBin must be an array.");
-  assert(
-    externalBin.includes(SIDECAR_EXTERNAL_BIN),
-    `bundle.externalBin must include ${SIDECAR_EXTERNAL_BIN}.`,
-  );
+  assert(externalBin.includes(SIDECAR_EXTERNAL_BIN), `bundle.externalBin must include ${SIDECAR_EXTERNAL_BIN}.`);
   const bundleTargets = tauriConfig.bundle?.targets;
   if (process.platform === "linux") {
     assert(Array.isArray(bundleTargets), "Linux S01 packaging must name explicit current-OS bundle targets.");
@@ -205,12 +200,7 @@ function assertTauriConfig() {
 
 function assertTargetBinary() {
   const targetTriple = readTargetTriple();
-  const binaryPath = join(
-    ROOT_DIR,
-    "src-tauri",
-    "binaries",
-    `${SIDECAR_NAME}-${targetTriple}${EXTENSION}`,
-  );
+  const binaryPath = join(ROOT_DIR, "src-tauri", "binaries", `${SIDECAR_NAME}-${targetTriple}${EXTENSION}`);
 
   assert(existsSync(binaryPath), `Missing target-triple sidecar binary ${relative(ROOT_DIR, binaryPath)}.`);
   assert(

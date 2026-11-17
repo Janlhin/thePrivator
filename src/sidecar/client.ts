@@ -378,7 +378,19 @@ const MAX_PROFILE_LAUNCH_ARGS = 20;
 const MAX_PROFILE_LAUNCH_ARG_LENGTH = 256;
 const MAX_PROFILE_DEVICE_ID_LENGTH = 64;
 
-const PROFILE_IDENTITY_SURFACES = ["browser", "navigator", "screen", "locale", "canvas", "audio", "webgl", "webrtc", "geolocation", "mediaDevices", "ports"] as const;
+const PROFILE_IDENTITY_SURFACES = [
+  "browser",
+  "navigator",
+  "screen",
+  "locale",
+  "canvas",
+  "audio",
+  "webgl",
+  "webrtc",
+  "geolocation",
+  "mediaDevices",
+  "ports",
+] as const;
 
 const IDENTITY_DESCRIBED_MODES = ["custom", "masked", "noise", "real"] as const;
 const MAX_IDENTITY_SURFACE_FIELDS = 12;
@@ -711,7 +723,9 @@ export async function duplicateProfile(profileId: string): Promise<ProfileMutati
   try {
     const envelope = await invoke<unknown>("profiles_duplicate", { profileId });
     return parseProfileMutationEnvelope(envelope, new Date().toISOString(), {
-      requireProfile: true, requireProfileInList: true, requireWarnings: false,
+      requireProfile: true,
+      requireProfileInList: true,
+      requireWarnings: false,
     });
   } catch (error) {
     throw normalizeSidecarError(error);
@@ -856,10 +870,7 @@ export async function exportProfileCookies(
   }
 }
 
-export async function replaceProfileCookies(
-  profileId: string,
-  sourcePath: string,
-): Promise<CookieReplaceSnapshot> {
+export async function replaceProfileCookies(profileId: string, sourcePath: string): Promise<CookieReplaceSnapshot> {
   try {
     const safeProfileId = requireProfileClientId(profileId, "profileId");
     const safeSourcePath = requireDialogPathString(sourcePath, "sourcePath");
@@ -1168,7 +1179,9 @@ export async function getCookieBotDefaults(): Promise<CookieBotDefaultsSnapshot>
       const record = requireRecord(value, "Cookie bot defaults must be an object.");
       return { config: parseCookieBotConfig(record.config) };
     });
-  } catch (error) { throw normalizeSidecarError(error); }
+  } catch (error) {
+    throw normalizeSidecarError(error);
+  }
 }
 
 export function startCookieBot(profileId: string, config: Partial<CookieBotConfig>): Promise<CookieBotSnapshot> {
@@ -1183,7 +1196,11 @@ export function cancelCookieBot(profileId: string, jobId: string): Promise<Cooki
   return cookieBotRequest("cookie_bot_cancel", profileId, { profileId, jobId });
 }
 
-async function cookieBotRequest(command: string, profileId: string, args: Record<string, unknown>): Promise<CookieBotSnapshot> {
+async function cookieBotRequest(
+  command: string,
+  profileId: string,
+  args: Record<string, unknown>,
+): Promise<CookieBotSnapshot> {
   try {
     return withEnvelope(await invoke<unknown>(command, args), (value) => {
       const result = requireRecord(value, "Cookie bot result must be an object.");
@@ -1192,16 +1209,28 @@ async function cookieBotRequest(command: string, profileId: string, args: Record
       if (job.profileId !== profileId) throw makeProtocolError("Cookie bot profile does not match request.");
       return { job };
     });
-  } catch (error) { throw normalizeSidecarError(error); }
+  } catch (error) {
+    throw normalizeSidecarError(error);
+  }
 }
 
 function cookieBotUrl(value: unknown): string {
   const text = requireNonBlankString(value, "cookieBot.url");
   try {
     const url = new URL(text);
-    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash || text.length > 2048) throw new Error();
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      text.length > 2048
+    )
+      throw new Error();
     return text;
-  } catch { throw makeProtocolError("Cookie bot URL must be a safe HTTP(S) URL without credentials or query strings."); }
+  } catch {
+    throw makeProtocolError("Cookie bot URL must be a safe HTTP(S) URL without credentials or query strings.");
+  }
 }
 
 function cookieBotInteger(value: unknown, field: string, min: number, max: number): number {
@@ -1212,7 +1241,12 @@ function cookieBotInteger(value: unknown, field: string, min: number, max: numbe
 
 function parseCookieBotConfig(value: unknown): CookieBotConfig {
   const record = requireRecord(value, "Cookie bot config must be an object.");
-  if (!Array.isArray(record.urls) || record.urls.length < 1 || record.urls.length > 25 || typeof record.closeAfterCompletion !== "boolean") {
+  if (
+    !Array.isArray(record.urls) ||
+    record.urls.length < 1 ||
+    record.urls.length > 25 ||
+    typeof record.closeAfterCompletion !== "boolean"
+  ) {
     throw makeProtocolError("Cookie bot config has invalid URLs or close option.");
   }
   return {
@@ -1228,7 +1262,11 @@ function parseCookieBotConfig(value: unknown): CookieBotConfig {
 function parseCookieBotJob(value: unknown): CookieBotJob {
   const record = requireRecord(value, "Cookie bot job must be an object.");
   const status = requireNonBlankString(record.status, "status");
-  if (!["queued", "running", "cancelling", "completed", "cancelled", "failed"].includes(status) || !Array.isArray(record.errors) || record.errors.length > 20) {
+  if (
+    !["queued", "running", "cancelling", "completed", "cancelled", "failed"].includes(status) ||
+    !Array.isArray(record.errors) ||
+    record.errors.length > 20
+  ) {
     throw makeProtocolError("Cookie bot job has invalid status or errors.");
   }
   return {
@@ -1296,7 +1334,10 @@ export async function resolveSyncConflict(
 ): Promise<SyncResolveResult> {
   try {
     const envelope = await invoke<unknown>("sync_resolve", { profileId, resolution });
-    const record = requireRecord(parseSuccessEnvelope(envelope).result, "The sidecar sync resolve result must be an object.");
+    const record = requireRecord(
+      parseSuccessEnvelope(envelope).result,
+      "The sidecar sync resolve result must be an object.",
+    );
     requireExactKeys(record, ["resolved", "resolution"], "syncResolve");
     return {
       resolved: parseSyncAppliedEntry(record.resolved, "resolved"),
@@ -1310,7 +1351,10 @@ export async function resolveSyncConflict(
 export async function prepareSyncedProfile(profileId: string): Promise<SyncPrepareResult> {
   try {
     const envelope = await invoke<unknown>("sync_prepare", { profileId });
-    const record = requireRecord(parseSuccessEnvelope(envelope).result, "The sidecar sync prepare result must be an object.");
+    const record = requireRecord(
+      parseSuccessEnvelope(envelope).result,
+      "The sidecar sync prepare result must be an object.",
+    );
     const prepared = record.prepared;
     if (typeof prepared !== "boolean") {
       throw makeProtocolError("The sidecar sync prepare result must say whether it prepared anything.");
@@ -1329,7 +1373,10 @@ export async function forceReleaseSyncLock(
 ): Promise<SyncLockReleaseResult> {
   try {
     const envelope = await invoke<unknown>("sync_force_release_lock", { profileId, confirmDeviceLabel });
-    const record = requireRecord(parseSuccessEnvelope(envelope).result, "The sidecar sync lock result must be an object.");
+    const record = requireRecord(
+      parseSuccessEnvelope(envelope).result,
+      "The sidecar sync lock result must be an object.",
+    );
     const released = record.released;
     if (typeof released !== "boolean") {
       throw makeProtocolError("The sidecar sync lock result must say whether it released anything.");
@@ -1446,9 +1493,11 @@ function parseDiagnosticEntry(value: unknown, field: string, lookupDetailRef: st
   const logPath = requireDiagnosticEntryLogPath(record.logPath, `${field}.logPath`);
   const detailRef = requireDetailRef(record.detailRef, `${field}.detailRef`);
   const errorCode = requireDiagnosticErrorCode(record.errorCode, `${field}.errorCode`);
-  const requestId = record.requestId === undefined ? undefined : parseDiagnosticJsonScalar(record.requestId, `${field}.requestId`);
+  const requestId =
+    record.requestId === undefined ? undefined : parseDiagnosticJsonScalar(record.requestId, `${field}.requestId`);
   const method = record.method === undefined ? undefined : requireSafeMethod(record.method, `${field}.method`);
-  const durationMs = record.durationMs === undefined ? undefined : requireNonNegativeNumber(record.durationMs, `${field}.durationMs`);
+  const durationMs =
+    record.durationMs === undefined ? undefined : requireNonNegativeNumber(record.durationMs, `${field}.durationMs`);
 
   if (detailRef !== lookupDetailRef) {
     throw makeProtocolError(`The diagnostics lookup field ${field}.detailRef did not match the lookup detailRef.`);
@@ -1478,11 +1527,16 @@ function parseDiagnosticEntry(value: unknown, field: string, lookupDetailRef: st
     return base as DiagnosticEntry;
   }
 
-  if (source === "python-sidecar" && event === "legacy.import.outcome" && (status === "partial" || status === "failed")) {
+  if (
+    source === "python-sidecar" &&
+    event === "legacy.import.outcome" &&
+    (status === "partial" || status === "failed")
+  ) {
     if (!detailRef.startsWith("sidecar-")) {
       throw makeProtocolError(`The diagnostics lookup field ${field}.detailRef must be a sidecar detailRef.`);
     }
-    const context = record.context === undefined ? undefined : parseDiagnosticLegacyContext(record.context, `${field}.context`);
+    const context =
+      record.context === undefined ? undefined : parseDiagnosticLegacyContext(record.context, `${field}.context`);
     return compactOptionalFields({
       ...base,
       context,
@@ -1496,9 +1550,16 @@ function parseDiagnosticEntry(value: unknown, field: string, lookupDetailRef: st
     if (record.context !== undefined) {
       throw makeProtocolError(`The diagnostics lookup field ${field}.context is not allowed for bridge failures.`);
     }
-    const exitCode = record.exitCode === undefined ? undefined : parseDiagnosticExitCode(record.exitCode, `${field}.exitCode`);
-    const stdoutLines = record.stdoutLines === undefined ? undefined : requireNonNegativeInteger(record.stdoutLines, `${field}.stdoutLines`);
-    const stderrLines = record.stderrLines === undefined ? undefined : requireNonNegativeInteger(record.stderrLines, `${field}.stderrLines`);
+    const exitCode =
+      record.exitCode === undefined ? undefined : parseDiagnosticExitCode(record.exitCode, `${field}.exitCode`);
+    const stdoutLines =
+      record.stdoutLines === undefined
+        ? undefined
+        : requireNonNegativeInteger(record.stdoutLines, `${field}.stdoutLines`);
+    const stderrLines =
+      record.stderrLines === undefined
+        ? undefined
+        : requireNonNegativeInteger(record.stderrLines, `${field}.stderrLines`);
     return compactOptionalFields({
       ...base,
       exitCode,
@@ -1678,7 +1739,11 @@ function parseCookieExportEnvelope(
   };
 }
 
-function parseCookieReplaceEnvelope(value: unknown, receivedAt: string, requestedProfileId: string): CookieReplaceSnapshot {
+function parseCookieReplaceEnvelope(
+  value: unknown,
+  receivedAt: string,
+  requestedProfileId: string,
+): CookieReplaceSnapshot {
   const envelope = parseSuccessEnvelope(value);
   const result = parseCookieReplaceResult(envelope.result, requestedProfileId);
 
@@ -1822,10 +1887,19 @@ function parseAutomationApiStatusResult(value: unknown): AutomationApiStatusResu
 
   const status = requireAutomationApiLifecycleStatus(record.status, "automationApi.status");
   const running = requireBoolean(record.running, "automationApi.running");
-  const api = record.api === undefined || record.api === null ? null : parseAutomationApiEndpoint(record.api, "automationApi.api");
-  const process = record.process === undefined || record.process === null ? null : parseAutomationApiProcess(record.process, "automationApi.process");
+  const api =
+    record.api === undefined || record.api === null
+      ? null
+      : parseAutomationApiEndpoint(record.api, "automationApi.api");
+  const process =
+    record.process === undefined || record.process === null
+      ? null
+      : parseAutomationApiProcess(record.process, "automationApi.process");
   const copyAvailable = requireBoolean(record.copyAvailable, "automationApi.copyAvailable");
-  const lastError = record.lastError === undefined || record.lastError === null ? null : parseAutomationApiError(record.lastError, "automationApi.lastError");
+  const lastError =
+    record.lastError === undefined || record.lastError === null
+      ? null
+      : parseAutomationApiError(record.lastError, "automationApi.lastError");
 
   if ((status === "running") !== running) {
     throw makeProtocolError("The automation API lifecycle status and running flag disagreed.");
@@ -1834,7 +1908,9 @@ function parseAutomationApiStatusResult(value: unknown): AutomationApiStatusResu
     throw makeProtocolError("The automation API running state must include loopback endpoint and process metadata.");
   }
   if (!running && (api || process || copyAvailable)) {
-    throw makeProtocolError("The automation API stopped state must not expose endpoint, process, or copy availability.");
+    throw makeProtocolError(
+      "The automation API stopped state must not expose endpoint, process, or copy availability.",
+    );
   }
 
   return {
@@ -1877,14 +1953,20 @@ function parseAutomationApiProcess(value: unknown, field: string): AutomationApi
 function parseAutomationApiError(value: unknown, field: string): AutomationApiErrorSnapshot {
   const record = requireRecord(value, `The automation API field ${field} must be an object.`);
   assertNoForbiddenAutomationApiFields(record, field);
-  requireAutomationApiKeys(record, ["code", "message", "phase", "detailRef", "at", "durationMs"], ["code", "message", "phase", "detailRef", "at"], field);
+  requireAutomationApiKeys(
+    record,
+    ["code", "message", "phase", "detailRef", "at", "durationMs"],
+    ["code", "message", "phase", "detailRef", "at"],
+    field,
+  );
   return compactOptionalFields({
     code: requireDiagnosticErrorCode(record.code, `${field}.code`),
     message: requireAutomationApiSafeText(record.message, `${field}.message`, { maxLength: 256 }),
     phase: requireAutomationApiErrorPhase(record.phase, `${field}.phase`),
     detailRef: requireDetailRef(record.detailRef, `${field}.detailRef`),
     at: requireIsoTimestamp(record.at, `${field}.at`),
-    durationMs: record.durationMs === undefined ? undefined : requireNonNegativeNumber(record.durationMs, `${field}.durationMs`),
+    durationMs:
+      record.durationMs === undefined ? undefined : requireNonNegativeNumber(record.durationMs, `${field}.durationMs`),
   });
 }
 
@@ -1893,8 +1975,14 @@ function parseAutomationApiTimings(value: unknown, field: string): AutomationApi
   assertNoForbiddenAutomationApiFields(record, field);
   requireAutomationApiKeys(record, ["readinessDurationMs", "stopDurationMs"], [], field);
   return compactOptionalFields({
-    readinessDurationMs: record.readinessDurationMs === undefined ? undefined : requireNonNegativeNumber(record.readinessDurationMs, `${field}.readinessDurationMs`),
-    stopDurationMs: record.stopDurationMs === undefined ? undefined : requireNonNegativeNumber(record.stopDurationMs, `${field}.stopDurationMs`),
+    readinessDurationMs:
+      record.readinessDurationMs === undefined
+        ? undefined
+        : requireNonNegativeNumber(record.readinessDurationMs, `${field}.readinessDurationMs`),
+    stopDurationMs:
+      record.stopDurationMs === undefined
+        ? undefined
+        : requireNonNegativeNumber(record.stopDurationMs, `${field}.stopDurationMs`),
   });
 }
 
@@ -2081,14 +2169,7 @@ function parseChromiumBulkStopResult(value: unknown): ChromiumBulkStopResult {
   };
 }
 
-const SYNC_ACTIONS: readonly SyncAction[] = [
-  "nothing",
-  "push",
-  "pull",
-  "conflict",
-  "deleteLocal",
-  "deleteRemote",
-];
+const SYNC_ACTIONS: readonly SyncAction[] = ["nothing", "push", "pull", "conflict", "deleteLocal", "deleteRemote"];
 
 const SYNC_RESOLUTIONS: readonly SyncConflictResolution[] = ["keepLocal", "keepRemote", "keepBoth"];
 
@@ -2096,7 +2177,10 @@ const MAX_SYNC_PLAN_ENTRIES = 5000;
 const MAX_SYNC_TEXT_LENGTH = 400;
 
 /** Wrap a parsed result in the bridge envelope fields every snapshot carries. */
-function withEnvelope<T>(value: unknown, parse: (result: unknown) => T): T & {
+function withEnvelope<T>(
+  value: unknown,
+  parse: (result: unknown) => T,
+): T & {
   requestId: string;
   rawRequestId: JsonScalar;
   protocolVersion: string;
@@ -2151,7 +2235,17 @@ function parseSyncStatusResult(value: unknown): SyncStatusResult {
   const record = requireRecord(value, "The sidecar sync status result must be an object.");
   requireExactKeys(
     record,
-    ["enabled", "configured", "folderName", "deviceLabel", "lastRunAt", "trackedProfiles", "reachable", "writable", "detail"],
+    [
+      "enabled",
+      "configured",
+      "folderName",
+      "deviceLabel",
+      "lastRunAt",
+      "trackedProfiles",
+      "reachable",
+      "writable",
+      "detail",
+    ],
     "syncStatus",
   );
 
@@ -2498,11 +2592,14 @@ function parseIdentitySurfaceFieldDescriptor(value: unknown, field: string): Ide
     ["name", "type", "required"],
     field,
   );
-  const maxLength = record.maxLength === undefined ? undefined : requirePositiveInteger(record.maxLength, `${field}.maxLength`);
+  const maxLength =
+    record.maxLength === undefined ? undefined : requirePositiveInteger(record.maxLength, `${field}.maxLength`);
   const min = record.min === undefined ? undefined : requireNumber(record.min, `${field}.min`);
   const max = record.max === undefined ? undefined : requireNumber(record.max, `${field}.max`);
-  const maxItems = record.maxItems === undefined ? undefined : requirePositiveInteger(record.maxItems, `${field}.maxItems`);
-  const options = record.options === undefined ? undefined : parseIdentitySurfaceFieldOptions(record.options, `${field}.options`);
+  const maxItems =
+    record.maxItems === undefined ? undefined : requirePositiveInteger(record.maxItems, `${field}.maxItems`);
+  const options =
+    record.options === undefined ? undefined : parseIdentitySurfaceFieldOptions(record.options, `${field}.options`);
 
   if (min !== undefined && max !== undefined && min > max) {
     throw makeProtocolError(`The sidecar identity field ${field} must not invert its bounds.`);
@@ -2536,7 +2633,12 @@ function parseIdentitySurfaceFieldOptions(value: unknown, field: string): string
 function parseProxyValidationResult(value: unknown): ProxyValidationResult {
   const record = requireRecord(value, "The sidecar proxy validation result must be an object.");
   assertNoForbiddenPublicProxyFields(record, "proxyValidation");
-  requirePublicKeys(record, ["proxyVersion", "proxy", "warnings"], ["proxyVersion", "proxy", "warnings"], "proxyValidation");
+  requirePublicKeys(
+    record,
+    ["proxyVersion", "proxy", "warnings"],
+    ["proxyVersion", "proxy", "warnings"],
+    "proxyValidation",
+  );
   requireLiteralNumber(record.proxyVersion, "proxyVersion", 1);
   const warnings = parseEmptyWarningArray(record.warnings, "warnings");
 
@@ -2550,7 +2652,11 @@ function parseProxyValidationResult(value: unknown): ProxyValidationResult {
 function parseProxyCheckResult(value: unknown, requestedProfileId: string): ProxyCheckResult {
   const record = requireRecord(value, "The sidecar proxy check result must be an object.");
   assertNoForbiddenProxyCheckFields(record, "proxyCheck");
-  requireExactProxyCheckKeys(record, ["proxyCheckVersion", "profileId", "proxy", "routeProof", "ipHiding", "webRtc", "publicCheckers"], "proxyCheck");
+  requireExactProxyCheckKeys(
+    record,
+    ["proxyCheckVersion", "profileId", "proxy", "routeProof", "ipHiding", "webRtc", "publicCheckers"],
+    "proxyCheck",
+  );
   requireLiteralNumber(record.proxyCheckVersion, "proxyCheckVersion", 1);
   const profileId = requireProfileClientId(record.profileId, "profileId");
   if (profileId !== requestedProfileId) {
@@ -2577,7 +2683,16 @@ function parseCookieExportResult(
   assertNoForbiddenCookiePortabilityFields(record, "cookieExport");
   requireExactCookiePortabilityKeys(
     record,
-    ["portabilityVersion", "profileId", "operation", "format", "exportedCount", "skippedCount", "warningCount", "warnings"],
+    [
+      "portabilityVersion",
+      "profileId",
+      "operation",
+      "format",
+      "exportedCount",
+      "skippedCount",
+      "warningCount",
+      "warnings",
+    ],
     "cookieExport",
   );
   requireLiteralNumber(record.portabilityVersion, "portabilityVersion", 1);
@@ -2738,8 +2853,14 @@ function parseProfilePackageImportResult(value: unknown): ProfilePackageImportRe
   parseProfilePackageInternalProfileReference(record.profile, importedProfileId, importedProfileName);
   const nameConflictResolved = requireBoolean(record.nameConflictResolved, "nameConflictResolved");
   const portableSessionCount = requireNonNegativeProfilePackageInteger(record.cookieCount, "cookieCount");
-  const importedCookieCount = requireNonNegativeProfilePackageInteger(record.importedCookieCount, "importedCookieCount");
-  const replacedCookieCount = requireNonNegativeProfilePackageInteger(record.replacedCookieCount, "replacedCookieCount");
+  const importedCookieCount = requireNonNegativeProfilePackageInteger(
+    record.importedCookieCount,
+    "importedCookieCount",
+  );
+  const replacedCookieCount = requireNonNegativeProfilePackageInteger(
+    record.replacedCookieCount,
+    "replacedCookieCount",
+  );
   const payloadFileCount = requireNonNegativeProfilePackageInteger(record.payloadFileCount, "payloadFileCount");
   const payloadBytes = requireNonNegativeProfilePackageInteger(record.payloadByteCount, "payloadByteCount");
   const warningCount = requireNonNegativeProfilePackageInteger(record.warningCount, "warningCount");
@@ -2747,7 +2868,9 @@ function parseProfilePackageImportResult(value: unknown): ProfilePackageImportRe
   const payloadSkippedCount = countProfilePackagePayloadSkips(warnings);
 
   if (importedCookieCount > portableSessionCount) {
-    throw makeProtocolError("The sidecar profile package import result imported more portable sessions than the package reported.");
+    throw makeProtocolError(
+      "The sidecar profile package import result imported more portable sessions than the package reported.",
+    );
   }
   if (replacedCookieCount > importedCookieCount) {
     throw makeProtocolError("The sidecar profile package import result replaced more sessions than it imported.");
@@ -2787,11 +2910,7 @@ function parseProfilePackageWarnings(
   return value.map((item, index) => parseProfilePackageWarning(item, `${field}[${index}]`, seenCodes));
 }
 
-function parseProfilePackageWarning(
-  value: unknown,
-  field: string,
-  seenCodes: Set<string>,
-): ProfilePackageWarning {
+function parseProfilePackageWarning(value: unknown, field: string, seenCodes: Set<string>): ProfilePackageWarning {
   const record = requireRecord(value, `The sidecar profile package field ${field} must be an object.`);
   assertNoForbiddenProfilePackageFields(record, field);
   requireExactProfilePackageKeys(record, ["code", "message", "count"], field);
@@ -2882,7 +3001,18 @@ function parseProxyCheckRouteProof(value: unknown): ProxyCheckRouteProof {
   assertNoForbiddenProxyCheckFields(record, "routeProof");
   requireExactProxyCheckKeys(
     record,
-    ["status", "basis", "scope", "protocol", "credentialState", "durationMs", "fixture", "target", "directFallbackDetected", "observationCounts"],
+    [
+      "status",
+      "basis",
+      "scope",
+      "protocol",
+      "credentialState",
+      "durationMs",
+      "fixture",
+      "target",
+      "directFallbackDetected",
+      "observationCounts",
+    ],
     "routeProof",
   );
   const status = requireProxyCheckRouteProofStatus(record.status, "routeProof.status");
@@ -2893,14 +3023,31 @@ function parseProxyCheckRouteProof(value: unknown): ProxyCheckRouteProof {
   const durationMs = requireNonNegativeNumber(record.durationMs, "routeProof.durationMs");
   const fixture = parseProxyCheckFixture(record.fixture, protocol, status);
   const target = parseProxyCheckTarget(record.target, status);
-  const directFallbackDetected = requireLiteralBoolean(record.directFallbackDetected, "routeProof.directFallbackDetected", false);
+  const directFallbackDetected = requireLiteralBoolean(
+    record.directFallbackDetected,
+    "routeProof.directFallbackDetected",
+    false,
+  );
   const observationCounts = parseProxyCheckObservationCounts(record.observationCounts, status);
 
   if (status === "not-run") {
-    if (basis !== "direct-profile" || scope !== "not-applicable" || protocol !== null || fixture !== null || target !== null || durationMs !== 0) {
+    if (
+      basis !== "direct-profile" ||
+      scope !== "not-applicable" ||
+      protocol !== null ||
+      fixture !== null ||
+      target !== null ||
+      durationMs !== 0
+    ) {
       throw makeProtocolError("The sidecar proxy check direct routeProof result was malformed.");
     }
-  } else if (basis !== "sidecar-managed-local-fixture" || scope !== "local-fixture" || protocol === null || fixture === null || target === null) {
+  } else if (
+    basis !== "sidecar-managed-local-fixture" ||
+    scope !== "local-fixture" ||
+    protocol === null ||
+    fixture === null ||
+    target === null
+  ) {
     throw makeProtocolError("The sidecar proxy check proved routeProof result was malformed.");
   }
 
@@ -2918,7 +3065,11 @@ function parseProxyCheckRouteProof(value: unknown): ProxyCheckRouteProof {
   };
 }
 
-function parseProxyCheckFixture(value: unknown, routeProtocol: ProxyProtocol | null, status: string): ProxyCheckRouteProof["fixture"] {
+function parseProxyCheckFixture(
+  value: unknown,
+  routeProtocol: ProxyProtocol | null,
+  status: string,
+): ProxyCheckRouteProof["fixture"] {
   if (status === "not-run") {
     if (value !== null) {
       throw makeProtocolError("The sidecar proxy check routeProof.fixture must be null for direct profiles.");
@@ -2976,14 +3127,24 @@ function parseProxyCheckObservationCounts(value: unknown, status: string): Proxy
 function parseProxyCheckIpHiding(value: unknown): ProxyCheckIpHiding {
   const record = requireRecord(value, "The sidecar proxy check ipHiding result must be an object.");
   assertNoForbiddenProxyCheckFields(record, "ipHiding");
-  requireExactProxyCheckKeys(record, ["status", "basis", "scope", "publicExitIpClaimed", "publicExitIp", "publicExitLocation", "localFixtureConclusion"], "ipHiding");
+  requireExactProxyCheckKeys(
+    record,
+    ["status", "basis", "scope", "publicExitIpClaimed", "publicExitIp", "publicExitLocation", "localFixtureConclusion"],
+    "ipHiding",
+  );
   const status = requireProxyCheckIpHidingStatus(record.status, "ipHiding.status");
   const basis = requireProxyCheckIpHidingBasis(record.basis, "ipHiding.basis");
   const scope = requireProxyCheckScope(record.scope, "ipHiding.scope");
   const publicExitIpClaimed = requireBoolean(record.publicExitIpClaimed, "ipHiding.publicExitIpClaimed");
-  const publicExitIp = record.publicExitIp === null ? null : requireProxyCheckSafeText(record.publicExitIp, "ipHiding.publicExitIp", { maxLength: 64 });
+  const publicExitIp =
+    record.publicExitIp === null
+      ? null
+      : requireProxyCheckSafeText(record.publicExitIp, "ipHiding.publicExitIp", { maxLength: 64 });
   const publicExitLocation = parseProxyCheckPublicExitLocation(record.publicExitLocation);
-  const localFixtureConclusion = requireProxyCheckLocalFixtureConclusion(record.localFixtureConclusion, "ipHiding.localFixtureConclusion");
+  const localFixtureConclusion = requireProxyCheckLocalFixtureConclusion(
+    record.localFixtureConclusion,
+    "ipHiding.localFixtureConclusion",
+  );
 
   if (publicExitIpClaimed !== Boolean(publicExitIp)) {
     throw makeProtocolError("The sidecar proxy check public exit IP claim was malformed.");
@@ -2996,7 +3157,11 @@ function parseProxyCheckIpHiding(value: unknown): ProxyCheckIpHiding {
     if (basis !== "direct-profile" || scope !== "not-applicable" || localFixtureConclusion !== "not-run") {
       throw makeProtocolError("The sidecar proxy check direct ipHiding result was malformed.");
     }
-  } else if (basis !== "route-proof-succeeded" || scope !== "local-fixture" || localFixtureConclusion !== "direct target IP hidden from the proof target by the managed fixture") {
+  } else if (
+    basis !== "route-proof-succeeded" ||
+    scope !== "local-fixture" ||
+    localFixtureConclusion !== "direct target IP hidden from the proof target by the managed fixture"
+  ) {
     throw makeProtocolError("The sidecar proxy check proved ipHiding result was malformed.");
   }
 
@@ -3018,18 +3183,37 @@ function parseProxyCheckPublicExitLocation(value: unknown): ProxyCheckIpHiding["
   const record = requireRecord(value, "The sidecar proxy check public exit location must be null or an object.");
   assertNoForbiddenProxyCheckFields(record, "ipHiding.publicExitLocation");
   const hasCode = Object.prototype.hasOwnProperty.call(record, "countryCode");
-  requireExactProxyCheckKeys(record, ["country", "region", "city", "timezone", "isp", ...(hasCode ? ["countryCode"] : [])], "ipHiding.publicExitLocation");
+  requireExactProxyCheckKeys(
+    record,
+    ["country", "region", "city", "timezone", "isp", ...(hasCode ? ["countryCode"] : [])],
+    "ipHiding.publicExitLocation",
+  );
   const countryCode = hasCode ? record.countryCode : null;
   if (countryCode !== null && !isCountryCode(countryCode)) {
     throw makeProtocolError("The sidecar proxy check countryCode must be an ISO alpha-2 code or null.");
   }
   return {
     countryCode,
-    country: record.country === null ? null : requireProxyCheckSafeText(record.country, "ipHiding.publicExitLocation.country", { maxLength: 128 }),
-    region: record.region === null ? null : requireProxyCheckSafeText(record.region, "ipHiding.publicExitLocation.region", { maxLength: 128 }),
-    city: record.city === null ? null : requireProxyCheckSafeText(record.city, "ipHiding.publicExitLocation.city", { maxLength: 128 }),
-    timezone: record.timezone === null ? null : requireProxyCheckSafeText(record.timezone, "ipHiding.publicExitLocation.timezone", { maxLength: 128 }),
-    isp: record.isp === null ? null : requireProxyCheckSafeText(record.isp, "ipHiding.publicExitLocation.isp", { maxLength: 128 }),
+    country:
+      record.country === null
+        ? null
+        : requireProxyCheckSafeText(record.country, "ipHiding.publicExitLocation.country", { maxLength: 128 }),
+    region:
+      record.region === null
+        ? null
+        : requireProxyCheckSafeText(record.region, "ipHiding.publicExitLocation.region", { maxLength: 128 }),
+    city:
+      record.city === null
+        ? null
+        : requireProxyCheckSafeText(record.city, "ipHiding.publicExitLocation.city", { maxLength: 128 }),
+    timezone:
+      record.timezone === null
+        ? null
+        : requireProxyCheckSafeText(record.timezone, "ipHiding.publicExitLocation.timezone", { maxLength: 128 }),
+    isp:
+      record.isp === null
+        ? null
+        : requireProxyCheckSafeText(record.isp, "ipHiding.publicExitLocation.isp", { maxLength: 128 }),
   };
 }
 
@@ -3072,7 +3256,11 @@ function parseProxyCheckPublicCheckers(value: unknown): ProxyCheckPublicCheckers
   requireExactProxyCheckKeys(record, ["status", "basis", "networkDependency", "pages"], "publicCheckers");
   const status = requireLiteral(record.status, "publicCheckers.status", "advisory-only");
   const basis = requireLiteral(record.basis, "publicCheckers.basis", "fixed-https-allowlist");
-  const networkDependency = requireLiteral(record.networkDependency, "publicCheckers.networkDependency", "user-driven-external-pages");
+  const networkDependency = requireLiteral(
+    record.networkDependency,
+    "publicCheckers.networkDependency",
+    "user-driven-external-pages",
+  );
   const pages = parseProxyCheckPublicCheckerPages(record.pages);
   return {
     status,
@@ -3116,7 +3304,11 @@ function parseProxyCheckPublicCheckerPage(value: unknown, field: string): ProxyC
     throw makeProtocolError(`The sidecar proxy check field ${field}.id is not in the fixed catalog.`);
   }
   const surfaces = parseProxyCheckPublicCheckerSurfaces(record.surfaces, `${field}.surfaces`);
-  if (record.label !== expected.label || record.url !== expected.url || !sameStringArray(surfaces, [...expected.surfaces])) {
+  if (
+    record.label !== expected.label ||
+    record.url !== expected.url ||
+    !sameStringArray(surfaces, [...expected.surfaces])
+  ) {
     throw makeProtocolError(`The sidecar proxy check field ${field} does not match fixed catalog metadata.`);
   }
   return {
@@ -3156,7 +3348,11 @@ function parseIdentityAuditPlanResult(value: unknown): IdentityAuditPlanResult {
   };
 }
 
-function parseIdentityAuditOpenResult(value: unknown, requestedProfileId: string, requestedPageId: string): IdentityAuditOpenResult {
+function parseIdentityAuditOpenResult(
+  value: unknown,
+  requestedProfileId: string,
+  requestedPageId: string,
+): IdentityAuditOpenResult {
   const record = requireRecord(value, "The sidecar identity audit open result must be an object.");
   assertNoForbiddenAuditFields(record, "identityAuditOpen");
   requireExactAuditKeys(
@@ -3241,7 +3437,11 @@ function parseIdentityAuditPageResults(value: unknown): IdentityAuditPageResult[
 function parseIdentityAuditPageResult(value: unknown, field: string): IdentityAuditPageResult {
   const record = requireRecord(value, `The sidecar identity audit result field ${field} must be an object.`);
   assertNoForbiddenAuditFields(record, field);
-  requireExactAuditKeys(record, ["id", "label", "category", "url", "status", "capturedAt", "title", "summary", "extractedRows", "notes"], field);
+  requireExactAuditKeys(
+    record,
+    ["id", "label", "category", "url", "status", "capturedAt", "title", "summary", "extractedRows", "notes"],
+    field,
+  );
   const id = requireAuditClientId(record.id, `${field}.id`);
   const expected = IDENTITY_AUDIT_CATALOG_BY_ID.get(id);
   if (!expected) {
@@ -3249,7 +3449,9 @@ function parseIdentityAuditPageResult(value: unknown, field: string): IdentityAu
   }
   const category = requireIdentityAuditCategory(record.category, `${field}.category`);
   if (category !== expected.category) {
-    throw makeProtocolError(`The sidecar identity audit result field ${field}.category does not match the fixed catalog.`);
+    throw makeProtocolError(
+      `The sidecar identity audit result field ${field}.category does not match the fixed catalog.`,
+    );
   }
   return {
     id,
@@ -3295,7 +3497,9 @@ function parseIdentityAuditCopy(value: unknown): IdentityAuditPlanCopy {
   return {
     advisory: requireAuditSafeText(record.advisory, "copy.advisory", { maxLength: 256 }),
     localProof: requireAuditSafeText(record.localProof, "copy.localProof", { maxLength: 256 }),
-    publicCheckerInstability: requireAuditSafeText(record.publicCheckerInstability, "copy.publicCheckerInstability", { maxLength: 256 }),
+    publicCheckerInstability: requireAuditSafeText(record.publicCheckerInstability, "copy.publicCheckerInstability", {
+      maxLength: 256,
+    }),
   };
 }
 
@@ -3362,7 +3566,11 @@ function parseIdentityAuditPage(value: unknown, field: string): IdentityAuditPag
   };
 }
 
-function parseIdentityAuditExpectedRows(value: unknown, pageSurfaces: IdentityAuditSurface[], field: string): IdentityAuditExpectedRow[] {
+function parseIdentityAuditExpectedRows(
+  value: unknown,
+  pageSurfaces: IdentityAuditSurface[],
+  field: string,
+): IdentityAuditExpectedRow[] {
   if (!Array.isArray(value) || value.length === 0 || value.length > 40) {
     throw makeProtocolError(`The sidecar identity audit field ${field} must be a bounded non-empty array.`);
   }
@@ -3660,8 +3868,36 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
   assertNoForbiddenPublicProfileFields(record, field);
   requirePublicKeys(
     record,
-    ["id", "name", "createdAt", "updatedAt", "defaults", "storage", "identity", "proxy", "organization", "launch", "lifecycle", "sync", "metadata", "proxyRevision"],
-    ["id", "name", "createdAt", "updatedAt", "defaults", "storage", "identity", "proxy", "organization", "launch", "lifecycle", "sync"],
+    [
+      "id",
+      "name",
+      "createdAt",
+      "updatedAt",
+      "defaults",
+      "storage",
+      "identity",
+      "proxy",
+      "organization",
+      "launch",
+      "lifecycle",
+      "sync",
+      "metadata",
+      "proxyRevision",
+    ],
+    [
+      "id",
+      "name",
+      "createdAt",
+      "updatedAt",
+      "defaults",
+      "storage",
+      "identity",
+      "proxy",
+      "organization",
+      "launch",
+      "lifecycle",
+      "sync",
+    ],
     field,
   );
   const id = requireNonBlankString(record.id, `${field}.id`);
@@ -3672,7 +3908,8 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
   const identity = parseProfileIdentity(record.identity, `${field}.identity`);
   const launch = parseProfileLaunch(record.launch, `${field}.launch`);
 
-  const metadata = record.metadata === undefined ? undefined : parseSafePublicMetadata(record.metadata, `${field}.metadata`);
+  const metadata =
+    record.metadata === undefined ? undefined : parseSafePublicMetadata(record.metadata, `${field}.metadata`);
 
   return {
     id,
@@ -3692,13 +3929,24 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
     lifecycle: parseProfileLifecycle(record.lifecycle, `${field}.lifecycle`),
     sync: parseProfileSync(record.sync, `${field}.sync`),
     ...(metadata === undefined ? {} : { metadata }),
-    ...(record.proxyRevision === undefined ? {} : { proxyRevision: requireNonBlankString(record.proxyRevision, `${field}.proxyRevision`) }),
+    ...(record.proxyRevision === undefined
+      ? {}
+      : { proxyRevision: requireNonBlankString(record.proxyRevision, `${field}.proxyRevision`) }),
   };
 }
 
-function parseProfileDefaults(value: unknown, field: string, expected: Omit<ProfileDefaults, "browser">): ProfileDefaults {
+function parseProfileDefaults(
+  value: unknown,
+  field: string,
+  expected: Omit<ProfileDefaults, "browser">,
+): ProfileDefaults {
   const defaults = requireRecord(value, `The sidecar profile result field ${field} must be an object.`);
-  requirePublicKeys(defaults, ["browser", "startUrl", "proxyMode", "fingerprintMode"], ["browser", "startUrl", "proxyMode", "fingerprintMode"], field);
+  requirePublicKeys(
+    defaults,
+    ["browser", "startUrl", "proxyMode", "fingerprintMode"],
+    ["browser", "startUrl", "proxyMode", "fingerprintMode"],
+    field,
+  );
   requireLiteral(defaults.browser, `${field}.browser`, "chromium");
   const startUrl = requireProfileStartUrl(defaults.startUrl, `${field}.startUrl`);
   const proxyMode = requireProfileProxyMode(defaults.proxyMode, `${field}.proxyMode`);
@@ -3713,7 +3961,9 @@ function parseProfileDefaults(value: unknown, field: string, expected: Omit<Prof
     throw makeProtocolError(`The sidecar profile result field ${field}.startUrl must match the launch block.`);
   }
   if (fingerprintMode !== expected.fingerprintMode) {
-    throw makeProtocolError(`The sidecar profile result field ${field}.fingerprintMode must match the identity surfaces.`);
+    throw makeProtocolError(
+      `The sidecar profile result field ${field}.fingerprintMode must match the identity surfaces.`,
+    );
   }
 
   return {
@@ -3744,7 +3994,12 @@ function parseProfileProxySummary(value: unknown, field: string): ProfileProxySu
   const mode = requireProfileProxyMode(record.mode, `${field}.mode`);
 
   if (mode === "direct") {
-    requirePublicKeys(record, ["proxyVersion", "mode", "credentialState", "summary"], ["proxyVersion", "mode", "credentialState", "summary"], field);
+    requirePublicKeys(
+      record,
+      ["proxyVersion", "mode", "credentialState", "summary"],
+      ["proxyVersion", "mode", "credentialState", "summary"],
+      field,
+    );
     requireLiteral(record.credentialState, `${field}.credentialState`, "none");
     requireLiteral(record.summary, `${field}.summary`, "Direct connection");
     return {
@@ -3769,7 +4024,9 @@ function parseProfileProxySummary(value: unknown, field: string): ProfileProxySu
   const expectedSummary = formatProxySummary(protocol, host, port);
 
   if (summary !== expectedSummary) {
-    throw makeProtocolError(`The sidecar profile result field ${field}.summary must match the redacted proxy endpoint.`);
+    throw makeProtocolError(
+      `The sidecar profile result field ${field}.summary must match the redacted proxy endpoint.`,
+    );
   }
 
   return {
@@ -3812,7 +4069,8 @@ function parseProfileOrganization(value: unknown, field: string): ProfileOrganiz
   );
 
   return {
-    folderId: organization.folderId === null ? null : requireProfileFolderId(organization.folderId, `${field}.folderId`),
+    folderId:
+      organization.folderId === null ? null : requireProfileFolderId(organization.folderId, `${field}.folderId`),
     tags: parseProfileTagArray(organization.tags, `${field}.tags`),
     // Notes are text the user typed: slashes and colons are ordinary content, so
     // the guard is control characters and length, never a path-shaped rejection.
@@ -3835,12 +4093,19 @@ function parseProfileLaunch(value: unknown, field: string): ProfileLaunch {
 
 function parseProfileLifecycle(value: unknown, field: string): ProfileLifecycle {
   const lifecycle = requireRecord(value, `The sidecar profile result field ${field} must be an object.`);
-  requirePublicKeys(lifecycle, ["deletedAt", "lastLaunchedAt", "launchCount"], ["deletedAt", "lastLaunchedAt", "launchCount"], field);
+  requirePublicKeys(
+    lifecycle,
+    ["deletedAt", "lastLaunchedAt", "launchCount"],
+    ["deletedAt", "lastLaunchedAt", "launchCount"],
+    field,
+  );
 
   return {
     deletedAt: lifecycle.deletedAt === null ? null : requireIsoTimestamp(lifecycle.deletedAt, `${field}.deletedAt`),
     lastLaunchedAt:
-      lifecycle.lastLaunchedAt === null ? null : requireIsoTimestamp(lifecycle.lastLaunchedAt, `${field}.lastLaunchedAt`),
+      lifecycle.lastLaunchedAt === null
+        ? null
+        : requireIsoTimestamp(lifecycle.lastLaunchedAt, `${field}.lastLaunchedAt`),
     launchCount: requireNonNegativeInteger(lifecycle.launchCount, `${field}.launchCount`),
   };
 }
@@ -3860,7 +4125,9 @@ function parseProfileSync(value: unknown, field: string): ProfileSync {
     originDeviceId: requireProfileDeviceId(sync.originDeviceId, `${field}.originDeviceId`),
     lastSyncedAt: sync.lastSyncedAt === null ? null : requireIsoTimestamp(sync.lastSyncedAt, `${field}.lastSyncedAt`),
     lastSyncedRevision:
-      sync.lastSyncedRevision === null ? null : requirePositiveInteger(sync.lastSyncedRevision, `${field}.lastSyncedRevision`),
+      sync.lastSyncedRevision === null
+        ? null
+        : requirePositiveInteger(sync.lastSyncedRevision, `${field}.lastSyncedRevision`),
   };
 }
 
@@ -3888,7 +4155,10 @@ function requireProfileTag(value: unknown, field: string): string {
 
 function requireProfileFreeText(value: unknown, field: string, maxLength: number, multiline = false): string {
   const text = requireString(value, field);
-  if (codePointLength(text) > maxLength || containsControlCharactersOrDelete(multiline ? text.replace(/[\n\r\t]/g, "") : text)) {
+  if (
+    codePointLength(text) > maxLength ||
+    containsControlCharactersOrDelete(multiline ? text.replace(/[\n\r\t]/g, "") : text)
+  ) {
     throw makeProtocolError(`The sidecar profile result field ${field} is outside supported bounds.`);
   }
 
@@ -3898,7 +4168,9 @@ function requireProfileFreeText(value: unknown, field: string, maxLength: number
 function requireProfileFolderId(value: unknown, field: string): string {
   const folderId = requireNonBlankString(value, field);
   if (!PROFILE_FOLDER_ID_PATTERN.test(folderId)) {
-    throw makeProtocolError(`The sidecar profile result field ${field} must be a route-safe name of 1–64 characters or null.`);
+    throw makeProtocolError(
+      `The sidecar profile result field ${field} must be a route-safe name of 1–64 characters or null.`,
+    );
   }
 
   return folderId;
@@ -3931,7 +4203,12 @@ function parseProfileStartUrlArray(value: unknown, field: string): string[] {
 
 function requireProfileStartUrl(value: unknown, field: string): string {
   const startUrl = requireString(value, field);
-  if (!startUrl || codePointLength(startUrl) > MAX_PROFILE_START_URL_LENGTH || containsControlCharactersOrDelete(startUrl) || /\s/.test(startUrl)) {
+  if (
+    !startUrl ||
+    codePointLength(startUrl) > MAX_PROFILE_START_URL_LENGTH ||
+    containsControlCharactersOrDelete(startUrl) ||
+    /\s/.test(startUrl)
+  ) {
     throw makeProtocolError(`The sidecar profile result field ${field} is outside supported bounds.`);
   }
   // A start URL is handed to Chromium as a positional argument, so an exact
@@ -3979,22 +4256,26 @@ function parseIdentityArray(value: unknown, field: string): ProfileIdentity[] {
 
 function parseProfileIdentity(value: unknown, field: string): ProfileIdentity {
   const record = requireRecord(value, `The sidecar identity field ${field} must be an object.`);
-  requireExactKeys(record, [
-    "identityVersion",
-    "label",
-    "presetId",
-    "browser",
-    "navigator",
-    "screen",
-    "locale",
-    "canvas",
-    "audio",
-    "webgl",
-    "webrtc",
-    "geolocation",
-    "mediaDevices",
-    "ports",
-  ], field);
+  requireExactKeys(
+    record,
+    [
+      "identityVersion",
+      "label",
+      "presetId",
+      "browser",
+      "navigator",
+      "screen",
+      "locale",
+      "canvas",
+      "audio",
+      "webgl",
+      "webrtc",
+      "geolocation",
+      "mediaDevices",
+      "ports",
+    ],
+    field,
+  );
   requireLiteralNumber(record.identityVersion, `${field}.identityVersion`, 2);
 
   return {
@@ -4031,7 +4312,8 @@ function parseBrowserIdentitySurface(value: unknown, field: string): ProfileIden
   }
 
   requireAllowedKeys(record, ["mode", "userAgent", "clientHints"], ["mode", "userAgent"], field);
-  const clientHints = record.clientHints === undefined ? undefined : parseBrowserClientHints(record.clientHints, `${field}.clientHints`);
+  const clientHints =
+    record.clientHints === undefined ? undefined : parseBrowserClientHints(record.clientHints, `${field}.clientHints`);
   return compactOptionalFields({
     mode,
     userAgent: requireIdentityText(record.userAgent, `${field}.userAgent`, { maxLength: 512 }),
@@ -4067,7 +4349,16 @@ function parseNavigatorIdentitySurface(value: unknown, field: string): ProfileId
     return { mode };
   }
 
-  const required = ["mode", "platform", "hardwareConcurrency", "deviceMemory", "uaPlatform", "uaPlatformVersion", "uaArchitecture", "uaMobile"];
+  const required = [
+    "mode",
+    "platform",
+    "hardwareConcurrency",
+    "deviceMemory",
+    "uaPlatform",
+    "uaPlatformVersion",
+    "uaArchitecture",
+    "uaMobile",
+  ];
   requireAllowedKeys(record, required, required, field);
   return {
     mode,
@@ -4075,7 +4366,10 @@ function parseNavigatorIdentitySurface(value: unknown, field: string): ProfileId
     hardwareConcurrency: requireIdentityInteger(record.hardwareConcurrency, `${field}.hardwareConcurrency`, 1, 128),
     deviceMemory: requireIdentityNumber(record.deviceMemory, `${field}.deviceMemory`, 0.25, 128),
     uaPlatform: requireIdentityText(record.uaPlatform, `${field}.uaPlatform`, { maxLength: 80 }),
-    uaPlatformVersion: requireIdentityText(record.uaPlatformVersion, `${field}.uaPlatformVersion`, { maxLength: 80, allowEmpty: true }),
+    uaPlatformVersion: requireIdentityText(record.uaPlatformVersion, `${field}.uaPlatformVersion`, {
+      maxLength: 80,
+      allowEmpty: true,
+    }),
     uaArchitecture: requireIdentityText(record.uaArchitecture, `${field}.uaArchitecture`, { maxLength: 80 }),
     uaMobile: requireBoolean(record.uaMobile, `${field}.uaMobile`),
   };
@@ -4144,7 +4438,10 @@ function parseWebGlIdentitySurface(value: unknown, field: string): ProfileIdenti
   }
 
   requireAllowedKeys(record, ["mode", "vendor", "renderer", "noiseSeed"], ["mode", "vendor", "renderer"], field);
-  const noiseSeed = record.noiseSeed === undefined ? undefined : requireIdentityInteger(record.noiseSeed, `${field}.noiseSeed`, 0, 1000000);
+  const noiseSeed =
+    record.noiseSeed === undefined
+      ? undefined
+      : requireIdentityInteger(record.noiseSeed, `${field}.noiseSeed`, 0, 1000000);
   return compactOptionalFields({
     mode,
     vendor: requireIdentityText(record.vendor, `${field}.vendor`, { maxLength: 512 }),
@@ -4185,7 +4482,8 @@ function parseGeolocationIdentitySurface(value: unknown, field: string): Profile
     latitude: requireIdentityNumber(record.latitude, `${field}.latitude`, -90, 90),
     longitude: requireIdentityNumber(record.longitude, `${field}.longitude`, -180, 180),
     accuracy: requireIdentityInteger(record.accuracy, `${field}.accuracy`, 1, 100000),
-    altitude: record.altitude === null ? null : requireIdentityNumber(record.altitude, `${field}.altitude`, -1000, 100000),
+    altitude:
+      record.altitude === null ? null : requireIdentityNumber(record.altitude, `${field}.altitude`, -1000, 100000),
   };
 }
 
@@ -4269,7 +4567,12 @@ function requireExactKeys(record: Record<string, unknown>, keys: string[], field
   requireAllowedKeys(record, keys, keys, field);
 }
 
-function requireAllowedKeys(record: Record<string, unknown>, allowed: string[], required: string[], field: string): void {
+function requireAllowedKeys(
+  record: Record<string, unknown>,
+  allowed: string[],
+  required: string[],
+  field: string,
+): void {
   const allowedSet = new Set(allowed);
   const requiredSet = new Set(required);
   for (const key of Object.keys(record)) {
@@ -4284,7 +4587,11 @@ function requireAllowedKeys(record: Record<string, unknown>, allowed: string[], 
   }
 }
 
-function requireIdentityText(value: unknown, field: string, options: { maxLength: number; allowEmpty?: boolean }): string {
+function requireIdentityText(
+  value: unknown,
+  field: string,
+  options: { maxLength: number; allowEmpty?: boolean },
+): string {
   const text = requireString(value, field);
   if (!options.allowEmpty && !text) {
     throw makeProtocolError(`The sidecar identity field ${field} must not be empty.`);
@@ -4395,7 +4702,10 @@ function requireIdentityAuditCategory(value: unknown, field: string): IdentityAu
   throw makeProtocolError(`The sidecar identity audit field ${field} must be a known category.`);
 }
 
-function requireIdentityAuditPageResultStatus(value: unknown, field: string): "captured" | "needs-user-action" | "unavailable" {
+function requireIdentityAuditPageResultStatus(
+  value: unknown,
+  field: string,
+): "captured" | "needs-user-action" | "unavailable" {
   if (value === "captured" || value === "needs-user-action" || value === "unavailable") {
     return value;
   }
@@ -4482,7 +4792,12 @@ function containsUnsafeAuditText(value: string): boolean {
   return false;
 }
 
-function requireAutomationApiKeys(record: Record<string, unknown>, allowed: string[], required: string[], field: string): void {
+function requireAutomationApiKeys(
+  record: Record<string, unknown>,
+  allowed: string[],
+  required: string[],
+  field: string,
+): void {
   const allowedSet = new Set(allowed);
   for (const key of Object.keys(record)) {
     if (!allowedSet.has(key)) {
@@ -4503,13 +4818,17 @@ function assertNoForbiddenAutomationApiFields(value: unknown, field: string): vo
   }
   if (!isRecord(value)) {
     if (typeof value === "string" && containsUnsafeAutomationApiText(value)) {
-      throw makeProtocolError(`The automation API field ${field} must not expose token material, raw diagnostics, app-data roots, or debug endpoints.`);
+      throw makeProtocolError(
+        `The automation API field ${field} must not expose token material, raw diagnostics, app-data roots, or debug endpoints.`,
+      );
     }
     return;
   }
   for (const [key, item] of Object.entries(value)) {
     if (FORBIDDEN_AUTOMATION_API_FIELD_TOKENS.has(fieldToken(key))) {
-      throw makeProtocolError(`The automation API field ${field}.${key} must not expose token material, raw diagnostics, app-data roots, or debug endpoints.`);
+      throw makeProtocolError(
+        `The automation API field ${field}.${key} must not expose token material, raw diagnostics, app-data roots, or debug endpoints.`,
+      );
     }
     assertNoForbiddenAutomationApiFields(item, `${field}.${key}`);
   }
@@ -4539,7 +4858,11 @@ function requireAutomationApiLoopbackHost(value: unknown, field: string): string
     return host;
   }
   const parts = host.split(".");
-  if (parts.length === 4 && parts[0] === "127" && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)) {
+  if (
+    parts.length === 4 &&
+    parts[0] === "127" &&
+    parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+  ) {
     return host;
   }
   throw makeProtocolError(`The automation API field ${field} must be a loopback IP address.`);
@@ -4557,7 +4880,14 @@ function requireAutomationApiLoopbackUrl(value: unknown, host: string, port: num
   } catch {
     throw makeProtocolError(`The automation API field ${field} must be a valid loopback URL.`);
   }
-  if (parsed.protocol !== "http:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+  if (
+    parsed.protocol !== "http:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash
+  ) {
     throw makeProtocolError(`The automation API field ${field} must be a safe loopback URL.`);
   }
   return url;
@@ -4600,13 +4930,17 @@ function assertNoForbiddenProxyCheckFields(value: unknown, field: string): void 
   }
   if (!isRecord(value)) {
     if (typeof value === "string" && containsUnsafeProxyCheckText(value)) {
-      throw makeProtocolError(`The sidecar proxy check field ${field} must not expose credentials, runtime details, or raw checker content.`);
+      throw makeProtocolError(
+        `The sidecar proxy check field ${field} must not expose credentials, runtime details, or raw checker content.`,
+      );
     }
     return;
   }
   for (const [key, item] of Object.entries(value)) {
     if (FORBIDDEN_PROXY_CHECK_FIELD_TOKENS.has(fieldToken(key))) {
-      throw makeProtocolError(`The sidecar proxy check field ${field}.${key} must not expose credentials, runtime details, or raw checker content.`);
+      throw makeProtocolError(
+        `The sidecar proxy check field ${field}.${key} must not expose credentials, runtime details, or raw checker content.`,
+      );
     }
     assertNoForbiddenProxyCheckFields(item, `${field}.${key}`);
   }
@@ -4655,11 +4989,7 @@ function requireProfilePackageFormat(value: unknown, field: string): typeof PROF
   return PROFILE_PACKAGE_FORMAT;
 }
 
-function requireProfilePackageOperation<T extends "export" | "import">(
-  value: unknown,
-  field: string,
-  expected: T,
-): T {
+function requireProfilePackageOperation<T extends "export" | "import">(value: unknown, field: string, expected: T): T {
   if (value !== expected) {
     throw makeProtocolError(`The sidecar profile package field ${field} must be ${expected}.`);
   }
@@ -4687,13 +5017,17 @@ function assertNoForbiddenProfilePackageFields(value: unknown, field: string): v
   }
   if (!isRecord(value)) {
     if (typeof value === "string" && containsUnsafeProfilePackageText(value)) {
-      throw makeProtocolError(`The sidecar profile package field ${field} must not expose selected paths, package members, manifests, cookies, credentials, runtime roots, diagnostics, debug endpoints, or launch details.`);
+      throw makeProtocolError(
+        `The sidecar profile package field ${field} must not expose selected paths, package members, manifests, cookies, credentials, runtime roots, diagnostics, debug endpoints, or launch details.`,
+      );
     }
     return;
   }
   for (const [key, item] of Object.entries(value)) {
     if (FORBIDDEN_PROFILE_PACKAGE_FIELD_TOKENS.has(fieldToken(key))) {
-      throw makeProtocolError(`The sidecar profile package field ${field}.${key} must not expose selected paths, package members, manifests, cookies, credentials, runtime roots, diagnostics, debug endpoints, or launch details.`);
+      throw makeProtocolError(
+        `The sidecar profile package field ${field}.${key} must not expose selected paths, package members, manifests, cookies, credentials, runtime roots, diagnostics, debug endpoints, or launch details.`,
+      );
     }
     assertNoForbiddenProfilePackageFields(item, `${field}.${key}`);
   }
@@ -4776,13 +5110,17 @@ function assertNoForbiddenCookiePortabilityFields(value: unknown, field: string)
   }
   if (!isRecord(value)) {
     if (typeof value === "string" && containsUnsafeCookiePortabilityText(value)) {
-      throw makeProtocolError(`The sidecar cookie portability field ${field} must not expose cookie material, selected paths, runtime roots, diagnostics, or debug endpoints.`);
+      throw makeProtocolError(
+        `The sidecar cookie portability field ${field} must not expose cookie material, selected paths, runtime roots, diagnostics, or debug endpoints.`,
+      );
     }
     return;
   }
   for (const [key, item] of Object.entries(value)) {
     if (FORBIDDEN_COOKIE_PORTABILITY_FIELD_TOKENS.has(fieldToken(key))) {
-      throw makeProtocolError(`The sidecar cookie portability field ${field}.${key} must not expose cookie material, selected paths, runtime roots, diagnostics, or debug endpoints.`);
+      throw makeProtocolError(
+        `The sidecar cookie portability field ${field}.${key} must not expose cookie material, selected paths, runtime roots, diagnostics, or debug endpoints.`,
+      );
     }
     assertNoForbiddenCookiePortabilityFields(item, `${field}.${key}`);
   }
@@ -4861,7 +5199,10 @@ function requireProxyCheckIpHidingBasis(value: unknown, field: string): ProxyChe
   throw makeProtocolError(`The sidecar proxy check field ${field} must be a known IP-hiding basis.`);
 }
 
-function requireProxyCheckLocalFixtureConclusion(value: unknown, field: string): ProxyCheckIpHiding["localFixtureConclusion"] {
+function requireProxyCheckLocalFixtureConclusion(
+  value: unknown,
+  field: string,
+): ProxyCheckIpHiding["localFixtureConclusion"] {
   if (value === "not-run" || value === "direct target IP hidden from the proof target by the managed fixture") {
     return value;
   }
@@ -4966,7 +5307,9 @@ function assertNoForbiddenAuditFields(value: unknown, field: string): void {
   }
   for (const [key, item] of Object.entries(value)) {
     if (FORBIDDEN_AUDIT_FIELDS.has(key)) {
-      throw makeProtocolError(`The sidecar identity audit field ${field}.${key} must not expose runtime/debug details.`);
+      throw makeProtocolError(
+        `The sidecar identity audit field ${field}.${key} must not expose runtime/debug details.`,
+      );
     }
     assertNoForbiddenAuditFields(item, `${field}.${key}`);
   }
@@ -4982,8 +5325,13 @@ function assertNoForbiddenPublicProfileFields(value: unknown, field: string, pat
   }
   for (const [key, item] of Object.entries(value)) {
     const keyPath = path ? `${path}.${key}` : key;
-    if (FORBIDDEN_PUBLIC_PROXY_FIELD_TOKENS.has(fieldToken(key)) && !PUBLIC_PROFILE_FORBIDDEN_TOKEN_EXEMPT_PATHS.has(keyPath)) {
-      throw makeProtocolError(`The sidecar public profile field ${field}.${key} must not expose proxy credentials or runtime details.`);
+    if (
+      FORBIDDEN_PUBLIC_PROXY_FIELD_TOKENS.has(fieldToken(key)) &&
+      !PUBLIC_PROFILE_FORBIDDEN_TOKEN_EXEMPT_PATHS.has(keyPath)
+    ) {
+      throw makeProtocolError(
+        `The sidecar public profile field ${field}.${key} must not expose proxy credentials or runtime details.`,
+      );
     }
     assertNoForbiddenPublicProfileFields(item, `${field}.${key}`, keyPath);
   }
@@ -4999,13 +5347,20 @@ function assertNoForbiddenPublicProxyFields(value: unknown, field: string): void
   }
   for (const [key, item] of Object.entries(value)) {
     if (FORBIDDEN_PUBLIC_PROXY_FIELD_TOKENS.has(fieldToken(key))) {
-      throw makeProtocolError(`The sidecar public profile field ${field}.${key} must not expose proxy credentials or runtime details.`);
+      throw makeProtocolError(
+        `The sidecar public profile field ${field}.${key} must not expose proxy credentials or runtime details.`,
+      );
     }
     assertNoForbiddenPublicProxyFields(item, `${field}.${key}`);
   }
 }
 
-function requirePublicKeys(record: Record<string, unknown>, allowed: string[], required: string[], field: string): void {
+function requirePublicKeys(
+  record: Record<string, unknown>,
+  allowed: string[],
+  required: string[],
+  field: string,
+): void {
   const allowedSet = new Set(allowed);
   const requiredSet = new Set(required);
   for (const key of Object.keys(record)) {
@@ -5085,7 +5440,20 @@ function requireProxySummary(value: unknown, field: string): string {
 
 function containsUnsafeProxySummaryText(value: string): boolean {
   const lowered = value.toLowerCase();
-  if (["@", "credential", "password", "username", "proxyuser", "proxypass", "authcredentials", "debugport", "argv", "command"].some((marker) => lowered.includes(marker))) {
+  if (
+    [
+      "@",
+      "credential",
+      "password",
+      "username",
+      "proxyuser",
+      "proxypass",
+      "authcredentials",
+      "debugport",
+      "argv",
+      "command",
+    ].some((marker) => lowered.includes(marker))
+  ) {
     return true;
   }
   return /(?:^|\s)(?:\/[A-Za-z0-9._-]+){2,}/.test(value) || /^[A-Za-z]:[\\/]/.test(value);
@@ -5194,9 +5562,11 @@ function requireIsoTimestamp(value: unknown, field: string): string {
   // spelling without accepting offsets, locale dates or Date.parse rollover.
   const normalized = text.replace(/\+00:00$/, "Z");
   const epoch = Date.parse(normalized);
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(normalized)
-      || Number.isNaN(epoch)
-      || new Date(epoch).toISOString().slice(0, 19) !== normalized.slice(0, 19)) {
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(normalized) ||
+    Number.isNaN(epoch) ||
+    new Date(epoch).toISOString().slice(0, 19) !== normalized.slice(0, 19)
+  ) {
     throw makeProtocolError(`The sidecar response field ${field} must be a UTC ISO timestamp string.`);
   }
 
@@ -5285,7 +5655,9 @@ function parseDiagnosticLogPath(value: unknown, field: string): DiagnosticLogPat
 function requireDiagnosticEntryLogPath(value: unknown, field: string): DiagnosticLogPath {
   const logPath = parseDiagnosticLogPath(value, field);
   if (logPath === null) {
-    throw makeProtocolError(`The diagnostics lookup field ${field} must include the fixed relative diagnostics log path.`);
+    throw makeProtocolError(
+      `The diagnostics lookup field ${field} must include the fixed relative diagnostics log path.`,
+    );
   }
 
   return logPath;
@@ -5293,11 +5665,7 @@ function requireDiagnosticEntryLogPath(value: unknown, field: string): Diagnosti
 
 function requireDiagnosticErrorCode(value: unknown, field: string): string {
   const errorCode = requireNonBlankString(value, field);
-  if (
-    errorCode.length > 96 ||
-    !/^[A-Z][A-Z0-9_]+$/.test(errorCode) ||
-    isPathLikeOrUrl(errorCode)
-  ) {
+  if (errorCode.length > 96 || !/^[A-Z][A-Z0-9_]+$/.test(errorCode) || isPathLikeOrUrl(errorCode)) {
     throw makeProtocolError(`The diagnostics lookup field ${field} must be a safe error code.`);
   }
 
@@ -5375,7 +5743,13 @@ function parseDiagnosticExitCode(value: unknown, field: string): number | null {
 function requireLegacyId(value: unknown, field: string): string {
   const legacyId = requireNonBlankString(value, field);
   const suffix = legacyId.startsWith("legacy-") ? legacyId.slice("legacy-".length) : "";
-  if (!legacyId.startsWith("legacy-") || !suffix || suffix.length > 96 || isPathLikeOrUrl(legacyId) || !/^[A-Za-z0-9_.:-]+$/.test(suffix)) {
+  if (
+    !legacyId.startsWith("legacy-") ||
+    !suffix ||
+    suffix.length > 96 ||
+    isPathLikeOrUrl(legacyId) ||
+    !/^[A-Za-z0-9_.:-]+$/.test(suffix)
+  ) {
     throw makeProtocolError(`The sidecar legacy field ${field} must be an opaque legacy id.`);
   }
 
@@ -5682,42 +6056,88 @@ function extractErrorMessage(_error: unknown): string {
 }
 
 export type ThemePreference = "system" | "light" | "dark";
-export interface VaultStatus { enabled: boolean; locked: boolean; recoveryRequired: boolean }
-export interface MachineInfo { platform: string; architecture: string; browserVersion: string | null }
-export interface StorageUsage { bytes: number; groups: { profiles: number; vault: number; other: number }; incomplete: boolean }
+export interface VaultStatus {
+  enabled: boolean;
+  locked: boolean;
+  recoveryRequired: boolean;
+}
+export interface MachineInfo {
+  platform: string;
+  architecture: string;
+  browserVersion: string | null;
+}
+export interface StorageUsage {
+  bytes: number;
+  groups: { profiles: number; vault: number; other: number };
+  incomplete: boolean;
+}
 
 async function desktopRequest(action: string, params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
   try {
     const envelope = parseSuccessEnvelope(await invoke<unknown>("desktop_data", { action, params }));
     return requireRecord(envelope.result, "desktop result");
-  } catch (error) { throw normalizeSidecarError(error); }
+  } catch (error) {
+    throw normalizeSidecarError(error);
+  }
 }
-export interface Preferences { theme: ThemePreference; tableLayout?: unknown; sidebarCollapsed?: boolean }
+export interface Preferences {
+  theme: ThemePreference;
+  tableLayout?: unknown;
+  sidebarCollapsed?: boolean;
+}
 export async function getPreferences(): Promise<Preferences> {
   const result = await desktopRequest("settings.get");
   if (!["system", "light", "dark"].includes(String(result.theme))) throw makeProtocolError("Invalid saved theme.");
-  return { theme: result.theme as ThemePreference, tableLayout: result.tableLayout, sidebarCollapsed: result.sidebarCollapsed === true };
+  return {
+    theme: result.theme as ThemePreference,
+    tableLayout: result.tableLayout,
+    sidebarCollapsed: result.sidebarCollapsed === true,
+  };
 }
-export async function savePreferences(theme: ThemePreference): Promise<void> { await desktopRequest("settings.save", { theme }); }
-export async function vaultOperation(action: "status" | "enable" | "unlock" | "lock" | "disable", password?: string): Promise<VaultStatus> {
+export async function savePreferences(theme: ThemePreference): Promise<void> {
+  await desktopRequest("settings.save", { theme });
+}
+export async function vaultOperation(
+  action: "status" | "enable" | "unlock" | "lock" | "disable",
+  password?: string,
+): Promise<VaultStatus> {
   const result = await desktopRequest(`vault.${action}`, password === undefined ? {} : { password });
-  if (typeof result.enabled !== "boolean" || typeof result.locked !== "boolean" || typeof result.recoveryRequired !== "boolean") throw makeProtocolError("Invalid vault status.");
+  if (
+    typeof result.enabled !== "boolean" ||
+    typeof result.locked !== "boolean" ||
+    typeof result.recoveryRequired !== "boolean"
+  )
+    throw makeProtocolError("Invalid vault status.");
   return { enabled: result.enabled, locked: result.locked, recoveryRequired: result.recoveryRequired };
 }
 export async function getMachineInfo(): Promise<MachineInfo> {
   const result = await desktopRequest("machine.info");
-  return { platform: requireNonBlankString(result.platform, "platform"), architecture: requireNonBlankString(result.architecture, "architecture"), browserVersion: result.browserVersion === null ? null : requireNonBlankString(result.browserVersion, "browser version") };
+  return {
+    platform: requireNonBlankString(result.platform, "platform"),
+    architecture: requireNonBlankString(result.architecture, "architecture"),
+    browserVersion:
+      result.browserVersion === null ? null : requireNonBlankString(result.browserVersion, "browser version"),
+  };
 }
 export async function getStorageUsage(): Promise<StorageUsage> {
   const result = await desktopRequest("storage.usage");
   const groups = requireRecord(result.groups, "storage groups");
   for (const value of [result.bytes, groups.profiles, groups.vault, groups.other]) {
-    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) throw makeProtocolError("Invalid disk usage.");
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
+      throw makeProtocolError("Invalid disk usage.");
   }
-  return { bytes: result.bytes as number, groups: groups as StorageUsage["groups"], incomplete: result.incomplete === true };
+  return {
+    bytes: result.bytes as number,
+    groups: groups as StorageUsage["groups"],
+    incomplete: result.incomplete === true,
+  };
 }
 export async function exportProfileToDirectory(profileId: string, directory: string): Promise<void> {
   await desktopRequest("packages.export", { profileId, directory });
 }
 
-export async function saveInterfacePreferences(params: Pick<Preferences, "tableLayout" | "sidebarCollapsed">): Promise<void> { await desktopRequest("settings.save", params); }
+export async function saveInterfacePreferences(
+  params: Pick<Preferences, "tableLayout" | "sidebarCollapsed">,
+): Promise<void> {
+  await desktopRequest("settings.save", params);
+}

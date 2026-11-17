@@ -162,10 +162,24 @@ function expectedRowsForSurface(identity: ProfileIdentity, surface: IdentityAudi
     }
     case "mediaDevices": {
       if (identity.mediaDevices.mode === "real") {
-        return [row(surface, "Media devices", "The real cameras and microphones.", "Compare the count, not the labels: labels stay empty without permission.")];
+        return [
+          row(
+            surface,
+            "Media devices",
+            "The real cameras and microphones.",
+            "Compare the count, not the labels: labels stay empty without permission.",
+          ),
+        ];
       }
       if (identity.mediaDevices.mode === "masked") {
-        return [row(surface, "Media devices", "A stable but synthetic device list.", "Device ids should stay the same across reloads of the same profile.")];
+        return [
+          row(
+            surface,
+            "Media devices",
+            "A stable but synthetic device list.",
+            "Device ids should stay the same across reloads of the same profile.",
+          ),
+        ];
       }
       const { videoInputs, audioInputs, audioOutputs } = identity.mediaDevices;
       return [
@@ -179,10 +193,24 @@ function expectedRowsForSurface(identity: ProfileIdentity, surface: IdentityAudi
     }
     case "ports": {
       if (identity.ports.mode === "real") {
-        return [row(surface, "Port scanning", "Nothing is blocked.", "A page that scans localhost will reach whatever is listening.")];
+        return [
+          row(
+            surface,
+            "Port scanning",
+            "Nothing is blocked.",
+            "A page that scans localhost will reach whatever is listening.",
+          ),
+        ];
       }
       if (identity.ports.mode === "masked") {
-        return [row(surface, "Port scanning", "Requests to local ports are refused.", "Only pages outside loopback are affected; local proof pages still work.")];
+        return [
+          row(
+            surface,
+            "Port scanning",
+            "Requests to local ports are refused.",
+            "Only pages outside loopback are affected; local proof pages still work.",
+          ),
+        ];
       }
       return [
         row(
@@ -195,13 +223,34 @@ function expectedRowsForSurface(identity: ProfileIdentity, surface: IdentityAudi
     }
     case "browser": {
       if (identity.browser.mode === "real") {
-        return [row(surface, "Browser", "Real host browser values.", "Compare against the host Chromium values shown by local proof and the public page.")];
+        return [
+          row(
+            surface,
+            "Browser",
+            "Real host browser values.",
+            "Compare against the host Chromium values shown by local proof and the public page.",
+          ),
+        ];
       }
-      return [row(surface, "Browser / User-Agent", `User-Agent ${identity.browser.userAgent}`, "Compare the full User-Agent string when the checker exposes it.")];
+      return [
+        row(
+          surface,
+          "Browser / User-Agent",
+          `User-Agent ${identity.browser.userAgent}`,
+          "Compare the full User-Agent string when the checker exposes it.",
+        ),
+      ];
     }
     case "clientHints": {
       if (identity.browser.mode === "real") {
-        return [row(surface, "Client Hints", "Real host Client Hints as Chromium exposes them.", "Some high-entropy hints may be unavailable until a site requests them.")];
+        return [
+          row(
+            surface,
+            "Client Hints",
+            "Real host Client Hints as Chromium exposes them.",
+            "Some high-entropy hints may be unavailable until a site requests them.",
+          ),
+        ];
       }
       const hints = identity.browser.clientHints ?? {};
       const navigatorFallback = identity.navigator.mode === "real" ? undefined : identity.navigator;
@@ -232,14 +281,23 @@ function expectedRowsForSurface(identity: ProfileIdentity, surface: IdentityAudi
         row(
           surface,
           "Client Hints",
-          expectedParts.length > 0 ? expectedParts.join("; ") : "Configured Client Hints may be absent or withheld by Chromium.",
+          expectedParts.length > 0
+            ? expectedParts.join("; ")
+            : "Configured Client Hints may be absent or withheld by Chromium.",
           "Compare exposed low and high entropy hints; missing fields can be public-checker behavior.",
         ),
       ];
     }
     case "navigator": {
       if (identity.navigator.mode === "real") {
-        return [row(surface, "Navigator", "Real host navigator values.", "Compare against local proof and visible navigator fields.")];
+        return [
+          row(
+            surface,
+            "Navigator",
+            "Real host navigator values.",
+            "Compare against local proof and visible navigator fields.",
+          ),
+        ];
       }
       return [
         row(
@@ -252,7 +310,14 @@ function expectedRowsForSurface(identity: ProfileIdentity, surface: IdentityAudi
     }
     case "screen": {
       if (identity.screen.mode === "real") {
-        return [row(surface, "Screen", "Real host screen and viewport values.", "Compare screen, viewport, color depth, and device pixel ratio fields.")];
+        return [
+          row(
+            surface,
+            "Screen",
+            "Real host screen and viewport values.",
+            "Compare screen, viewport, color depth, and device pixel ratio fields.",
+          ),
+        ];
       }
       return [
         row(
@@ -265,7 +330,14 @@ function expectedRowsForSurface(identity: ProfileIdentity, surface: IdentityAudi
     }
     case "locale": {
       if (identity.locale.mode === "real") {
-        return [row(surface, "Locale", "Real host locale, language, and timezone values.", "Compare browser language, languages list, Intl locale, and timezone where available.")];
+        return [
+          row(
+            surface,
+            "Locale",
+            "Real host locale, language, and timezone values.",
+            "Compare browser language, languages list, Intl locale, and timezone where available.",
+          ),
+        ];
       }
       return [
         row(
@@ -278,35 +350,90 @@ function expectedRowsForSurface(identity: ProfileIdentity, surface: IdentityAudi
     }
     case "canvas": {
       if (identity.canvas.mode === "real") {
-        return [row(surface, "Canvas", "Real host canvas rendering signature.", "Use local proof as the app-side reference; public hashes are not stable contracts.")];
+        return [
+          row(
+            surface,
+            "Canvas",
+            "Real host canvas rendering signature.",
+            "Use local proof as the app-side reference; public hashes are not stable contracts.",
+          ),
+        ];
       }
-      return [row(surface, "Canvas", "Stable per-profile altered signature from configured noise.", "Do not compare against a known hash; check that repeated visits with this profile remain stable.")];
+      return [
+        row(
+          surface,
+          "Canvas",
+          "Stable per-profile altered signature from configured noise.",
+          "Do not compare against a known hash; check that repeated visits with this profile remain stable.",
+        ),
+      ];
     }
     case "audio": {
       if (identity.audio.mode === "real") {
-        return [row(surface, "Audio", "Real host audio rendering signature.", "Use local proof as the app-side reference; public samples are not stable contracts.")];
+        return [
+          row(
+            surface,
+            "Audio",
+            "Real host audio rendering signature.",
+            "Use local proof as the app-side reference; public samples are not stable contracts.",
+          ),
+        ];
       }
-      return [row(surface, "Audio", "Stable per-profile altered signature from configured noise.", "Do not compare against a known sample; check that repeated visits with this profile remain stable.")];
+      return [
+        row(
+          surface,
+          "Audio",
+          "Stable per-profile altered signature from configured noise.",
+          "Do not compare against a known sample; check that repeated visits with this profile remain stable.",
+        ),
+      ];
     }
     case "webgl": {
       if (identity.webgl.mode === "real") {
-        return [row(surface, "WebGL", "Real host WebGL vendor and renderer values.", "Compare visible vendor and renderer strings when exposed.")];
+        return [
+          row(
+            surface,
+            "WebGL",
+            "Real host WebGL vendor and renderer values.",
+            "Compare visible vendor and renderer strings when exposed.",
+          ),
+        ];
       }
       const expected = `vendor ${identity.webgl.vendor}; renderer ${identity.webgl.renderer}${identity.webgl.noiseSeed === undefined ? "" : "; stable per-profile altered signature from configured noise"}`;
-      return [row(surface, "WebGL", expected, "Compare vendor and renderer strings; do not treat a fingerprint hash as a known expected value.")];
+      return [
+        row(
+          surface,
+          "WebGL",
+          expected,
+          "Compare vendor and renderer strings; do not treat a fingerprint hash as a known expected value.",
+        ),
+      ];
     }
     case "webrtc": {
-      const expected = identity.webrtc.policy === "real"
-        ? "Real host WebRTC behavior."
-        : identity.webrtc.policy === "block"
-          ? "WebRTC blocked or unavailable to the checker."
-          : "No non-proxied UDP or local IP candidate exposure expected.";
-      return [row(surface, "WebRTC", expected, "Compare candidate exposure manually; STUN and network behavior can vary by public checker.")];
+      const expected =
+        identity.webrtc.policy === "real"
+          ? "Real host WebRTC behavior."
+          : identity.webrtc.policy === "block"
+            ? "WebRTC blocked or unavailable to the checker."
+            : "No non-proxied UDP or local IP candidate exposure expected.";
+      return [
+        row(
+          surface,
+          "WebRTC",
+          expected,
+          "Compare candidate exposure manually; STUN and network behavior can vary by public checker.",
+        ),
+      ];
     }
   }
 }
 
-function row(surface: IdentityAuditSurface, label: string, expected: string, guidance: string): IdentityAuditExpectedRow {
+function row(
+  surface: IdentityAuditSurface,
+  label: string,
+  expected: string,
+  guidance: string,
+): IdentityAuditExpectedRow {
   return {
     surface,
     label,
@@ -316,7 +443,12 @@ function row(surface: IdentityAuditSurface, label: string, expected: string, gui
 }
 
 function requireSafeString(value: unknown, field: string, maxLength: number): string {
-  if (typeof value !== "string" || value.trim().length === 0 || value.length > maxLength || containsControlCharacters(value)) {
+  if (
+    typeof value !== "string" ||
+    value.trim().length === 0 ||
+    value.length > maxLength ||
+    containsControlCharacters(value)
+  ) {
     throw new Error(`Audit ${field} must be a bounded string.`);
   }
   return assertSafeGuidanceText(value, field);
@@ -332,7 +464,12 @@ function requireSafeHttpsUrl(value: unknown): string {
   } catch {
     throw new Error("Audit page URL must be valid.");
   }
-  if (parsed.protocol !== "https:" || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "0.0.0.0") {
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.hostname === "localhost" ||
+    parsed.hostname === "127.0.0.1" ||
+    parsed.hostname === "0.0.0.0"
+  ) {
     throw new Error("Audit page URL must be a public HTTPS URL.");
   }
   return value;

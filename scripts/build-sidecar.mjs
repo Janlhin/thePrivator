@@ -1,22 +1,15 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import {
-  appendFileSync,
-  chmodSync,
-  copyFileSync,
-  cpSync,
-  existsSync,
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { appendFileSync, chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const VENV_PYTHON = process.platform === "win32"
-  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
-  : join(ROOT_DIR, ".venv", "bin", "python");
-const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === "win32" ? "python" : "python3"));
+const VENV_PYTHON =
+  process.platform === "win32"
+    ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+    : join(ROOT_DIR, ".venv", "bin", "python");
+const PYTHON =
+  process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : process.platform === "win32" ? "python" : "python3");
 const SIDECAR_NAME = "theprivator-sidecar";
 const EXTENSION = process.platform === "win32" ? ".exe" : "";
 const BUILD_ROOT = join(ROOT_DIR, "tmp", "sidecar-pyinstaller");
@@ -92,15 +85,9 @@ rmSync(BUILD_ROOT, { recursive: true, force: true });
 mkdirSync(BUILD_ROOT, { recursive: true });
 mkdirSync(BINARIES_DIR, { recursive: true });
 
-writeFileSync(
-  ENTRYPOINT,
-  "from theprivator_sidecar.main import main\nraise SystemExit(main())\n",
-  "utf8",
-);
+writeFileSync(ENTRYPOINT, "from theprivator_sidecar.main import main\nraise SystemExit(main())\n", "utf8");
 
-console.log(
-  `[sidecar:build] Building ${SIDECAR_NAME} for ${targetTriple} with PyInstaller ${pyInstallerVersion}.`,
-);
+console.log(`[sidecar:build] Building ${SIDECAR_NAME} for ${targetTriple} with PyInstaller ${pyInstallerVersion}.`);
 
 run(PYTHON, [
   "-m",
@@ -145,9 +132,10 @@ run(PYTHON, [
   ENTRYPOINT,
 ]);
 
-const builtBinary = process.platform === "darwin"
-  ? join(DIST_DIR, SIDECAR_NAME, SIDECAR_NAME)
-  : join(DIST_DIR, `${SIDECAR_NAME}${EXTENSION}`);
+const builtBinary =
+  process.platform === "darwin"
+    ? join(DIST_DIR, SIDECAR_NAME, SIDECAR_NAME)
+    : join(DIST_DIR, `${SIDECAR_NAME}${EXTENSION}`);
 
 // Keep macOS libraries at stable paths; onefile extracts them for every worker.
 if (process.platform === "darwin") {
@@ -160,16 +148,18 @@ if (process.platform === "darwin") {
   // BUNDLE retains the console bootloader needed by our stdin/stdout protocol,
   // and cross-links Frameworks and Resources without moving data into code dirs.
   const spec = join(SPEC_DIR, `${SIDECAR_NAME}.spec`);
-  appendFileSync(spec, `\napp = BUNDLE(coll, name='${SIDECAR_NAME}.app', bundle_identifier='com.theprivator.sidecar')\n`);
-  run(PYTHON, [
-    "-m", "PyInstaller", "--noconfirm", "--distpath", DIST_DIR,
-    "--workpath", WORK_DIR, spec,
-  ]);
+  appendFileSync(
+    spec,
+    `\napp = BUNDLE(coll, name='${SIDECAR_NAME}.app', bundle_identifier='com.theprivator.sidecar')\n`,
+  );
+  run(PYTHON, ["-m", "PyInstaller", "--noconfirm", "--distpath", DIST_DIR, "--workpath", WORK_DIR, spec]);
   const bundleRuntime = join(BINARIES_DIR, "macos-runtime");
   rmSync(bundleRuntime, { recursive: true, force: true });
   for (const directory of ["Frameworks", "Resources"]) {
-    cpSync(join(DIST_DIR, `${SIDECAR_NAME}.app`, "Contents", directory),
-      join(bundleRuntime, directory), { recursive: true, verbatimSymlinks: true });
+    cpSync(join(DIST_DIR, `${SIDECAR_NAME}.app`, "Contents", directory), join(bundleRuntime, directory), {
+      recursive: true,
+      verbatimSymlinks: true,
+    });
   }
 }
 if (!existsSync(builtBinary)) {

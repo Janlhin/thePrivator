@@ -26,13 +26,17 @@ const LISTENER_CLOSE_TIMEOUT_MS = 5_000;
 const MAX_CAPTURE_CHARS = 128 * 1024;
 const MAX_SCAN_NODES = 4_000;
 const REDACTED_VALUE = "<redacted>";
-const SENSITIVE_KEY_PATTERN = /(?:authorization|bearer|token|credential|password|secret|storeRoot|appDataRoot|userDataDir|profileDir|argv|args|env|stdout|stderr|rawDiagnostics|rawDiagnostic|raw|debug|cdp|webSocketDebuggerUrl|websocket)/i;
+const SENSITIVE_KEY_PATTERN =
+  /(?:authorization|bearer|token|credential|password|secret|storeRoot|appDataRoot|userDataDir|profileDir|argv|args|env|stdout|stderr|rawDiagnostics|rawDiagnostic|raw|debug|cdp|webSocketDebuggerUrl|websocket)/i;
 
 const STATIC_FORBIDDEN_PATTERNS = Object.freeze([
   { markerClass: "auth_header", pattern: /Authorization/i },
   { markerClass: "auth_scheme", pattern: /\bBearer\b/i },
   { markerClass: "process_config", pattern: /THEPRIVATOR_AUTOMATION_API_[A-Z_]+|\bautomation-api\b/i },
-  { markerClass: "debug_endpoint", pattern: /DevToolsActivePort|debugPort|--remote-debugging-port|remote-debugging|cdp:\/\/|webSocketDebuggerUrl/i },
+  {
+    markerClass: "debug_endpoint",
+    pattern: /DevToolsActivePort|debugPort|--remote-debugging-port|remote-debugging|cdp:\/\/|webSocketDebuggerUrl/i,
+  },
   { markerClass: "ws_endpoint", pattern: /wss?:\/\/[^\s"']+/i },
   { markerClass: "cred_field", pattern: /\b(?:credentials?|password|secret)\b/i },
   { markerClass: "raw_diag", pattern: /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?)\b/i },
@@ -83,9 +87,7 @@ function sanitizeFailureDetails(details) {
 }
 
 export function executable(command, platform = process.platform) {
-  return platform === "win32" && ["npm", "cargo", "rustc"].includes(command)
-    ? `${command}.cmd`
-    : command;
+  return platform === "win32" && ["npm", "cargo", "rustc"].includes(command) ? `${command}.cmd` : command;
 }
 
 function runCommandOutput(command, args, { rootDir = ROOT_DIR, timeoutMs = 15_000 } = {}) {
@@ -126,11 +128,19 @@ export function readTargetTriple(rootDir = ROOT_DIR) {
   return targetTriple;
 }
 
-export function targetBinaryPath({ rootDir = ROOT_DIR, targetTriple = readTargetTriple(rootDir), extension = EXTENSION } = {}) {
+export function targetBinaryPath({
+  rootDir = ROOT_DIR,
+  targetTriple = readTargetTriple(rootDir),
+  extension = EXTENSION,
+} = {}) {
   return join(rootDir, "src-tauri", "binaries", `${SIDECAR_NAME}-${targetTriple}${extension}`);
 }
 
-export function assertTargetBinary({ rootDir = ROOT_DIR, targetTriple = readTargetTriple(rootDir), binaryPath = targetBinaryPath({ rootDir, targetTriple }) } = {}) {
+export function assertTargetBinary({
+  rootDir = ROOT_DIR,
+  targetTriple = readTargetTriple(rootDir),
+  binaryPath = targetBinaryPath({ rootDir, targetTriple }),
+} = {}) {
   const relativeBinary = relative(rootDir, binaryPath);
   assert(existsSync(binaryPath), `Missing target-triple sidecar binary ${relativeBinary}.`, {
     phase: "binary-discovery",
@@ -216,7 +226,10 @@ export function redactText(value, context = createRedactionContext()) {
     .replace(/\bBearer\b/gi, "<redacted:auth_scheme>")
     .replace(/THEPRIVATOR_AUTOMATION_API_[A-Z_]+/g, "<redacted:process_config>")
     .replace(/\bautomation-api\b/gi, "<redacted:process_arg>")
-    .replace(/DevToolsActivePort|debugPort|--remote-debugging-port(?:=|\s+)\d*|remote-debugging|cdp:\/\/|webSocketDebuggerUrl/gi, "<redacted:debug_endpoint>")
+    .replace(
+      /DevToolsActivePort|debugPort|--remote-debugging-port(?:=|\s+)\d*|remote-debugging|cdp:\/\/|webSocketDebuggerUrl/gi,
+      "<redacted:debug_endpoint>",
+    )
     .replace(/wss?:\/\/[^\s"']+/gi, "<redacted:ws_endpoint>");
 }
 
@@ -315,11 +328,15 @@ function isPlainObject(value) {
 function assertExactKeys(value, expectedKeys, label) {
   const expected = [...expectedKeys].sort();
   const actual = Object.keys(value ?? {}).sort();
-  assert(JSON.stringify(actual) === JSON.stringify(expected), `${label} keys did not match the expected public contract.`, {
-    phase: "contract-shape",
-    expectedKeys: expected,
-    actualKeys: actual.map((key) => (SENSITIVE_KEY_PATTERN.test(key) ? redactedKeyName(key) : key)),
-  });
+  assert(
+    JSON.stringify(actual) === JSON.stringify(expected),
+    `${label} keys did not match the expected public contract.`,
+    {
+      phase: "contract-shape",
+      expectedKeys: expected,
+      actualKeys: actual.map((key) => (SENSITIVE_KEY_PATTERN.test(key) ? redactedKeyName(key) : key)),
+    },
+  );
 }
 
 function assertLoopbackHost(host, label = "host") {
@@ -346,27 +363,49 @@ export function parseReadinessLine(line, context = createRedactionContext()) {
   assertPublicEvidenceRedacted(payload, context);
   assertExactKeys(payload, ["host", "port", "version"], "Automation API readiness");
   assertLoopbackHost(payload.host, "readiness.host");
-  assert(Number.isInteger(payload.port) && payload.port > 0 && payload.port <= 65535, "Automation API readiness port was invalid.", {
-    phase: "readiness",
-  });
-  assert(typeof payload.version === "string" && payload.version.length > 0, "Automation API readiness version was invalid.", {
-    phase: "readiness",
-  });
+  assert(
+    Number.isInteger(payload.port) && payload.port > 0 && payload.port <= 65535,
+    "Automation API readiness port was invalid.",
+    {
+      phase: "readiness",
+    },
+  );
+  assert(
+    typeof payload.version === "string" && payload.version.length > 0,
+    "Automation API readiness version was invalid.",
+    {
+      phase: "readiness",
+    },
+  );
   return payload;
 }
 
 function assertRequestIdentity(error) {
-  assert(typeof error.detailRef === "string" && error.detailRef.startsWith("sidecar-"), "Automation API error envelope was missing a safe detailRef.", {
-    phase: "auth",
-    fieldPath: "$.error.detailRef",
-  });
-  assert(typeof error.requestId === "string" && error.requestId.startsWith("automation-"), "Automation API error envelope was missing a safe requestId.", {
-    phase: "auth",
-    fieldPath: "$.error.requestId",
-  });
+  assert(
+    typeof error.detailRef === "string" && error.detailRef.startsWith("sidecar-"),
+    "Automation API error envelope was missing a safe detailRef.",
+    {
+      phase: "auth",
+      fieldPath: "$.error.detailRef",
+    },
+  );
+  assert(
+    typeof error.requestId === "string" && error.requestId.startsWith("automation-"),
+    "Automation API error envelope was missing a safe requestId.",
+    {
+      phase: "auth",
+      fieldPath: "$.error.requestId",
+    },
+  );
 }
 
-export function assertAuthErrorResponse({ statusCode, body, expectedCode, context = createRedactionContext(), phase = "auth" } = {}) {
+export function assertAuthErrorResponse({
+  statusCode,
+  body,
+  expectedCode,
+  context = createRedactionContext(),
+  phase = "auth",
+} = {}) {
   assert(statusCode === 401, "Protected Automation API request did not fail closed with HTTP 401.", {
     phase,
     expectedStatusCode: 401,
@@ -383,7 +422,11 @@ export function assertAuthErrorResponse({ statusCode, body, expectedCode, contex
     expectedCode,
     actualCode: error.code,
   });
-  assert(typeof error.message === "string" && error.message.length > 0, "Automation API auth failure message was missing.", { phase });
+  assert(
+    typeof error.message === "string" && error.message.length > 0,
+    "Automation API auth failure message was missing.",
+    { phase },
+  );
   assert(error.details && error.details.phase === "auth", "Automation API auth failure did not name the auth phase.", {
     phase,
     fieldPath: "$.error.details.phase",
@@ -405,18 +448,36 @@ export function assertHealthResponse({ statusCode, body, context = createRedacti
   });
   assertPublicEvidenceRedacted(body, context);
   assert(isPlainObject(body), "Automation API health body was not a JSON object.", { phase: "health" });
-  assertExactKeys(body, ["api", "automationApi", "product", "request", "sidecar", "status"], "Automation API health body");
+  assertExactKeys(
+    body,
+    ["api", "automationApi", "product", "request", "sidecar", "status"],
+    "Automation API health body",
+  );
   assert(body.status === "healthy", "Automation API health status was not healthy.", { phase: "health" });
-  assert(body.product?.name === "ThePrivator", "Automation API health product metadata was missing.", { phase: "health" });
-  assert(typeof body.product?.version === "string", "Automation API health product version was missing.", { phase: "health" });
-  assert(typeof body.sidecar?.version === "string", "Automation API health sidecar version was missing.", { phase: "health" });
-  assert(typeof body.automationApi?.version === "string", "Automation API health version was missing.", { phase: "health" });
-  assertLoopbackHost(body.api?.host, "health.api.host");
-  assert(Number.isInteger(body.api?.port) && body.api.port > 0, "Automation API health port was invalid.", { phase: "health" });
-  assert(body.api.scope === "loopback", "Automation API health scope was not loopback.", { phase: "health" });
-  assert(typeof body.request?.requestId === "string" && body.request.requestId.startsWith("automation-"), "Automation API health requestId was missing.", {
+  assert(body.product?.name === "ThePrivator", "Automation API health product metadata was missing.", {
     phase: "health",
   });
+  assert(typeof body.product?.version === "string", "Automation API health product version was missing.", {
+    phase: "health",
+  });
+  assert(typeof body.sidecar?.version === "string", "Automation API health sidecar version was missing.", {
+    phase: "health",
+  });
+  assert(typeof body.automationApi?.version === "string", "Automation API health version was missing.", {
+    phase: "health",
+  });
+  assertLoopbackHost(body.api?.host, "health.api.host");
+  assert(Number.isInteger(body.api?.port) && body.api.port > 0, "Automation API health port was invalid.", {
+    phase: "health",
+  });
+  assert(body.api.scope === "loopback", "Automation API health scope was not loopback.", { phase: "health" });
+  assert(
+    typeof body.request?.requestId === "string" && body.request.requestId.startsWith("automation-"),
+    "Automation API health requestId was missing.",
+    {
+      phase: "health",
+    },
+  );
   return {
     statusCode,
     requestId: body.request.requestId,
@@ -432,24 +493,46 @@ export function assertStatusResponse({ statusCode, body, readiness, context = cr
   });
   assertPublicEvidenceRedacted(body, context);
   assert(isPlainObject(body), "Automation API status body was not a JSON object.", { phase: "valid-auth" });
-  assertExactKeys(body, ["api", "automationApi", "request", "startedAt", "status", "store"], "Automation API status body");
+  assertExactKeys(
+    body,
+    ["api", "automationApi", "request", "startedAt", "status", "store"],
+    "Automation API status body",
+  );
   assert(body.status === "running", "Automation API status was not running.", { phase: "valid-auth" });
-  assert(typeof body.automationApi?.version === "string", "Automation API status version was missing.", { phase: "valid-auth" });
-  assertLoopbackHost(body.api?.host, "status.api.host");
-  assert(Number.isInteger(body.api?.port) && body.api.port > 0, "Automation API status port was invalid.", { phase: "valid-auth" });
-  if (readiness) {
-    assert(body.api.host === readiness.host && body.api.port === readiness.port, "Automation API status endpoint did not match readiness.", {
-      phase: "valid-auth",
-      readinessPort: readiness.port,
-      statusPort: body.api.port,
-    });
-  }
-  assert(body.api.scope === "loopback", "Automation API status scope was not loopback.", { phase: "valid-auth" });
-  assert(body.store?.configured === true, "Automation API status store metadata was not safe/configured.", { phase: "valid-auth" });
-  assert(typeof body.startedAt === "string" && body.startedAt.endsWith("Z"), "Automation API status startedAt was not an ISO timestamp.", { phase: "valid-auth" });
-  assert(typeof body.request?.requestId === "string" && body.request.requestId.startsWith("automation-"), "Automation API status requestId was missing.", {
+  assert(typeof body.automationApi?.version === "string", "Automation API status version was missing.", {
     phase: "valid-auth",
   });
+  assertLoopbackHost(body.api?.host, "status.api.host");
+  assert(Number.isInteger(body.api?.port) && body.api.port > 0, "Automation API status port was invalid.", {
+    phase: "valid-auth",
+  });
+  if (readiness) {
+    assert(
+      body.api.host === readiness.host && body.api.port === readiness.port,
+      "Automation API status endpoint did not match readiness.",
+      {
+        phase: "valid-auth",
+        readinessPort: readiness.port,
+        statusPort: body.api.port,
+      },
+    );
+  }
+  assert(body.api.scope === "loopback", "Automation API status scope was not loopback.", { phase: "valid-auth" });
+  assert(body.store?.configured === true, "Automation API status store metadata was not safe/configured.", {
+    phase: "valid-auth",
+  });
+  assert(
+    typeof body.startedAt === "string" && body.startedAt.endsWith("Z"),
+    "Automation API status startedAt was not an ISO timestamp.",
+    { phase: "valid-auth" },
+  );
+  assert(
+    typeof body.request?.requestId === "string" && body.request.requestId.startsWith("automation-"),
+    "Automation API status requestId was missing.",
+    {
+      phase: "valid-auth",
+    },
+  );
   return {
     statusCode,
     requestId: body.request.requestId,
@@ -543,7 +626,10 @@ function waitForExit(child, timeoutMs, phase) {
   });
 }
 
-export async function waitForReadiness(processState, { timeoutMs = READINESS_TIMEOUT_MS, context = createRedactionContext() } = {}) {
+export async function waitForReadiness(
+  processState,
+  { timeoutMs = READINESS_TIMEOUT_MS, context = createRedactionContext() } = {},
+) {
   const { child, stdout } = processState;
   return await new Promise((resolvePromise, rejectPromise) => {
     let settled = false;
@@ -562,47 +648,61 @@ export async function waitForReadiness(processState, { timeoutMs = READINESS_TIM
       } catch {
         // Best-effort termination; the caller also performs cleanup in finally.
       }
-      settle(rejectPromise, new VerifyFailure("Automation API process did not emit readiness before the timeout.", {
-        phase: "readiness",
-        timeoutMs,
-        cleanup: "terminate-requested",
-      }));
+      settle(
+        rejectPromise,
+        new VerifyFailure("Automation API process did not emit readiness before the timeout.", {
+          phase: "readiness",
+          timeoutMs,
+          cleanup: "terminate-requested",
+        }),
+      );
     }, timeoutMs);
 
-    cleanupCallbacks.push(stdout.onLine((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
-      try {
-        const payload = parseReadinessLine(trimmed, context);
-        settle(resolvePromise, payload);
-      } catch (error) {
-        settle(rejectPromise, error);
-      }
-    }));
+    cleanupCallbacks.push(
+      stdout.onLine((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        try {
+          const payload = parseReadinessLine(trimmed, context);
+          settle(resolvePromise, payload);
+        } catch (error) {
+          settle(rejectPromise, error);
+        }
+      }),
+    );
 
     const onExit = (exitCode, signal) => {
-      settle(rejectPromise, new VerifyFailure("Automation API process exited before readiness.", {
-        phase: "readiness",
-        exitCode,
-        signal,
-      }));
+      settle(
+        rejectPromise,
+        new VerifyFailure("Automation API process exited before readiness.", {
+          phase: "readiness",
+          exitCode,
+          signal,
+        }),
+      );
     };
     child.once("exit", onExit);
     cleanupCallbacks.push(() => child.off("exit", onExit));
 
     const onError = (error) => {
-      settle(rejectPromise, new VerifyFailure("Automation API process could not be started.", {
-        phase: "readiness",
-        errorCode: error?.code ?? "SPAWN_ERROR",
-        action: "Run npm run sidecar:build and retry the verifier.",
-      }));
+      settle(
+        rejectPromise,
+        new VerifyFailure("Automation API process could not be started.", {
+          phase: "readiness",
+          errorCode: error?.code ?? "SPAWN_ERROR",
+          action: "Run npm run sidecar:build and retry the verifier.",
+        }),
+      );
     };
     child.once("error", onError);
     cleanupCallbacks.push(() => child.off("error", onError));
   });
 }
 
-async function fetchJson(url, { headerValue, timeoutMs = HTTP_TIMEOUT_MS, phase, context = createRedactionContext() } = {}) {
+async function fetchJson(
+  url,
+  { headerValue, timeoutMs = HTTP_TIMEOUT_MS, phase, context = createRedactionContext() } = {},
+) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error(`${phase} timed out.`)), timeoutMs);
   try {
@@ -775,7 +875,16 @@ async function runStepAsync(name, action, context = createRedactionContext()) {
   }
 }
 
-export function buildFinalSummary({ status, target, readiness, httpChecks = {}, cleanup = {}, redaction = {}, error = null, checks = STEP_RESULTS } = {}) {
+export function buildFinalSummary({
+  status,
+  target,
+  readiness,
+  httpChecks = {},
+  cleanup = {},
+  redaction = {},
+  error = null,
+  checks = STEP_RESULTS,
+} = {}) {
   const summary = {
     status,
     target: target
@@ -825,7 +934,11 @@ function resetRunState() {
   VERIFIER_EVENTS.length = 0;
 }
 
-export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s01-${randomUUID()}`, storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s01-")) } = {}) {
+export async function runVerification({
+  rootDir = ROOT_DIR,
+  token = `m004-s01-${randomUUID()}`,
+  storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s01-")),
+} = {}) {
   resetRunState();
   let context = createRedactionContext({ rootDir });
   let processState = null;
@@ -835,53 +948,120 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s01-${
   const cleanup = { childExit: null, listenerClosed: false, runtimeRootRemoved: false };
 
   try {
-    target = runStep("binary-discovery", () => {
-      const targetTriple = readTargetTriple(rootDir);
-      return assertTargetBinary({ rootDir, targetTriple });
-    }, context);
+    target = runStep(
+      "binary-discovery",
+      () => {
+        const targetTriple = readTargetTriple(rootDir);
+        return assertTargetBinary({ rootDir, targetTriple });
+      },
+      context,
+    );
 
     context = createRedactionContext({ rootDir, token, storeRoot });
     runStep("runtime-root", () => ({ created: true, location: "temporary-app-data" }), context);
 
-    processState = runStep("spawn", () => {
-      const state = startAutomationApi({ binaryPath: join(rootDir, target.binary), storeRoot, token });
-      return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
-    }, context);
+    processState = runStep(
+      "spawn",
+      () => {
+        const state = startAutomationApi({ binaryPath: join(rootDir, target.binary), storeRoot, token });
+        return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
+      },
+      context,
+    );
 
     readiness = await runStepAsync("readiness", async () => waitForReadiness(processState, { context }), context);
     const baseUrl = `http://${readiness.host}:${readiness.port}`;
 
-    httpChecks.health = await runStepAsync("health", async () => {
-      const response = await fetchJson(`${baseUrl}/health`, { phase: "health", context });
-      return assertHealthResponse({ ...response, context });
-    }, context);
+    httpChecks.health = await runStepAsync(
+      "health",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/health`, { phase: "health", context });
+        return assertHealthResponse({ ...response, context });
+      },
+      context,
+    );
 
-    httpChecks.missingAuth = await runStepAsync("auth-missing", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/status`, { phase: "auth-missing", context });
-      return assertAuthErrorResponse({ ...response, expectedCode: AUTOMATION_AUTH_REQUIRED, context, phase: "auth-missing" });
-    }, context);
+    httpChecks.missingAuth = await runStepAsync(
+      "auth-missing",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/status`, { phase: "auth-missing", context });
+        return assertAuthErrorResponse({
+          ...response,
+          expectedCode: AUTOMATION_AUTH_REQUIRED,
+          context,
+          phase: "auth-missing",
+        });
+      },
+      context,
+    );
 
-    httpChecks.malformedAuth = await runStepAsync("auth-malformed", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/status`, { headerValue: "Basic not-the-local-token", phase: "auth-malformed", context });
-      return assertAuthErrorResponse({ ...response, expectedCode: AUTOMATION_AUTH_INVALID, context, phase: "auth-malformed" });
-    }, context);
+    httpChecks.malformedAuth = await runStepAsync(
+      "auth-malformed",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/status`, {
+          headerValue: "Basic not-the-local-token",
+          phase: "auth-malformed",
+          context,
+        });
+        return assertAuthErrorResponse({
+          ...response,
+          expectedCode: AUTOMATION_AUTH_INVALID,
+          context,
+          phase: "auth-malformed",
+        });
+      },
+      context,
+    );
 
-    httpChecks.invalidAuth = await runStepAsync("auth-invalid", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/status`, { headerValue: "Bearer not-the-local-token", phase: "auth-invalid", context });
-      return assertAuthErrorResponse({ ...response, expectedCode: AUTOMATION_AUTH_INVALID, context, phase: "auth-invalid" });
-    }, context);
+    httpChecks.invalidAuth = await runStepAsync(
+      "auth-invalid",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/status`, {
+          headerValue: "Bearer not-the-local-token",
+          phase: "auth-invalid",
+          context,
+        });
+        return assertAuthErrorResponse({
+          ...response,
+          expectedCode: AUTOMATION_AUTH_INVALID,
+          context,
+          phase: "auth-invalid",
+        });
+      },
+      context,
+    );
 
-    httpChecks.validAuth = await runStepAsync("auth-valid", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/status`, { headerValue: `Bearer ${token}`, phase: "auth-valid", context });
-      return assertStatusResponse({ ...response, readiness, context });
-    }, context);
+    httpChecks.validAuth = await runStepAsync(
+      "auth-valid",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/status`, {
+          headerValue: `Bearer ${token}`,
+          phase: "auth-valid",
+          context,
+        });
+        return assertStatusResponse({ ...response, readiness, context });
+      },
+      context,
+    );
 
     cleanup.childExit = await runStepAsync("shutdown", async () => stopChild(processState), context);
-    const listener = await runStepAsync("listener-close", async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }), context);
+    const listener = await runStepAsync(
+      "listener-close",
+      async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }),
+      context,
+    );
     cleanup.listenerClosed = listener.closed;
-    cleanup.runtimeRootRemoved = runStep("cleanup", () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }), context).runtimeRootRemoved;
+    cleanup.runtimeRootRemoved = runStep(
+      "cleanup",
+      () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }),
+      context,
+    ).runtimeRootRemoved;
 
-    const redactionResult = runStep("redaction-scan", () => assertPublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context), context);
+    const redactionResult = runStep(
+      "redaction-scan",
+      () => assertPublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context),
+      context,
+    );
     const summary = buildFinalSummary({
       status: "pass",
       target,
@@ -908,9 +1088,10 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s01-${
       cleanup.runtimeRootRemoved = false;
     }
 
-    const safeError = error instanceof VerifyFailure
-      ? error
-      : new VerifyFailure(error instanceof Error ? error.message : String(error));
+    const safeError =
+      error instanceof VerifyFailure
+        ? error
+        : new VerifyFailure(error instanceof Error ? error.message : String(error));
     const summary = buildFinalSummary({
       status: "fail",
       target,
@@ -925,7 +1106,13 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s01-${
     try {
       assertPublicEvidenceRedacted(redactedSummary, context);
     } catch (redactionError) {
-      emit({ status: "fail", summary: { status: "fail", redaction: { status: "failed", details: redactionError.details ?? {} }, cleanup } }, context);
+      emit(
+        {
+          status: "fail",
+          summary: { status: "fail", redaction: { status: "failed", details: redactionError.details ?? {} }, cleanup },
+        },
+        context,
+      );
       throw safeError;
     }
     emit({ status: "fail", summary: redactedSummary }, context);

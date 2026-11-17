@@ -156,11 +156,7 @@ describe("ProfileEditor, editing an existing profile", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(PROFILE_ID));
-    for (const command of [
-      "profiles_organization_update",
-      "profiles_launch_update",
-      "profiles_identity_update",
-    ]) {
+    for (const command of ["profiles_organization_update", "profiles_launch_update", "profiles_identity_update"]) {
       expect(mockInvoke, command).toHaveBeenCalledWith(command, expect.anything());
     }
   });
@@ -249,9 +245,7 @@ describe("ProfileEditor, editing an existing profile", () => {
     fireEvent.change(screen.getByLabelText("Screen mode"), { target: { value: "custom" } });
     fireEvent.change(screen.getByLabelText("Screen width"), { target: { value: "0" } });
 
-    expect(
-      within(screen.getByRole("tab", { name: /fingerprint/i })).getByLabelText(/problems/),
-    ).toBeInTheDocument();
+    expect(within(screen.getByRole("tab", { name: /fingerprint/i })).getByLabelText(/problems/)).toBeInTheDocument();
   });
 
   it("reports a save that the sidecar rejected", async () => {
@@ -354,7 +348,9 @@ describe("ProfileEditor, editing an existing profile", () => {
     fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "Renamed" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("profiles_update", { id: PROFILE_ID, name: "Renamed" }));
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("profiles_update", { id: PROFILE_ID, name: "Renamed" }),
+    );
     expect(mockInvoke).not.toHaveBeenCalledWith("profiles_proxy_update", expect.anything());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -368,11 +364,19 @@ describe("ProfileEditor, editing an existing profile", () => {
       clipboardData: { getData: () => "socks5://alice:p%40ss@proxy.example:1080" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("profiles_proxy_update", {
-      profileId: PROFILE_ID,
-      proxy: { proxyVersion: 1, mode: "fixedServer", protocol: "socks5", host: "proxy.example", port: 1080,
-        credentials: { username: "alice", password: "p@ss" } },
-    }));
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("profiles_proxy_update", {
+        profileId: PROFILE_ID,
+        proxy: {
+          proxyVersion: 1,
+          mode: "fixedServer",
+          protocol: "socks5",
+          host: "proxy.example",
+          port: 1080,
+          credentials: { username: "alice", password: "p@ss" },
+        },
+      }),
+    );
   });
 
   it("writes the proxy once the user actually edits it", async () => {
@@ -468,7 +472,11 @@ describe("ProfileEditor, curated presets", () => {
 
     const select = await screen.findByLabelText(/start from a preset/i);
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("identity_presets_list"));
-    expect(within(select).getAllByRole("option").map((option) => option.textContent)).toEqual(["Custom", "Real"]);
+    expect(
+      within(select)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Custom", "Real"]);
     expect(screen.getByRole("button", { name: "Refresh presets" })).toBeEnabled();
   });
 
@@ -488,7 +496,9 @@ describe("ProfileEditor, curated presets", () => {
     expect(select).toHaveValue("real");
     expect(screen.getByLabelText("Identity label")).toHaveValue("Real");
     expect(screen.getByLabelText("WebRTC mode")).toHaveValue("real");
-    expect(mockInvoke.mock.calls.map(([command]) => command).filter((command) => /update|create|apply_preset/.test(command))).toEqual([]);
+    expect(
+      mockInvoke.mock.calls.map(([command]) => command).filter((command) => /update|create|apply_preset/.test(command)),
+    ).toEqual([]);
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -544,10 +554,12 @@ describe("ProfileEditor, curated presets", () => {
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Real profile" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("profiles_identity_update", {
-      profileId: PROFILE_ID,
-      identity: identity({ label: "Real" }),
-    }));
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("profiles_identity_update", {
+        profileId: PROFILE_ID,
+        identity: identity({ label: "Real" }),
+      }),
+    );
     const commands = mockInvoke.mock.calls.map(([command]) => command);
     expect(commands.indexOf("profiles_create")).toBeLessThan(commands.indexOf("profiles_identity_update"));
     expect(commands).not.toContain("profiles_identity_apply_preset");

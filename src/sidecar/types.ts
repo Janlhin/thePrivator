@@ -52,9 +52,11 @@ export interface SidecarHealthPayload {
     mode: string;
     frozen: boolean;
   };
-  request?: {
-    durationMs: number;
-  } | undefined;
+  request?:
+    | {
+        durationMs: number;
+      }
+    | undefined;
   degradedFields?: string[] | undefined;
 }
 
@@ -314,7 +316,9 @@ export type ProxyCheckRouteProofBasis = "direct-profile" | "sidecar-managed-loca
 export type ProxyCheckProofScope = "not-applicable" | "local-fixture";
 export type ProxyCheckIpHidingStatus = "not-proven" | "proved";
 export type ProxyCheckIpHidingBasis = "direct-profile" | "route-proof-succeeded";
-export type ProxyCheckLocalFixtureConclusion = "not-run" | "direct target IP hidden from the proof target by the managed fixture";
+export type ProxyCheckLocalFixtureConclusion =
+  | "not-run"
+  | "direct target IP hidden from the proof target by the managed fixture";
 export type ProxyCheckWebRtcStatus = "baseline-real" | "restricted";
 export type ProxyCheckWebRtcExposure = "real-local-ip-baseline" | "blocked" | "non-proxied-udp-disabled";
 export type ProxyCheckPublicCheckerStatus = "advisory-only";
@@ -1064,10 +1068,7 @@ export interface LegacyImportFailedOutcome extends LegacyImportOutcomeBase {
   error: LegacyImportOutcomeError;
 }
 
-export type LegacyImportOutcome =
-  | LegacyImportSuccessOutcome
-  | LegacyImportPartialOutcome
-  | LegacyImportFailedOutcome;
+export type LegacyImportOutcome = LegacyImportSuccessOutcome | LegacyImportPartialOutcome | LegacyImportFailedOutcome;
 
 export interface LegacyImportResult {
   importVersion: 1;

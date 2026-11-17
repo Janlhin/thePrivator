@@ -5,7 +5,10 @@ import { NotePreview } from "./NotePreview";
 import { writeToClipboard } from "../../clipboard";
 
 vi.mock("../../clipboard", () => ({ writeToClipboard: vi.fn() }));
-afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
+afterEach(() => {
+  vi.useRealTimers();
+  vi.clearAllMocks();
+});
 function openNote() {
   const profile = makeProfile();
   profile.organization.notes = "First line\nSecond line";

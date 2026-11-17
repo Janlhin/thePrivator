@@ -181,15 +181,11 @@ export function gridTemplate(layout: ColumnLayout): string {
 }
 
 export function setColumnVisible(layout: ColumnLayout, key: ColumnKey, visible: boolean): ColumnLayout {
-  return layout.map((entry) =>
-    entry.key === key && columnByKey(key).locked !== true ? { ...entry, visible } : entry,
-  );
+  return layout.map((entry) => (entry.key === key && columnByKey(key).locked !== true ? { ...entry, visible } : entry));
 }
 
 export function setColumnWidth(layout: ColumnLayout, key: ColumnKey, width: number): ColumnLayout {
-  return layout.map((entry) =>
-    entry.key === key ? { ...entry, width: clampWidth(columnByKey(key), width) } : entry,
-  );
+  return layout.map((entry) => (entry.key === key ? { ...entry, width: clampWidth(columnByKey(key), width) } : entry));
 }
 
 /** Move a column to a new index, keeping locked columns pinned to their ends. */
