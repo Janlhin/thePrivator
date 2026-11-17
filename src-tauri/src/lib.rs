@@ -115,6 +115,7 @@ pub fn run() {
             sidecar::legacy_scan_profiles,
             sidecar::legacy_import_profiles
         ])
+        .runtime(tauri_runtime_wry::Wry::default())
         .build(tauri::generate_context!())
         .expect("error while building ThePrivator Tauri application")
         .run(|app, event| {
