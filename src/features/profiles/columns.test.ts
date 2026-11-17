@@ -127,7 +127,7 @@ describe("reconcileLayout", () => {
 
     const names = reconcileLayout(stored).filter((entry) => entry.key === "name");
     expect(names).toHaveLength(1);
-    expect(names[0].width).toBe(200);
+    expect(names[0]!.width).toBe(200);
   });
 });
 
@@ -176,7 +176,7 @@ describe("layout edits", () => {
     const toBack = moveColumn(layout, "proxy", layout.length - 1);
 
     expect(toFront.slice(0, 3).map((entry) => entry.key)).toEqual(["select", "status", "name"]);
-    expect(toBack[toBack.length - 1].key).toBe("actions");
+    expect(toBack[toBack.length - 1]!.key).toBe("actions");
   });
 
   it("refuses to move a locked column", () => {

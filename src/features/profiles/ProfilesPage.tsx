@@ -156,6 +156,7 @@ export function ProfilesPage({
   // A selection that outlives its rows would let a bulk action reach a profile
   // the user filtered away and can no longer see.
   const shownRef = useRef(shown);
+  const firstVisible = shown[0];
   shownRef.current = shown;
   useEffect(() => {
     setSelection((current) => {
@@ -215,6 +216,9 @@ export function ProfilesPage({
 
   const performAction = useCallback(
     (action: RowAction, ids: string[]) => {
+      // A row action always addresses a selection; an empty one has nothing to do.
+      const primaryId = ids[0];
+      if (primaryId === undefined) return Promise.resolve();
       switch (action) {
         case "favorite":
         case "unfavorite":
@@ -226,37 +230,37 @@ export function ProfilesPage({
             }
           });
         case "check-proxy":
-          return onCheckProxy(ids[0]);
+          return onCheckProxy(primaryId);
         case "cookies-export-json":
           return runFor(ids, async () => {
             const destination = await pickSaveTarget(t("Export cookies as JSON"), [
               { name: t("Browser cookies JSON"), extensions: ["json"] },
             ]);
             if (destination === null) return;
-            const result = await exportProfileCookies(ids[0], destination, "theprivator-json");
+            const result = await exportProfileCookies(primaryId, destination, "theprivator-json");
             setActionNote(t("Exported {exported} cookies. {skipped} skipped.", { exported: result.exportedCount, skipped: result.skippedCount }));
           });
         case "cookies-import":
           return runFor(ids, async () => {
             const source = await pickFile(t("Import cookies into this profile"), [{ name: t("Cookie files"), extensions: ["txt", "json"] }]);
             if (source === null) return;
-            const result = await replaceProfileCookies(ids[0], source);
+            const result = await replaceProfileCookies(primaryId, source);
             setActionNote(t("Imported {imported} cookies, replacing {replaced} previous cookies.", { imported: result.importedCount, replaced: result.replacedCount }));
           });
         case "launch":
-          return runFor(ids, () => launchChromiumProfile(ids[0]));
+          return runFor(ids, () => launchChromiumProfile(primaryId));
         case "duplicate":
-          return runFor(ids, () => duplicateProfile(ids[0]));
+          return runFor(ids, () => duplicateProfile(primaryId));
         case "stop":
-          return runFor(ids, () => stopChromiumProfile(ids[0]));
+          return runFor(ids, () => stopChromiumProfile(primaryId));
         case "delete":
-          return runFor(ids, () => deleteProfile(ids[0]));
+          return runFor(ids, () => deleteProfile(primaryId));
         case "restore":
-          return runFor(ids, () => restoreProfile(ids[0]));
+          return runFor(ids, () => restoreProfile(primaryId));
         case "purge":
-          return runFor(ids, () => purgeProfile(ids[0]));
+          return runFor(ids, () => purgeProfile(primaryId));
         case "open":
-          onOpenProfile(ids[0]);
+          onOpenProfile(primaryId);
           return Promise.resolve();
         case "bulk-launch":
           return runFor(ids, () => bulkLaunchChromiumProfiles(ids));
@@ -316,14 +320,16 @@ export function ProfilesPage({
     (action: RowAction, ids: string[], name: string) => {
       setMenu(null);
       if (ids.some((id) => activeIds.current.has(id))) return;
+      const primaryId = ids[0];
+      if (primaryId === undefined) return;
       if (action === "tag" || action === "bulk-tag" || action === "move" || action === "bulk-move") {
-        const profile = rows.find((row) => row.profile.id === ids[0])?.profile;
+        const profile = rows.find((row) => row.profile.id === primaryId)?.profile;
         const kind = action === "move" || action === "bulk-move" ? "folder" : "tags";
         setActionError(null);
         setOrganizationEdit({ kind, ids, value: ids.length === 1 ? (kind === "tags" ? profile?.organization.tags.join(", ") : profile?.organization.folderId) ?? "" : "" });
         return;
       }
-      if (action === "cookie-bot") { setCookieBot({ id: ids[0], name }); return; }
+      if (action === "cookie-bot") { setCookieBot({ id: primaryId, name }); return; }
       if (requiresConfirmation(action)) {
         // The confirmation is rendered by this component rather than by the menu,
         // so closing the menu cannot take the dialog down with it -- which is
@@ -415,13 +421,13 @@ export function ProfilesPage({
         emptyMessage={loading ? t("Loading profiles…") : t(EMPTY_MESSAGES[view])}
       />
 
-      {selectedIds.length > 1 ? (
+      {selectedIds.length > 1 && firstVisible !== undefined ? (
         <div className={styles.bulkBar} role="region" aria-label={t("Bulk actions")}>
           <span>
             {t("{count} selected", { count: selectedIds.length })}
           </span>
           {buildRowMenu({
-            profile: shown[0].profile,
+            profile: firstVisible.profile,
             running: false,
             trashed: view === "trash",
             selectionSize: selectedIds.length,

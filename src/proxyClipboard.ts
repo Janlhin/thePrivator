@@ -25,7 +25,7 @@ export function parseProxyClipboard(text: string, current: ProxyDraftState): Pro
   let protocol = isSupportedProxyProtocol(current.protocol) ? current.protocol : DEFAULT_PROXY_PROTOCOL;
   const scheme = /^([a-z][a-z0-9+.-]*):\/\//i.exec(value);
   if (scheme) {
-    const explicitProtocol = scheme[1].toLowerCase();
+    const explicitProtocol = (scheme[1] ?? "").toLowerCase();
     if (!isSupportedProxyProtocol(explicitProtocol)) {
       return { ok: false, error: "Proxy protocol must be HTTP, HTTPS, SOCKS4, or SOCKS5." };
     }
@@ -43,7 +43,8 @@ export function parseProxyClipboard(text: string, current: ProxyDraftState): Pro
   // Host-first colon syntax takes precedence so @ and : in its password stay literal.
   const hostFirst = /^(\[[^\]]+\]|[^\s:@,;|/\\?#]+):(\d+)(?::([^:]*):(.*))?$/.exec(value);
   if (hostFirst) {
-    [, host, port] = hostFirst;
+    host = hostFirst[1] ?? "";
+    port = hostFirst[2] ?? "";
     hasCredentials = hostFirst[3] !== undefined;
     username = hostFirst[3] ?? "";
     password = hostFirst[4] ?? "";
@@ -53,7 +54,8 @@ export function parseProxyClipboard(text: string, current: ProxyDraftState): Pro
     const endpoint = /^(\[[^\]]+\]|[^\s:@/\\?#]+):(\d+)$/.exec(value.slice(at + 1));
     const colon = credentials.indexOf(":");
     if (!endpoint || colon < 0) return { ok: false, error: FORMAT_ERROR };
-    [, host, port] = endpoint;
+    host = endpoint[1] ?? "";
+    port = endpoint[2] ?? "";
     hasCredentials = true;
     try {
       username = decodeURIComponent(credentials.slice(0, colon));
@@ -66,7 +68,8 @@ export function parseProxyClipboard(text: string, current: ProxyDraftState): Pro
     const separator = ["\t", ",", ";", "|"].find((candidate) => value.includes(candidate));
     const fields = separator ? value.split(separator).map((field) => field.trim()) : value.split(/ +/);
     if (fields.length !== 2 && fields.length !== 4) return { ok: false, error: FORMAT_ERROR };
-    [host, port] = fields;
+    host = fields[0] ?? "";
+    port = fields[1] ?? "";
     hasCredentials = fields.length === 4;
     username = fields[2] ?? "";
     password = fields[3] ?? "";

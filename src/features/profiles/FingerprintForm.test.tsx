@@ -56,7 +56,7 @@ function renderForm(identity: ProfileIdentity = realIdentity()) {
   const view = render(<FingerprintForm draft={draft} warnings={[]} onChange={onChange} />);
 
   const apply = () => {
-    draft = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+    draft = onChange.mock.calls[onChange.mock.calls.length - 1]![0];
     view.rerender(<FingerprintForm draft={draft} warnings={[]} onChange={onChange} />);
     return draft;
   };
@@ -102,7 +102,7 @@ describe("FingerprintForm", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onApplyPreset).not.toHaveBeenCalled();
     expect(draft).toEqual(before);
-    const next = onChange.mock.calls[0][0];
+    const next = onChange.mock.calls[0]![0];
     const expected = { ...realIdentity(), label: "Real" };
     expect(next).toEqual(createIdentityDraftState(expected));
     expect(parseIdentityDraftState(next)).toMatchObject({ ok: true, identity: expected });
@@ -129,7 +129,7 @@ describe("FingerprintForm", () => {
     await act(async () => request.resolve());
     fireEvent.click(button);
     fireEvent.change(screen.getByLabelText("Identity label"), { target: { value: "Manual edit" } });
-    view.rerender(<FingerprintForm draft={onChange.mock.calls[0][0]} warnings={[]} presets={[base]} onChange={onChange} onApplyPreset={onApplyPreset} />);
+    view.rerender(<FingerprintForm draft={onChange.mock.calls[0]![0]} warnings={[]} presets={[base]} onChange={onChange} onApplyPreset={onApplyPreset} />);
     await act(async () => request.reject(new Error("untrusted response")));
     expect(screen.getByRole("alert")).toHaveTextContent(/previous presets and draft unchanged/i);
     expect(screen.queryByText(/untrusted response/)).not.toBeInTheDocument();
@@ -148,7 +148,7 @@ describe("FingerprintForm", () => {
     const onChange = vi.fn();
     const view = render(<FingerprintForm draft={createIdentityDraftState(realIdentity())} warnings={[]} presets={[base]} onChange={onChange} onApplyPreset={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh presets" }));
-    const signal = request.fetch.mock.calls[0][1].signal;
+    const signal = request.fetch.mock.calls[0]![1]!.signal;
     view.unmount();
     expect(signal.aborted).toBe(true);
     await act(async () => request.resolve());
@@ -169,7 +169,7 @@ describe("FingerprintForm", () => {
     expect(screen.getByRole("option", { name: "Ubuntu Linux Chrome 135 (API)" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Start from a preset"), { target: { value: "api:0" } });
     expect(onApplyPreset).not.toHaveBeenCalled();
-    const parsed = parseIdentityDraftState(onChange.mock.calls[0][0]);
+    const parsed = parseIdentityDraftState(onChange.mock.calls[0]![0]);
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
       expect(parsed.identity.screen).toEqual(base.screen);
@@ -210,7 +210,7 @@ describe("FingerprintForm", () => {
     identity.browser = { mode: "custom", userAgent: "Original UA" };
     const { apply, onChange } = renderForm(identity);
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    const signal = request.fetch.mock.calls[0][1].signal;
+    const signal = request.fetch.mock.calls[0]![1]!.signal;
     fireEvent.change(screen.getByLabelText(label), { target: { value: "Manual edit" } });
     apply();
     expect(signal.aborted).toBe(true);
@@ -226,7 +226,7 @@ describe("FingerprintForm", () => {
     identity.browser = { mode: "custom", userAgent: "Original UA" };
     const { apply, onChange, rerender, unmount } = renderForm(identity);
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    const signal = request.fetch.mock.calls[0][1].signal;
+    const signal = request.fetch.mock.calls[0]![1]!.signal;
     if (change === "mode") {
       fireEvent.change(screen.getByRole("combobox", { name: /browser mode/i }), { target: { value: "real" } });
       apply();
