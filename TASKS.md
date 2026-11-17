@@ -31,6 +31,10 @@
 | T-022 | cookie 健康检查 | 档案表增一列：身份 cookie 距过期天数、上次探活时间与结果；判定抽成纯函数（401、重定向到登录页、登录页特征视为失效），默认只提示不自动重登。**账号数量不设上限**：列与筛选都必须支持任意行数，不得按固定账号清单设计 | T-010 | 中 | `npm run verify` 退出 0；新增判定函数有单测覆盖；组件测试断言该列在 0、1、多行三种数据下都渲染 | TASK_BACKLOG | 2026-11-17 | — |
 | T-023 | CI 工作流未被索引 | 三路排查：索引缓存、`ci.yml` 被判定无效、仓库设置；以 `gh api repos/Janlhin/thePrivator/actions/workflows` 的 `total_count` 为判据 | T-010 | 高 | `total_count` 大于 0，且新建 PR 上出现检查项 | TASK_READY | 2026-11-17 | — |
 | T-024 | 开源入口文档 | README 增「从零跑起来」（工具链版本、`npm ci`、`npm run verify`）与「提 PR」（提交规范、提交前必过 verify）两节 | T-023 | 高 | README 含这两节；按文档从干净环境能走到 `verify passed` | TASK_BACKLOG | 2026-11-17 | — |
+| T-025 | 引擎抽象与能力矩阵 | 把 `chromium.py` 中引擎专有的部分收进「引擎描述」：可执行发现、启动参数模板、cookie 存储适配、指纹注入通道、自动化通道；档案记录增加 `engine` 字段；能力矩阵作为代码里的数据结构，不再散落在各处的 `if chrome` | T-010 | 中 | `npm run verify` 退出 0；引擎描述模块有单测；`build_launch_args` 里 `--user-data-dir`、`--load-extension`、`--remote-debugging-port` 三处的硬编码计数为 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-026 | Chromium 系多品牌 | `discover_executable` 按优先级探测 Edge、Chrome、Brave 等同一引擎的浏览器，运行记录里写明实际使用的品牌；指纹与自动化通道保持不变 | T-025 | 高 | 用 Edge 启动一个档案退出码 0，且运行记录的品牌字段为 `edge`；`npm run verify` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-027 | Firefox 受限模式 | 接入 `-profile` 与 `-no-remote` 启动、原生带认证 SOCKS5（去掉中转依赖）、`cookies.sqlite` 的读写；指纹面与 CDP 自动化端点标为不可用，UI 上禁用并写明原因，而不是让用户填了不生效 | T-025 | 中 | Firefox 档案启动退出码 0；该档案下指纹面板全部控件为禁用态；README 能力差异表与代码能力矩阵一致 | TASK_BACKLOG | 2026-11-17 | — |
+| T-028 | Safari 不做 | 仅在 macOS 提供，且没有等价于 `-profile` 的独立启动方式，无法被本项目驱动；结论即本条，不再另立实现 | T-025 | 高 | 决策日志存在对应条目，且 `engine` 枚举中不含 `safari` | TASK_CANCELLED | 2026-11-17 | 2026-11-17 |
 
 ## 待裁决清单
 
@@ -41,3 +45,4 @@
 | 2026-11-17 | `src-tauri/icons/generated/`（16 文件）与 `src-tauri/icons/icon.ico` 始终未跟踪 | A. 提交入库（图标是构建输入）B. 加入 `.gitignore` 并在构建时生成 | 未裁决 |
 | 2026-11-17 | `install_chromium_helper.py` 位于根目录，不在白名单六类之内 | A. 移入 `scripts/` 并更新引用 B. 在白名单登记为「源码类」并加注释说明用途 | 未裁决 |
 | 2026-11-17 | 本机 `pwsh` 是 7.7 preview，CI 将用稳定通道；哪些语法属 preview 独有尚未逐条核验 | A. 只使用 7.4 起就稳定的语法，逐条核对三个脚本 B. 在 CI 用 preview 通道对齐本机 | 未裁决 |
+| 2026-11-17 | 界面逻辑的改动形态未定：加 cookie 健康列只动表格，换成卡片或树会重写 `tableModel`，按「站点→账号」两级导航则五个页面都要重挂 | A. 先只加列，观察真实使用再决定 B. 一并换成按站点分组的树 C. 连导航一起改成两级 | 未裁决（与 T-022、T-025 相关） |
