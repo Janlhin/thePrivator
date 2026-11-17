@@ -140,8 +140,9 @@ you already have rather than shipping one. Point it somewhere specific with
 
 ## Build from source
 
-Requires **Node 20.19+**, **Python 3.11+**, **Rust 1.77+**, and on Linux the
-WebKitGTK development packages:
+Requires **Node 22.18+, 24.11+ or 26+** (the Vite+ 1.7 engine range),
+**Python 3.11+**, **Rust 1.77+**, and on Linux the WebKitGTK development
+packages:
 
 ```bash
 sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
@@ -179,6 +180,11 @@ THEPRIVATOR_VERIFY_SIDECAR_BINARY="src-tauri/target/release/bundle/macos/ThePriv
 ```
 
 For development, `npm run tauri dev` rebuilds the frontend on save.
+
+Frontend tooling runs through Vite+ 1.7 (`vp`): `vp dev`, `vp build` and
+`vp test`, forwarded by the npm scripts and by the matching `deno task`
+entries. `vite` itself is only present as Vite+'s own alias, so run builds
+through `vp`, not `vite`.
 
 **One build produces one platform.** The Python sidecar is packed with
 PyInstaller, which bundles the host's interpreter and native libraries and has
@@ -220,7 +226,7 @@ anything:
 
 ```bash
 npx tsc --noEmit        # types
-npx vitest run          # frontend and component tests
+npm test                # frontend and component tests through vp test
 python -m pytest tests/ # sidecar
 cd src-tauri && cargo test
 npm run verify:sidecar  # the packed binary, not the source
