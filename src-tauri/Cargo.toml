@@ -5,7 +5,7 @@ description = "ThePrivator Tauri 2 desktop rewrite spine"
 authors = ["yanx9"]
 license = "MIT"
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.95"
 default-run = "theprivator"
 
 [lib]
@@ -17,7 +17,7 @@ name = "theprivator"
 path = "src/main.rs"
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "3.0.0-alpha.4", features = [] }
 
 [dependencies]
 async-trait = "0.1"
@@ -25,8 +25,15 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri = { version = "2", features = [] }
-tauri-plugin-dialog = "2"
-tauri-plugin-shell = "2"
+tauri = { version = "3.0.0-alpha.6", features = [] }
+tauri-runtime-wry = "3.0.0-alpha.6"
+tauri-plugin-dialog = "3.0.0-alpha.4"
+tauri-plugin-shell = "3.0.0-alpha.3"
 tokio = { version = "1", features = ["rt", "time"] }
 libc = "0.2"
+
+[features]
+# Production builds embed the frontend; without this the generated context
+# falls back to the dev server URL even in a release binary.
+custom-protocol = ["tauri/custom-protocol"]
+
