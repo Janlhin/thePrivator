@@ -1,4 +1,5 @@
 import { type Route, primaryNavKeyForRoute, routeToHash } from "../app/routes";
+import { useT } from "../i18n";
 import styles from "./TopNav.module.css";
 
 interface NavItem {
@@ -22,10 +23,11 @@ interface TopNavProps {
 
 export function TopNav({ route, search, onSearchChange }: TopNavProps) {
   const activeKey = primaryNavKeyForRoute(route);
+  const t = useT();
 
   return (
     <div className={styles.bar}>
-      <nav className={styles.nav} aria-label="Primary navigation">
+      <nav className={styles.nav} aria-label={t("Primary navigation")}>
         {NAV_ITEMS.map((item) => (
           <a
             key={item.key}
@@ -33,7 +35,7 @@ export function TopNav({ route, search, onSearchChange }: TopNavProps) {
             href={routeToHash(item.route)}
             aria-current={item.key === activeKey ? "page" : undefined}
           >
-            {item.label}
+            {t(item.label)}
           </a>
         ))}
       </nav>
@@ -46,8 +48,8 @@ export function TopNav({ route, search, onSearchChange }: TopNavProps) {
         </span>
         <input
           type="search"
-          aria-label="Search profiles"
-          placeholder="Search profiles"
+          aria-label={t("Search profiles")}
+          placeholder={t("Search profiles")}
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
         />
@@ -58,7 +60,7 @@ export function TopNav({ route, search, onSearchChange }: TopNavProps) {
       <a
         className={styles.iconAction}
         href={routeToHash({ name: "settings", section: "appearance" })}
-        aria-label="Settings"
+        aria-label={t("Settings")}
         aria-current={activeKey === "settings" ? "page" : undefined}
       >
         <span aria-hidden="true">&#x2699;</span>

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { Route } from "../app/routes";
+import { t as translate, useT } from "../i18n";
 import { Sidebar, type SidebarCounts, type SidebarFolder } from "./Sidebar";
 import { StatusBar, type StatusTile } from "./StatusBar";
 import { TopNav } from "./TopNav";
@@ -42,11 +43,12 @@ export function AppShell({
 }: AppShellProps) {
   // The macOS Tauri configuration supplies the native title bar and controls.
   const nativeTitleBar = navigator.platform.startsWith("Mac");
+  const t = useT();
 
   return (
     <div className={`${styles.shell}${nativeTitleBar ? ` ${styles.nativeTitleBar}` : ""}`}>
       <a className={styles.skipLink} href="#workspace">
-        Skip to workspace
+        {t("Skip to workspace")}
       </a>
       {nativeTitleBar ? null : <WindowChrome />}
       <TopNav route={route} search={search} onSearchChange={onSearchChange} />
@@ -72,15 +74,15 @@ export function AppShell({
 function mainLabelForRoute(route: Route): string {
   switch (route.name) {
     case "profiles":
-      return "Profiles workspace";
+      return translate("Profiles workspace");
     case "profile":
-      return "Profile settings";
+      return translate("Profile settings");
     case "profile-new":
-      return "New profile";
+      return translate("New profile");
 
     case "automation":
-      return "Automation";
+      return translate("Automation");
     case "settings":
-      return "Settings";
+      return translate("Settings");
   }
 }

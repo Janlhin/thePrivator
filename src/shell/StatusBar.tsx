@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import styles from "./StatusBar.module.css";
 
 export type StatusTone = "neutral" | "ok" | "warning" | "danger";
@@ -21,8 +22,9 @@ interface StatusBarProps {
  * and does nothing should not advertise itself to a screen reader as actionable.
  */
 export function StatusBar({ tiles }: StatusBarProps) {
+  const t = useT();
   return (
-    <footer className={styles.bar} aria-label="Global product status">
+    <footer className={styles.bar} aria-label={t("Global product status")}>
       {tiles.map((tile) =>
         tile.onSelect ? (
           <button

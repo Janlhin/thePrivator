@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 
 import { pickFile, pickSaveTarget } from "../../dialogs";
+import { t } from "../../i18n";
 import { buildIdentityAuditGuidance } from "../../identityAuditGuidance";
 import {
   checkProfileProxy,
@@ -13,7 +14,6 @@ import {
   replaceProfileCookies,
 } from "../../sidecar/client";
 import type {
-
   IdentityAuditCollectResult,
   IdentityAuditPlanResult,
   ProfileIdentity,
@@ -39,17 +39,17 @@ type Note = { tone: "ok" | "warn"; text: string };
  */
 export function ProxyCheckSummary({ result }: { result: ProxyCheckResult }) {
   return (
-    <dl className={styles.checkFacts} aria-label="Proxy check result">
+    <dl className={styles.checkFacts} aria-label={t("Proxy check result")}>
       <div>
-        <dt>Route</dt>
+        <dt>{t("Route")}</dt>
         <dd>{result.routeProof.status}</dd>
       </div>
       <div>
-        <dt>Exit address</dt>
-        <dd>{result.ipHiding.publicExitIp ?? "not established"}</dd>
+        <dt>{t("Exit address")}</dt>
+        <dd>{result.ipHiding.publicExitIp ?? t("not established")}</dd>
       </div>
       <div>
-        <dt>WebRTC</dt>
+        <dt>{t("WebRTC")}</dt>
         <dd>{result.webRtc.status}</dd>
       </div>
     </dl>
@@ -74,7 +74,7 @@ interface AuditPageListProps {
  */
 export function AuditPageList({ pages, disabled, identity, onOpen }: AuditPageListProps) {
   return (
-    <ul className={styles.auditList} aria-label="Audit pages">
+    <ul className={styles.auditList} aria-label={t("Audit pages")}>
       {pages.map((page) => {
         // What this profile *should* report on that page. Without it the user is
         // looking at a stranger's numbers with nothing to compare them to, which
@@ -87,12 +87,12 @@ export function AuditPageList({ pages, disabled, identity, onOpen }: AuditPageLi
               <span className={styles.hint}>{page.comparisonNote}</span>
               {expected.length > 0 ? (
                 <span className={styles.hint}>
-                  Expect: {expected.map((row) => `${row.label} ${row.expected}`).join(" · ")}
+                  {t("Expect: {rows}", { rows: expected.map((row) => `${row.label} ${row.expected}`).join(" · ") })}
                 </span>
               ) : null}
             </div>
             <button type="button" disabled={disabled} onClick={() => onOpen(page.id)}>
-              {page.requiresUserAction ? "Open and finish by hand" : "Open"}
+              {page.requiresUserAction ? t("Open and finish by hand") : t("Open")}
             </button>
           </li>
         );
@@ -150,15 +150,15 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
   if (profileId === null) {
     return (
       <p className={styles.loading}>
-        These tools work on a saved profile. Save this one first, then come back.
+        {t("These tools work on a saved profile. Save this one first, then come back.")}
       </p>
     );
   }
 
   const exportPackage = () =>
     run("package", async () => {
-      const destination = await pickSaveTarget("Export this profile as a package", [
-        { name: "ThePrivator package", extensions: ["tpkg"] },
+      const destination = await pickSaveTarget(t("Export this profile as a package"), [
+        { name: t("ThePrivator package"), extensions: ["tpkg"] },
       ]);
       if (destination === null) {
         return;
@@ -166,15 +166,15 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
       const result = await exportProfilePackage(profileId, destination);
       setNote({
         tone: "ok",
-        text: `Exported ${result.payloadFileCount} files. Proxy passwords were left out on purpose -- whoever opens this will need their own.`,
+        text: t("Exported {count} files. Proxy passwords were left out on purpose -- whoever opens this will need their own.", { count: result.payloadFileCount }),
       });
     });
 
   const exportCookies = () =>
     run("cookies", async () => {
       const destination = await pickSaveTarget(
-        "Export cookies as JSON",
-        [{ name: "Browser cookies JSON", extensions: ["json"] }],
+        t("Export cookies as JSON"),
+        [{ name: t("Browser cookies JSON"), extensions: ["json"] }],
       );
       if (destination === null) {
         return;
@@ -184,15 +184,15 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
         tone: result.skippedCount > 0 ? "warn" : "ok",
         text:
           result.skippedCount > 0
-            ? `Exported ${result.exportedCount} cookies. ${result.skippedCount} could not be represented in this format.`
-            : `Exported ${result.exportedCount} cookies.`,
+            ? t("Exported {exported} cookies. {skipped} could not be represented in this format.", { exported: result.exportedCount, skipped: result.skippedCount })
+            : t("Exported {exported} cookies.", { exported: result.exportedCount }),
       });
     });
 
   const replaceCookies = () =>
     run("cookies", async () => {
-      const source = await pickFile("Import cookies into this profile", [
-        { name: "Cookie files", extensions: ["txt", "json"] },
+      const source = await pickFile(t("Import cookies into this profile"), [
+        { name: t("Cookie files"), extensions: ["txt", "json"] },
       ]);
       if (source === null) {
         return;
@@ -200,7 +200,7 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
       const result = await replaceProfileCookies(profileId, source);
       setNote({
         tone: "warn",
-        text: `Imported ${result.importedCount} cookies, replacing this profile's previous ${result.replacedCount}. The old ones are gone.`,
+        text: t("Imported {imported} cookies, replacing this profile's previous {replaced}. The old ones are gone.", { imported: result.importedCount, replaced: result.replacedCount }),
       });
     });
 
@@ -239,58 +239,51 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
       ) : null}
 
       <section className={styles.fieldset}>
-        <h3>Cookies and packages</h3>
+        <h3>{t("Cookies and packages")}</h3>
         <p className={styles.hint}>
-          Importing cookies <strong>replaces</strong> the ones this profile already has; it does not merge
-          them. A package carries the fingerprint, the proxy server and the browsing data, but never the
-          proxy password. The browser must be stopped for all of these: copying a profile mid-write produces
-          one that will not open.
+          {t("Importing cookies replaces the ones this profile already has; it does not merge them. A package carries the fingerprint, the proxy server and the browsing data, but never the proxy password. The browser must be stopped for all of these: copying a profile mid-write produces one that will not open.")}
         </p>
         <p className={styles.hint}>
-          JSON import and export use the same cookie array: expirationDate is Unix seconds,
-          session cookies use 0, and exports use storeId "Default". Older ThePrivator JSON
-          and cookies.txt can still be imported.
+          {t("JSON import and export use the same cookie array: expirationDate is Unix seconds, session cookies use 0, and exports use storeId \"Default\". Older ThePrivator JSON and cookies.txt can still be imported.")}
         </p>
         <div className={styles.toolActions}>
           <button type="button" disabled={busy !== null || running} onClick={exportPackage}>
-            {busy === "package" ? "Exporting…" : "Export as package"}
+            {busy === "package" ? t("Exporting…") : t("Export as package")}
           </button>
           <button type="button" disabled={busy !== null || running} onClick={exportCookies}>
-            Export cookies (JSON)
+            {t("Export cookies (JSON)")}
           </button>
           <button type="button" disabled={busy !== null || running} onClick={replaceCookies}>
-            Import cookies…
+            {t("Import cookies…")}
           </button>
         </div>
-        {running ? <p className={styles.hint}>Stop this profile&apos;s browser to use these.</p> : null}
+        {running ? <p className={styles.hint}>{t("Stop this profile's browser to use these.")}</p> : null}
       </section>
 
       <section className={styles.fieldset}>
-        <h3>Proxy</h3>
+        <h3>{t("Proxy")}</h3>
         <p className={styles.hint}>
-          Checks that traffic really leaves through the proxy, and that WebRTC is not routing around it.
+          {t("Checks that traffic really leaves through the proxy, and that WebRTC is not routing around it.")}
         </p>
         <div className={styles.toolActions}>
           <button type="button" disabled={busy !== null} onClick={check}>
-            {busy === "proxy" ? "Checking…" : "Check the proxy"}
+            {busy === "proxy" ? t("Checking…") : t("Check the proxy")}
           </button>
         </div>
         {proxyCheck !== null ? <ProxyCheckSummary result={proxyCheck} /> : null}
       </section>
 
       <section className={styles.fieldset}>
-        <h3>Fingerprint audit</h3>
+        <h3>{t("Fingerprint audit")}</h3>
         <p className={styles.hint}>
-          Opens pages that report what a site actually sees, so the fingerprint can be compared against what
-          this profile claims. A mask that disagrees with itself makes a profile easier to recognise, not
-          harder.
+          {t("Opens pages that report what a site actually sees, so the fingerprint can be compared against what this profile claims. A mask that disagrees with itself makes a profile easier to recognise, not harder.")}
         </p>
         <div className={styles.toolActions}>
           <button type="button" disabled={busy !== null} onClick={plan}>
-            {busy === "audit" ? "Loading…" : "Show the audit pages"}
+            {busy === "audit" ? t("Loading…") : t("Show the audit pages")}
           </button>
           <button type="button" disabled={busy !== null || auditPlan === null} onClick={collect}>
-            {busy === "collecting" ? "Collecting…" : "Collect results"}
+            {busy === "collecting" ? t("Collecting…") : t("Collect results")}
           </button>
         </div>
 
@@ -304,7 +297,7 @@ export function ProfileTools({ profileId, running, identity }: ProfileToolsProps
         ) : null}
 
         {auditResults !== null ? (
-          <ul className={styles.auditList} aria-label="Audit results">
+          <ul className={styles.auditList} aria-label={t("Audit results")}>
             {auditResults.pages.map((page) => (
               <li key={page.id}>
                 <div>

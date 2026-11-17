@@ -1,3 +1,4 @@
+import { t as translate } from "../../i18n";
 import type { ProfileRecord } from "../../sidecar/types";
 
 /**
@@ -66,6 +67,22 @@ export const COLUMNS: readonly ColumnDescriptor[] = [
 ];
 
 const COLUMNS_BY_KEY = new Map(COLUMNS.map((column) => [column.key, column]));
+
+/**
+ * Header text, translated at render time.
+ *
+ * The descriptors above stay English: they are the table's data model, they are
+ * compared in tests, and a stored column layout refers to keys rather than to
+ * these sentences. Components ask for the label instead of reading the field.
+ */
+export function columnLabel(column: ColumnDescriptor): string {
+  return column.label.length === 0 ? "" : translate(column.label);
+}
+
+/** The accessible header text, which falls back to the visible label. */
+export function columnSpokenLabel(column: ColumnDescriptor): string {
+  return translate(column.srLabel ?? column.label);
+}
 
 export function columnByKey(key: ColumnKey): ColumnDescriptor {
   const column = COLUMNS_BY_KEY.get(key);

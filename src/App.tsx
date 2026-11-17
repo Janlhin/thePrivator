@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 
 import { usePreferences } from "./app/DesktopSession";
+import { useDocumentLanguage, useT } from "./i18n";
 import { getStorageUsage } from "./sidecar/client";
 import { formatBytes } from "./features/settings/StorageSettings";
 import { type Route, primaryNavKeyForRoute } from "./app/routes";
@@ -77,15 +78,17 @@ function renderDestination(route: Route, context: DestinationContext) {
 }
 
 export function App() {
+  const t = useT();
+  useDocumentLanguage();
   const route = useRoute();
   const navigate = useNavigate();
-  const [diskUsage, setDiskUsage] = useState("Measuring…");
+  const [diskUsage, setDiskUsage] = useState(t("Measuring…"));
   useEffect(() => {
     let cancelled = false;
     let timer: number;
     async function refreshDisk() {
       try { const usage = await getStorageUsage(); if (!cancelled) setDiskUsage(`${usage.incomplete ? "≥ " : ""}${formatBytes(usage.bytes)}`); }
-      catch { if (!cancelled) setDiskUsage("Unavailable"); }
+      catch { if (!cancelled) setDiskUsage(t("Unavailable")); }
       if (!cancelled) timer = window.setTimeout(() => void refreshDisk(), 60_000);
     }
     void refreshDisk();
@@ -128,22 +131,22 @@ export function App() {
 
   const statusTiles = useMemo<StatusTile[]>(
     () => [
-      { key: "disk", label: "App data", value: diskUsage, onSelect: () => navigate({ name: "settings", section: "storage" }) },
-      { key: "profiles", label: "Profiles", value: String(data.rows.length) },
+      { key: "disk", label: t("App data"), value: diskUsage, onSelect: () => navigate({ name: "settings", section: "storage" }) },
+      { key: "profiles", label: t("Profiles"), value: String(data.rows.length) },
       {
         key: "running",
-        label: "Running",
+        label: t("Running"),
         value: String(data.runningCount),
         tone: data.runningCount > 0 ? "ok" : "neutral",
       },
       {
         key: "sidecar",
-        label: "Sidecar",
-        value: data.error === null ? "Connected" : "Unavailable",
+        label: t("Sidecar"),
+        value: data.error === null ? t("Connected") : t("Unavailable"),
         tone: data.error === null ? "ok" : "danger",
       },
     ],
-    [data.rows.length, data.runningCount, data.error, diskUsage, navigate],
+    [data.rows.length, data.runningCount, data.error, diskUsage, navigate, t],
   );
 
   const destination = primaryNavKeyForRoute(route);

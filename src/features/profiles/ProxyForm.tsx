@@ -1,5 +1,6 @@
 import { useId, useState, type ClipboardEvent } from "react";
 
+import { t } from "../../i18n";
 import { parseProxyClipboard } from "../../proxyClipboard";
 
 import {
@@ -61,7 +62,7 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
     <div className={styles.form}>
       <section className={styles.surface}>
         <div className={styles.field}>
-          <label htmlFor={ids.clipboard}>Paste proxy</label>
+          <label htmlFor={ids.clipboard}>{t("Paste proxy")}</label>
           <input
             id={ids.clipboard}
             type="password"
@@ -78,41 +79,39 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
             }}
           />
           <p id={`${ids.clipboard}-hint`} className={styles.hint}>
-            Paste to fill the fields below, or type and press Enter. Accepts host:port,
-            host:port:user:pass, user:pass@host:port, and space-, tab-, comma-, semicolon-, or pipe-separated fields.
-            Without a protocol, uses the selected protocol (HTTP by default). Without credentials, removes authentication.
+            {t("Paste to fill the fields below, or type and press Enter. Accepts host:port, host:port:user:pass, user:pass@host:port, and space-, tab-, comma-, semicolon-, or pipe-separated fields. Without a protocol, uses the selected protocol (HTTP by default). Without credentials, removes authentication.")}
           </p>
           {clipboardError === null ? null : (
-            <p id={`${ids.clipboard}-error`} className={styles.error} role="alert">{clipboardError}</p>
+            <p id={`${ids.clipboard}-error`} className={styles.error} role="alert">{t(clipboardError)}</p>
           )}
         </div>
       </section>
       <section className={styles.surface} aria-labelledby={`${ids.mode}-heading`}>
         <div className={styles.surfaceHead}>
-          <h3 id={`${ids.mode}-heading`}>Connection</h3>
+          <h3 id={`${ids.mode}-heading`}>{t("Connection")}</h3>
           <label className={styles.modeSelect}>
-            <span className={styles.srOnly}>Proxy mode</span>
+            <span className={styles.srOnly}>{t("Proxy mode")}</span>
             <select
               id={ids.mode}
               value={draft.mode}
               onChange={(event) => onChange(updateProxyDraftMode(draft, event.target.value))}
             >
-              <option value="direct">Direct connection</option>
-              <option value="fixedServer">Fixed server</option>
+              <option value="direct">{t("Direct connection")}</option>
+              <option value="fixedServer">{t("Fixed server")}</option>
             </select>
           </label>
         </div>
 
         {draft.errors.mode === undefined ? null : (
           <p className={styles.error} role="alert">
-            {draft.errors.mode}
+            {t(draft.errors.mode)}
           </p>
         )}
 
         {draft.mode === "fixedServer" ? (
           <div className={styles.fields}>
             <div className={styles.field}>
-              <label htmlFor={ids.protocol}>Protocol</label>
+              <label htmlFor={ids.protocol}>{t("Protocol")}</label>
               <select
                 id={ids.protocol}
                 value={draft.protocol || DEFAULT_PROXY_PROTOCOL}
@@ -127,13 +126,13 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
               </select>
               {draft.errors.protocol === undefined ? null : (
                 <p className={styles.error} role="alert">
-                  {draft.errors.protocol}
+                  {t(draft.errors.protocol)}
                 </p>
               )}
             </div>
 
             <div className={styles.field}>
-              <label htmlFor={ids.host}>Host</label>
+              <label htmlFor={ids.host}>{t("Host")}</label>
               <input
                 id={ids.host}
                 type="text"
@@ -144,13 +143,13 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
               />
               {draft.errors.host === undefined ? null : (
                 <p className={styles.error} role="alert">
-                  {draft.errors.host}
+                  {t(draft.errors.host)}
                 </p>
               )}
             </div>
 
             <div className={styles.field}>
-              <label htmlFor={ids.port}>Port</label>
+              <label htmlFor={ids.port}>{t("Port")}</label>
               <input
                 id={ids.port}
                 type="text"
@@ -161,7 +160,7 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
               />
               {draft.errors.port === undefined ? null : (
                 <p className={styles.error} role="alert">
-                  {draft.errors.port}
+                  {t(draft.errors.port)}
                 </p>
               )}
             </div>
@@ -172,9 +171,9 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
       {draft.mode === "fixedServer" ? (
         <section className={styles.surface} aria-labelledby={`${ids.username}-heading`}>
           <div className={styles.surfaceHead}>
-            <h3 id={`${ids.username}-heading`}>Authentication</h3>
+            <h3 id={`${ids.username}-heading`}>{t("Authentication")}</h3>
             <label className={styles.modeSelect}>
-              <span className={styles.srOnly}>Credential mode</span>
+              <span className={styles.srOnly}>{t("Credential mode")}</span>
               <select
                 value={draft.credentialMode}
                 onChange={(event) =>
@@ -183,31 +182,31 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
                   )
                 }
               >
-                <option value="none">No authentication</option>
+                <option value="none">{t("No authentication")}</option>
                 {draft.savedCredentialState === "configured" ? (
                   <>
                     {/* Offered only when something is stored: "keep the saved
                         credentials" with nothing saved would quietly mean "none"
                         while reading as a secret that is still in place. */}
-                    <option value="saved">Keep the saved credentials</option>
-                    <option value="clear">Remove the saved credentials</option>
+                    <option value="saved">{t("Keep the saved credentials")}</option>
+                    <option value="clear">{t("Remove the saved credentials")}</option>
                   </>
                 ) : null}
-                <option value="replace">Set credentials</option>
+                <option value="replace">{t("Set credentials")}</option>
               </select>
             </label>
           </div>
 
           {draft.errors.credentials === undefined ? null : (
             <p className={styles.error} role="alert">
-              {draft.errors.credentials}
+              {t(draft.errors.credentials)}
             </p>
           )}
 
           {draft.credentialMode === "replace" ? (
             <div className={styles.fields}>
               <div className={styles.field}>
-                <label htmlFor={ids.username}>Username</label>
+                <label htmlFor={ids.username}>{t("Username")}</label>
                 <input
                   id={ids.username}
                   type="text"
@@ -220,13 +219,13 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
                 />
                 {draft.errors.credentialUsername === undefined ? null : (
                   <p className={styles.error} role="alert">
-                    {draft.errors.credentialUsername}
+                    {t(draft.errors.credentialUsername)}
                   </p>
                 )}
               </div>
 
               <div className={styles.field}>
-                <label htmlFor={ids.password}>Password</label>
+                <label htmlFor={ids.password}>{t("Password")}</label>
                 <input
                   id={ids.password}
                   type="password"
@@ -239,7 +238,7 @@ export function ProxyForm({ draft, onChange }: ProxyFormProps) {
                 />
                 {draft.errors.credentialPassword === undefined ? null : (
                   <p className={styles.error} role="alert">
-                    {draft.errors.credentialPassword}
+                    {t(draft.errors.credentialPassword)}
                   </p>
                 )}
               </div>

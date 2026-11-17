@@ -2,8 +2,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { NotePreview } from "./NotePreview";
 import { useMachineInfo } from "../../app/DesktopSession";
+import { t, useLanguagePreference } from "../../i18n";
 import type { MachineInfo } from "../../sidecar/client";
-import type { ProfileRecord } from "../../sidecar/types";
 import {
   type ColumnDescriptor,
   type ColumnKey,
@@ -11,12 +11,15 @@ import {
   type SortState,
   clampWidth,
   columnByKey,
+  columnLabel,
+  columnSpokenLabel,
   gridTemplate,
   visibleColumns,
 } from "./columns";
 import { type ProfileRow, type SelectionIntent, selectionKind } from "./tableModel";
 import styles from "./ProfileTable.module.css";
 import { ProxyExit, type ProxyCheckState } from "./ProxyExit";
+import type { ProfileRecord } from "../../sidecar/types";
 
 export interface FolderName {
   id: string;
@@ -46,11 +49,11 @@ interface ProfileTableProps {
 
 function formatTimestamp(value: string | null): string {
   if (value === null) {
-    return "Never";
+    return t("Never");
   }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return "Unknown";
+    return t("Unknown");
   }
   return parsed.toLocaleString(undefined, {
     year: "numeric",
@@ -66,10 +69,10 @@ function fingerprintLabel(profile: ProfileRecord, machine: MachineInfo | null): 
   const ua = browser.mode === "real" ? "" : browser.userAgent;
   const hints = browser.mode === "real" ? undefined : browser.clientHints;
   const platform = hints?.platform ?? (nav.mode === "real" ? "" : nav.uaPlatform);
-  const os = platform || (/Windows/.test(ua) ? "Windows" : /Macintosh/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : machine?.platform ?? "Real device");
+  const os = platform || (/Windows/.test(ua) ? "Windows" : /Macintosh/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : machine?.platform ?? t("Real device"));
   const arch = hints?.architecture ?? (nav.mode === "real" ? machine?.architecture ?? "" : nav.uaArchitecture);
   const version = /Chrome\/(\d+)/.exec(ua)?.[1] ?? (browser.mode === "real" ? machine?.browserVersion?.split(".")[0] : undefined);
-  return [os, arch || (/x86_64|Win64|x64/.test(ua) ? "x86_64" : ""), version ? `Chrome ${version}` : "Installed browser"].filter(Boolean).join(" · ");
+  return [os, arch || (/x86_64|Win64|x64/.test(ua) ? "x86_64" : ""), version ? `Chrome ${version}` : t("Installed browser")].filter(Boolean).join(" · ");
 }
 
 /** Deterministic hue per tag, so a tag keeps its colour across profiles and sessions. */
@@ -108,7 +111,7 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
           <input
             type="checkbox"
             checked={selected}
-            aria-label={`Select ${profile.name}`}
+            aria-label={t("Select {name}", { name: profile.name })}
             onChange={() => onSelect({ type: "toggle", id: profile.id })}
             onClick={(event) => event.stopPropagation()}
           />
@@ -122,7 +125,7 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
             data-running={running}
             data-busy={busy}
             role="img"
-            aria-label={busy ? "Working" : running ? "Running" : "Stopped"}
+            aria-label={busy ? t("Working") : running ? t("Running") : t("Stopped")}
           />
         </div>
       );
@@ -131,7 +134,7 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
         <div className={styles.cell} role="gridcell">
           <button type="button" className={styles.nameButton} onClick={() => onOpen(profile.id)}>
             {profile.organization.favorite ? (
-              <span className={styles.favorite} role="img" aria-label="Favorite">
+              <span className={styles.favorite} role="img" aria-label={t("Favorite")}>
                 ★
               </span>
             ) : null}
@@ -141,7 +144,7 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
       );
     case "folder": {
       const folderId = profile.organization.folderId;
-      const name = folderId === null ? null : (folderNames.get(folderId) ?? "Unknown folder");
+      const name = folderId === null ? null : (folderNames.get(folderId) ?? t("Unknown folder"));
       return (
         <div className={styles.cell} role="gridcell">
           <span className={name === null ? styles.muted : undefined}>{name ?? "—"}</span>
@@ -168,7 +171,7 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
       return (
         <div className={styles.cell} role="gridcell">
           {profile.lifecycle.deletedAt !== null && profile.proxy.mode === "fixedServer" ? (
-            <span className={styles.muted}>Restore profile to check proxy</span>
+            <span className={styles.muted}>{t("Restore profile to check proxy")}</span>
           ) : (
             <ProxyExit direct={profile.proxy.mode === "direct"} state={proxyCheck} onCheck={onCheckProxy ? () => onCheckProxy(profile.id) : undefined} />
           )}
@@ -231,7 +234,7 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
               }
             }}
           >
-            {running ? "Stop" : "Launch"}
+            {running ? t("Stop") : t("Launch")}
           </button>
         </div>
       );
@@ -241,6 +244,13 @@ function Cell({ row, column, folderNames, selected, busy, onSelect, onOpen, onLa
 interface RowProps extends Omit<CellProps, "column"> {
   columns: readonly ColumnDescriptor[];
   rowIndex: number;
+  /**
+   * Included so a language change actually re-renders the memoised row: the
+   * props it compares are otherwise identical, and the row's own labels
+   * ("Launch" / "Stop") would stay in the previous language until the status
+   * poll happened to touch it.
+   */
+  language: string;
   onRowMenu: (id: string, position: { x: number; y: number }) => void;
 }
 
@@ -250,7 +260,7 @@ interface RowProps extends Omit<CellProps, "column"> {
  * Memoised on purpose: the status poll rewrites the runtime map several times a
  * minute, and without this every tick re-renders every row in a 500-row table.
  */
-const Row = memo(function Row({ row, columns, rowIndex, onRowMenu, ...cellProps }: RowProps) {
+const Row = memo(function Row({ row, columns, rowIndex, language, onRowMenu, ...cellProps }: RowProps) {
   const { profile } = row;
 
   return (
@@ -258,6 +268,7 @@ const Row = memo(function Row({ row, columns, rowIndex, onRowMenu, ...cellProps 
       className={styles.row}
       role="row"
       aria-rowindex={rowIndex}
+      data-language={language}
       aria-selected={cellProps.selected}
       data-selected={cellProps.selected}
       onClick={(event) => {
@@ -362,7 +373,7 @@ function HeaderCell({ column, width, sort, headerSelection, onSort, onResize, on
           ref={checkboxRef}
           type="checkbox"
           checked={headerSelection === "all"}
-          aria-label="Select all profiles"
+          aria-label={t("Select all profiles")}
           onChange={() => onSelect({ type: "all" })}
         />
       ) : column.sortable ? (
@@ -371,7 +382,7 @@ function HeaderCell({ column, width, sort, headerSelection, onSort, onResize, on
               but rendering it visibly is how "Status" became "S..." in a 40px
               column that was never meant to show text. */}
           <span className={column.label.length > 0 ? undefined : styles.srOnly}>
-            {column.label.length > 0 ? column.label : column.srLabel}
+            {columnLabel(column) || columnSpokenLabel(column)}
           </span>
           <span className={styles.sortGlyph} aria-hidden="true">
             {active ? (sort.direction === "asc" ? "▲" : "▼") : ""}
@@ -379,7 +390,7 @@ function HeaderCell({ column, width, sort, headerSelection, onSort, onResize, on
         </button>
       ) : (
         <span className={column.label.length > 0 ? undefined : styles.srOnly}>
-          {column.label.length > 0 ? column.label : column.srLabel}
+          {columnLabel(column) || columnSpokenLabel(column)}
         </span>
       )}
 
@@ -388,7 +399,7 @@ function HeaderCell({ column, width, sort, headerSelection, onSort, onResize, on
           className={styles.resizeHandle}
           role="separator"
           aria-orientation="vertical"
-          aria-label={`Resize ${column.label}`}
+          aria-label={t("Resize {column}", { column: columnLabel(column) || columnSpokenLabel(column) })}
           onPointerDown={startResize}
         />
       )}
@@ -432,13 +443,14 @@ export function ProfileTable({
   const columns = useMemo(() => entries.map((entry) => columnByKey(entry.key)), [entries]);
   const headerSelection = selectionKind(selection, rows);
   const template = useMemo(() => gridTemplate(layout), [layout]);
+  const { language } = useLanguagePreference();
 
   return (
     <div
       className={styles.grid}
       data-grid=""
       role="grid"
-      aria-label="Profiles"
+      aria-label={t("Profiles")}
       aria-rowcount={rows.length + 1}
       aria-colcount={columns.length}
       // One variable drives every track, so a resize never has to touch a cell.
@@ -469,6 +481,7 @@ export function ProfileTable({
             row={row}
             columns={columns}
             rowIndex={index + 2}
+            language={language}
             folderNames={folderNames}
             selected={selection.has(row.profile.id)}
             busy={busyIds.has(row.profile.id)}

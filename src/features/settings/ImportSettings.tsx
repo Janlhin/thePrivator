@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 
 import { pickDirectory, pickFile } from "../../dialogs";
+import { t } from "../../i18n";
 import {
   importLegacyProfiles,
   importProfilePackage,
@@ -44,8 +45,8 @@ export function ImportSettings() {
 
   const importPackage = () =>
     run("package", async () => {
-      const source = await pickFile("Choose a ThePrivator package", [
-        { name: "ThePrivator package", extensions: ["tpkg"] },
+      const source = await pickFile(t("Choose a ThePrivator package"), [
+        { name: t("ThePrivator package"), extensions: ["tpkg"] },
       ]);
       if (source === null) {
         return;
@@ -55,7 +56,7 @@ export function ImportSettings() {
 
   const chooseLegacyRoot = () =>
     run("scanning", async () => {
-      const root = await pickDirectory("Choose the folder from an older ThePrivator");
+      const root = await pickDirectory(t("Choose the folder from an older ThePrivator"));
       if (root === null) {
         return;
       }
@@ -97,10 +98,9 @@ export function ImportSettings() {
     <div className={styles.page}>
       <BatchTransfer />
       <header className={styles.header}>
-        <h1>Import</h1>
+        <h1>{t("Import")}</h1>
         <p className={styles.lede}>
-          Bring in a profile someone exported, or the profiles an older version of ThePrivator left on this
-          computer. Both arrive as new profiles; nothing here replaces what you already have.
+          {t("Bring in a profile someone exported, or the profiles an older version of ThePrivator left on this computer. Both arrive as new profiles; nothing here replaces what you already have.")}
         </p>
       </header>
 
@@ -111,23 +111,22 @@ export function ImportSettings() {
       ) : null}
 
       <section className={styles.card} aria-labelledby="package-heading">
-        <h2 id="package-heading">From a package</h2>
+        <h2 id="package-heading">{t("From a package")}</h2>
         <p className={styles.hint}>
-          A <code>.tpkg</code> carries the fingerprint, the proxy server and the browsing data. Proxy
-          passwords are deliberately left out, so you will need to enter those again.
+          {t("A .tpkg carries the fingerprint, the proxy server and the browsing data. Proxy passwords are deliberately left out, so you will need to enter those again.")}
         </p>
 
         <div className={styles.actions}>
           <button type="button" className={styles.primary} disabled={busy !== null} onClick={importPackage}>
-            {busy === "package" ? "Importing…" : "Choose a package"}
+            {busy === "package" ? t("Importing…") : t("Choose a package")}
           </button>
         </div>
 
         {packageResult !== null ? (
           <div role="status" className={styles.note}>
-            Imported as <strong>{packageResult.importedProfileName}</strong>
-            {packageResult.nameConflictResolved ? " (renamed, that name was taken)" : ""}.{" "}
-            {packageResult.payloadFileCount} files restored.
+            {t("Imported as")} <strong>{packageResult.importedProfileName}</strong>
+            {packageResult.nameConflictResolved ? ` ${t("(renamed, that name was taken)")}` : ""}.{" "}
+            {t("{count} files restored.", { count: packageResult.payloadFileCount })}
             {packageResult.warningCount > 0 ? (
               <ul className={styles.list}>
                 {packageResult.warnings.map((warning) => (
@@ -140,20 +139,20 @@ export function ImportSettings() {
       </section>
 
       <section className={styles.card} aria-labelledby="legacy-heading">
-        <h2 id="legacy-heading">From an older ThePrivator</h2>
+        <h2 id="legacy-heading">{t("From an older ThePrivator")}</h2>
 
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} disabled={busy !== null} onClick={chooseLegacyRoot}>
-            {busy === "scanning" ? "Scanning…" : "Choose a folder to scan"}
+            {busy === "scanning" ? t("Scanning…") : t("Choose a folder to scan")}
           </button>
         </div>
 
         {scan !== null ? (
           scan.candidates.length === 0 ? (
-            <p className={styles.hint}>No profiles were found in that folder.</p>
+            <p className={styles.hint}>{t("No profiles were found in that folder.")}</p>
           ) : (
             <>
-              <ul className={styles.list} aria-label="Profiles found">
+              <ul className={styles.list} aria-label={t("Profiles found")}>
                 {scan.candidates.map((candidate) => (
                   <li key={candidate.legacyId}>
                     <label className={styles.choice}>
@@ -165,8 +164,8 @@ export function ImportSettings() {
                       <span>
                         <strong>{candidate.legacyName ?? candidate.folderName}</strong>
                         <span className={styles.hint}>
-                          Will be imported as &ldquo;{candidate.targetName}&rdquo;
-                          {candidate.userData.status === "missing" ? " · no browsing data found" : ""}
+                          {t("Will be imported as “{name}”", { name: candidate.targetName })}
+                          {candidate.userData.status === "missing" ? ` · ${t("no browsing data found")}` : ""}
                         </span>
                         {candidate.issues.length > 0 ? (
                           <span className={styles.hint}>
@@ -187,8 +186,10 @@ export function ImportSettings() {
                   onClick={importSelected}
                 >
                   {busy === "importing"
-                    ? "Importing…"
-                    : `Import ${selected.size} ${selected.size === 1 ? "profile" : "profiles"}`}
+                    ? t("Importing…")
+                    : selected.size === 1
+                      ? t("Import {count} profile", { count: selected.size })
+                      : t("Import {count} profiles", { count: selected.size })}
                 </button>
               </div>
             </>
@@ -196,7 +197,7 @@ export function ImportSettings() {
         ) : null}
 
         {scan !== null && scan.issues.length > 0 ? (
-          <ul className={styles.list} aria-label="Problems with the scanned folder">
+          <ul className={styles.list} aria-label={t("Problems with the scanned folder")}>
             {scan.issues.map((issue) => (
               <li key={issue.code}>{issue.message}</li>
             ))}
@@ -205,8 +206,11 @@ export function ImportSettings() {
 
         {legacyResult !== null ? (
           <div role="status" className={styles.note}>
-            {legacyResult.successCount} imported, {legacyResult.partialCount} partly imported,{" "}
-            {legacyResult.failedCount} failed.
+            {t("{success} imported, {partial} partly imported, {failed} failed.", {
+              success: legacyResult.successCount,
+              partial: legacyResult.partialCount,
+              failed: legacyResult.failedCount,
+            })}
             <ul className={styles.list}>
               {legacyResult.outcomes.map((outcome) => (
                 <li key={outcome.legacyId}>

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { t } from "../../i18n";
 import type { MenuItem, RowAction } from "./rowMenuHelpers";
 import styles from "./RowMenu.module.css";
 
@@ -71,7 +72,7 @@ export function RowMenu({ x, y, items, onChoose, onClose }: RowMenuProps) {
       ref={menuRef}
       className={styles.menu}
       role="menu"
-      aria-label="Profile actions"
+      aria-label={t("Profile actions")}
       tabIndex={-1}
       style={{ left: `${position.left}px`, top: `${position.top}px` }}
     >

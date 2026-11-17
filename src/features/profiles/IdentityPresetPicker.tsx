@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createIdentityDraftState, type IdentityDraftState } from "../../identityControls";
 import { refreshIdentityPresets } from "../../identityPresetApi";
+import { t } from "../../i18n";
 import type { ProfileIdentity } from "../../sidecar/types";
 import styles from "./FingerprintForm.module.css";
 
@@ -47,17 +48,17 @@ export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
     request.current = controller;
     setBusy(true);
     setFailed(false);
-    setMessage("Fetching presets from randomapi.dev…");
+    setMessage(t("Fetching presets from randomapi.dev…"));
     try {
       const next = await refreshIdentityPresets(presets, controller.signal);
       if (request.current !== controller || controller.signal.aborted) return;
       setGenerated(next);
-      setMessage("Presets refreshed. Choose an API preset, then Save to apply it.");
+      setMessage(t("Presets refreshed. Choose an API preset, then Save to apply it."));
     } catch {
       if (request.current !== controller || controller.signal.aborted) return;
       controller.abort();
       setFailed(true);
-      setMessage("Could not refresh presets from randomapi.dev. Previous presets and draft unchanged. Try again.");
+      setMessage(t("Could not refresh presets from randomapi.dev. Previous presets and draft unchanged. Try again."));
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -69,7 +70,7 @@ export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
   const selected = generated.findIndex((preset) => JSON.stringify(preset) === JSON.stringify(draft.identity));
   const isRealPreset = JSON.stringify(draft.identity) === JSON.stringify(REAL_PRESET);
   return <div className={styles.labelRow}>
-    <label htmlFor={id}>Start from a preset</label>
+    <label htmlFor={id}>{t("Start from a preset")}</label>
     <div className={styles.inputAction}>
       <select id={id} value={isRealPreset ? "real" : selected >= 0 ? `api:${selected}` : ""}
         onChange={(event) => {
@@ -81,24 +82,24 @@ export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
             if (preset) onChange(createIdentityDraftState(preset));
           }
         }}>
-        <option value="">Custom</option>
-        <option value="real">Real</option>
-        {generated.length > 0 ? <optgroup label="Generated from API">
+        <option value="">{t("Custom")}</option>
+        <option value="real">{t("Real")}</option>
+        {generated.length > 0 ? <optgroup label={t("Generated from API")}>
           {generated.map((preset, index) => <option key={index} value={`api:${index}`}>{preset.label}</option>)}
         </optgroup> : null}
       </select>
-      <button type="button" className={styles.refreshButton} disabled={busy || presets.length === 0} aria-label="Refresh presets" aria-describedby={`${id}-hint`} onClick={() => void refresh()}>
-        <span aria-hidden="true">↻</span> {busy ? "Refreshing…" : "Refresh"}
+      <button type="button" className={styles.refreshButton} disabled={busy || presets.length === 0} aria-label={t("Refresh presets")} aria-describedby={`${id}-hint`} onClick={() => void refresh()}>
+        <span aria-hidden="true">↻</span> {busy ? t("Refreshing…") : t("Refresh")}
       </button>
-      <button type="button" className={styles.infoButton} aria-label="Preset information" aria-expanded={showInfo}
-        aria-controls={`${id}-info`} title="Preset information" onClick={() => setShowInfo(!showInfo)}>ⓘ</button>
+      <button type="button" className={styles.infoButton} aria-label={t("Preset information")} aria-expanded={showInfo}
+        aria-controls={`${id}-info`} title={t("Preset information")} onClick={() => setShowInfo(!showInfo)}>ⓘ</button>
     </div>
     <div id={`${id}-info`} className={styles.presetInfo} hidden={!showInfo}>
-    <p className={styles.hint}>A preset sets every surface at once. Editing any field afterwards makes the identity custom.</p>
+    <p className={styles.hint}>{t("A preset sets every surface at once. Editing any field afterwards makes the identity custom.")}</p>
 
-    <p className={styles.hint}>Real disables masking on every surface, restores real WebRTC and asks for geolocation permission. Changes stay in the draft until Save.</p>
-    <p className={styles.hint} id={`${id}-hint`}>randomapi.dev: direct connection, not the profile proxy. Sends only OS/browser filters, no profile configuration or cookies; the provider sees your IP. Refresh does not change your draft.</p>
-    <p className={styles.hint}>API supplies random Chrome desktop user agents, not necessarily the latest Chrome. Other settings come from OS-matched local templates. This does not update Chromium; review consistency warnings before saving.</p>
+    <p className={styles.hint}>{t("Real disables masking on every surface, restores real WebRTC and asks for geolocation permission. Changes stay in the draft until Save.")}</p>
+    <p className={styles.hint} id={`${id}-hint`}>{t("randomapi.dev: direct connection, not the profile proxy. Sends only OS/browser filters, no profile configuration or cookies; the provider sees your IP. Refresh does not change your draft.")}</p>
+    <p className={styles.hint}>{t("API supplies random Chrome desktop user agents, not necessarily the latest Chrome. Other settings come from OS-matched local templates. This does not update Chromium; review consistency warnings before saving.")}</p>
     </div>
     {message ? <p className={failed ? styles.error : styles.hint} role={failed ? "alert" : "status"}>{message}</p> : null}
   </div>;

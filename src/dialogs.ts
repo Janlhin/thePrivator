@@ -12,11 +12,12 @@
  * already knows which folder they just picked.
  */
 
+import { t } from "./i18n";
+
 interface FileFilter {
   name: string;
   extensions: string[];
 }
-
 type DialogModule = {
   open?: (options: {
     directory?: boolean;
@@ -76,7 +77,7 @@ export type { FileFilter };
 /** Choose multiple profile packages. */
 export async function pickFiles(title: string, filters?: FileFilter[]): Promise<string[]> {
   const module = (await import("@tauri-apps/plugin-dialog")) as DialogModule;
-  if (!module.open) throw new Error("File picker unavailable.");
+  if (!module.open) throw new Error(t("File picker unavailable."));
   const selection = await module.open({ multiple: true, title, filters });
   return Array.isArray(selection) ? selection : typeof selection === "string" ? [selection] : [];
 }

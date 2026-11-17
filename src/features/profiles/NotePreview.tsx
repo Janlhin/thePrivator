@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ProfileRecord } from "../../sidecar/types";
+import { t } from "../../i18n";
 import styles from "./ProfileTable.module.css";
 import { writeToClipboard } from "../../clipboard";
 
@@ -33,7 +34,7 @@ export function NotePreview({ profile }: { profile: ProfileRecord }) {
   useEffect(() => () => { if (leaveTimer.current) clearTimeout(leaveTimer.current); }, []);
   if (!note) return <span className={styles.muted}>—</span>;
   return <div className={styles.notePreview} onDoubleClick={(event) => event.stopPropagation()}>
-    <button ref={anchor} type="button" aria-label={`Notes for ${profile.name}`} aria-expanded={open}
+    <button ref={anchor} type="button" aria-label={t("Notes for {name}", { name: profile.name })} aria-expanded={open}
       aria-describedby={open ? `note-${profile.id}` : undefined} onMouseEnter={show} onMouseLeave={leave} onFocus={show} onBlur={leave}
       onClick={(event) => { event.stopPropagation(); if (pinned) { setOpen(false); setPinned(false); } else { show(); setPinned(true); } }}>{note}</button>
     {open ? createPortal(<div ref={bubble} id={`note-${profile.id}`} role="tooltip" className={styles.noteBubble} style={position}
@@ -43,11 +44,11 @@ export function NotePreview({ profile }: { profile: ProfileRecord }) {
       <div className={styles.noteText}>{note}</div>
       <div className={styles.noteActions}>
         <button type="button" onFocus={() => { show(); setPinned(true); }} onClick={() => {
-          void writeToClipboard(note).then((copied) => setCopyStatus(copied ? "Copied" : "Clipboard unavailable. Select text and press Ctrl+C."));
-        }}>Copy note</button>
+          void writeToClipboard(note).then((copied) => setCopyStatus(copied ? t("Copied") : t("Clipboard unavailable. Select text and press Ctrl+C.")));
+        }}>{t("Copy note")}</button>
         <span role="status">{copyStatus}</span>
       </div>
-      <small>Edit in Profile settings → General → Notes</small>
+      <small>{t("Edit in Profile settings → General → Notes")}</small>
     </div>, document.body) : null}
   </div>;
 }
