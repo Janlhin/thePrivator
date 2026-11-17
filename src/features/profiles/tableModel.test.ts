@@ -138,10 +138,7 @@ describe("sortRows", () => {
   it("puts running profiles first when sorting by status", () => {
     const rows = [row(makeProfile({ name: "Idle" })), row(makeProfile({ name: "Live" }), true)];
 
-    expect(sortRows(rows, { key: "status", direction: "asc" }).map((r) => r.profile.name)).toEqual([
-      "Live",
-      "Idle",
-    ]);
+    expect(sortRows(rows, { key: "status", direction: "asc" }).map((r) => r.profile.name)).toEqual(["Live", "Idle"]);
   });
 
   it("sorts a never-launched profile below one that has run", () => {
@@ -185,10 +182,7 @@ describe("visibleRows", () => {
       row(makeProfile({ name: "Gamma", favorite: true })),
     ];
 
-    expect(visibleRows(rows, query({ view: "favorites" })).map((r) => r.profile.name)).toEqual([
-      "Beta",
-      "Gamma",
-    ]);
+    expect(visibleRows(rows, query({ view: "favorites" })).map((r) => r.profile.name)).toEqual(["Beta", "Gamma"]);
   });
 });
 
@@ -244,12 +238,7 @@ describe("applySelection", () => {
     const grown = applySelection(withIds(["a"], "a"), { type: "range", id: "d" }, rows);
 
     expect(grown.anchorId).toBe("a");
-    expect([...applySelection(grown, { type: "range", id: "b" }, rows).ids].sort()).toEqual([
-      "a",
-      "b",
-      "c",
-      "d",
-    ]);
+    expect([...applySelection(grown, { type: "range", id: "b" }, rows).ids].sort()).toEqual(["a", "b", "c", "d"]);
   });
 
   it("falls back to a single row when there is no anchor to measure from", () => {

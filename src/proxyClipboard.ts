@@ -5,9 +5,7 @@ import {
   type ProxyDraftState,
 } from "./proxyControls";
 
-export type ProxyClipboardResult =
-  | { ok: true; draft: ProxyDraftState }
-  | { ok: false; error: string };
+export type ProxyClipboardResult = { ok: true; draft: ProxyDraftState } | { ok: false; error: string };
 
 const FORMAT_ERROR = "Enter one proxy as protocol://user:pass@host:port, host:port:user:pass, or host:port.";
 

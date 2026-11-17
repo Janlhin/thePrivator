@@ -191,7 +191,10 @@ describe("proxy control helpers", () => {
   });
 
   it("clears saved credentials explicitly without emitting a credentials field", () => {
-    const draft = updateProxyDraftCredentialMode(createProxyDraftState(fixedProxySummary({ credentialState: "configured" })), "clear");
+    const draft = updateProxyDraftCredentialMode(
+      createProxyDraftState(fixedProxySummary({ credentialState: "configured" })),
+      "clear",
+    );
     const parsed = parseProxyDraftState(draft);
 
     expect(parsed.ok).toBe(true);

@@ -41,7 +41,11 @@ function writeJson(path, value) {
 
 function writeDiagnostics(path, rows) {
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${rows.map((row) => typeof row === "string" ? row : JSON.stringify(row)).join("\n")}\n`, "utf8");
+  writeFileSync(
+    path,
+    `${rows.map((row) => (typeof row === "string" ? row : JSON.stringify(row))).join("\n")}\n`,
+    "utf8",
+  );
 }
 
 function makeContext() {
@@ -112,70 +116,103 @@ function expectSafeFailure(callback, forbiddenText = []) {
 }
 
 function cleanSummary(context) {
-  return buildS05FinalSummary({
-    status: "pass",
-    mode: "contracts-only",
-    packageProof: {
-      buildFresh: true,
-      artifactsChecked: true,
-      artifactCount: 3,
-      preflightStatus: "pass",
-    },
-    ui: {
-      profileCreated: true,
-      identityConfigured: true,
-      proxyConfigured: true,
-      copyFlowUsed: true,
-      apiStarted: true,
-    },
-    api: {
-      started: true,
-      stopped: true,
-      status: "healthy",
-      statusCode: 200,
-      requestId: "automation-s05status",
-      detailRef: "sidecar-s05status",
-    },
-    http: {
-      health: { status: "pass", statusCode: 200, requestId: "automation-s05health" },
-      auth: [
-        { statusCode: 401, errorCode: "AUTOMATION_AUTH_REQUIRED", requestId: "automation-s05auth1", detailRef: "sidecar-s05auth1" },
-        { statusCode: 401, errorCode: "AUTOMATION_AUTH_INVALID", requestId: "automation-s05auth2", detailRef: "sidecar-s05auth2" },
+  return buildS05FinalSummary(
+    {
+      status: "pass",
+      mode: "contracts-only",
+      packageProof: {
+        buildFresh: true,
+        artifactsChecked: true,
+        artifactCount: 3,
+        preflightStatus: "pass",
+      },
+      ui: {
+        profileCreated: true,
+        identityConfigured: true,
+        proxyConfigured: true,
+        copyFlowUsed: true,
+        apiStarted: true,
+      },
+      api: {
+        started: true,
+        stopped: true,
+        status: "healthy",
+        statusCode: 200,
+        requestId: "automation-s05status",
+        detailRef: "sidecar-s05status",
+      },
+      http: {
+        health: { status: "pass", statusCode: 200, requestId: "automation-s05health" },
+        auth: [
+          {
+            statusCode: 401,
+            errorCode: "AUTOMATION_AUTH_REQUIRED",
+            requestId: "automation-s05auth1",
+            detailRef: "sidecar-s05auth1",
+          },
+          {
+            statusCode: 401,
+            errorCode: "AUTOMATION_AUTH_INVALID",
+            requestId: "automation-s05auth2",
+            detailRef: "sidecar-s05auth2",
+          },
+        ],
+        profiles: { statusCode: 200, requestId: "automation-s05profiles" },
+        runtime: { statusCode: 200, requestId: "automation-s05runtime" },
+      },
+      leaseFlow: {
+        create: {
+          status: "created",
+          statusCode: 201,
+          requestId: "automation-s05lease1",
+          detailRef: "sidecar-s05lease1",
+        },
+        active: { status: "active", statusCode: 200, requestId: "automation-s05lease2" },
+        release: { status: "released", statusCode: 200, requestId: "automation-s05lease3" },
+        releasedReuse: {
+          statusCode: 409,
+          errorCode: "AUTOMATION_LEASE_RELEASED",
+          requestId: "automation-s05lease4",
+          detailRefPresent: true,
+        },
+        expiry: { status: "expired", statusCode: 200, requestId: "automation-s05lease5" },
+        expiredReuse: {
+          statusCode: 409,
+          errorCode: "AUTOMATION_LEASE_EXPIRED",
+          requestId: "automation-s05lease6",
+          detailRefPresent: true,
+        },
+        revocation: {
+          status: "pass",
+          statusCode: 409,
+          errorCode: "AUTOMATION_LEASE_ENDPOINT_REVOKED",
+          requestCorrelated: true,
+        },
+      },
+      playwright: {
+        attached: true,
+        navigated: true,
+        targetMarker: true,
+        identityMatches: 6,
+        proxyObservationCount: 2,
+      },
+      cleanup: {
+        appStopped: true,
+        apiStopped: true,
+        listenerClosed: true,
+        runtimeStopped: true,
+        fixtureStopped: true,
+        retainedSmokeData: true,
+        diagnosticsScanned: true,
+      },
+      redaction: { status: "clean", scanned: true, forbiddenMarkerCount: 0 },
+      checks: [
+        { name: "redaction-scan", status: "pass", durationMs: 2, code: "S05_REDACTION_CLEAN" },
+        { name: "auth-missing", status: "pass", statusCode: 401, requestId: "automation-s05check" },
       ],
-      profiles: { statusCode: 200, requestId: "automation-s05profiles" },
-      runtime: { statusCode: 200, requestId: "automation-s05runtime" },
     },
-    leaseFlow: {
-      create: { status: "created", statusCode: 201, requestId: "automation-s05lease1", detailRef: "sidecar-s05lease1" },
-      active: { status: "active", statusCode: 200, requestId: "automation-s05lease2" },
-      release: { status: "released", statusCode: 200, requestId: "automation-s05lease3" },
-      releasedReuse: { statusCode: 409, errorCode: "AUTOMATION_LEASE_RELEASED", requestId: "automation-s05lease4", detailRefPresent: true },
-      expiry: { status: "expired", statusCode: 200, requestId: "automation-s05lease5" },
-      expiredReuse: { statusCode: 409, errorCode: "AUTOMATION_LEASE_EXPIRED", requestId: "automation-s05lease6", detailRefPresent: true },
-      revocation: { status: "pass", statusCode: 409, errorCode: "AUTOMATION_LEASE_ENDPOINT_REVOKED", requestCorrelated: true },
-    },
-    playwright: {
-      attached: true,
-      navigated: true,
-      targetMarker: true,
-      identityMatches: 6,
-      proxyObservationCount: 2,
-    },
-    cleanup: {
-      appStopped: true,
-      apiStopped: true,
-      listenerClosed: true,
-      runtimeStopped: true,
-      fixtureStopped: true,
-      retainedSmokeData: true,
-      diagnosticsScanned: true,
-    },
-    redaction: { status: "clean", scanned: true, forbiddenMarkerCount: 0 },
-    checks: [
-      { name: "redaction-scan", status: "pass", durationMs: 2, code: "S05_REDACTION_CLEAN" },
-      { name: "auth-missing", status: "pass", statusCode: 401, requestId: "automation-s05check" },
-    ],
-  }, context);
+    context,
+  );
 }
 
 afterEach(() => {
@@ -191,13 +228,15 @@ describe("verify-m004-s05 packaged harness contract", () => {
     for (const helperName of S05_REQUIRED_PACKAGED_HELPERS) {
       expect(packagedHarness[helperName], helperName).toBeTypeOf("function");
     }
-    expect(Object.keys(packagedHarness)).not.toEqual(expect.arrayContaining([
-      "PACKAGED_SMOKE_PROXY_USERNAME",
-      "PACKAGED_SMOKE_PROXY_PASSWORD",
-      "PACKAGED_SMOKE_PROXY_TARGET_HOST",
-      "PACKAGED_SMOKE_PROXY_TARGET_PATH",
-      "GLOBAL_SENSITIVE_VALUES",
-    ]));
+    expect(Object.keys(packagedHarness)).not.toEqual(
+      expect.arrayContaining([
+        "PACKAGED_SMOKE_PROXY_USERNAME",
+        "PACKAGED_SMOKE_PROXY_PASSWORD",
+        "PACKAGED_SMOKE_PROXY_TARGET_HOST",
+        "PACKAGED_SMOKE_PROXY_TARGET_PATH",
+        "GLOBAL_SENSITIVE_VALUES",
+      ]),
+    );
   });
 
   it("lets S05 choose a safe visible profile prefix while preserving S06 prefix validation", () => {
@@ -213,13 +252,15 @@ describe("verify-m004-s05 packaged harness contract", () => {
     expect(context.smokeProfileName).toBe("M004 Packaged Automation Smoke 20260510T111213000Z-s05prefix");
     expect(context.log.smokeProfileName).toBe(context.smokeProfileName);
     expect(JSON.stringify(context.log)).not.toContain(root);
-    expect(() => packagedHarness.createSmokeRunContext({
-      rootDir: root,
-      now: new Date("2026-05-10T11:12:13.000Z"),
-      nonce: "unsafe",
-      profilePrefix: "M004/Packaged Automation Smoke",
-      baseEnv: {},
-    })).toThrow(/profile prefix/i);
+    expect(() =>
+      packagedHarness.createSmokeRunContext({
+        rootDir: root,
+        now: new Date("2026-05-10T11:12:13.000Z"),
+        nonce: "unsafe",
+        profilePrefix: "M004/Packaged Automation Smoke",
+        baseEnv: {},
+      }),
+    ).toThrow(/profile prefix/i);
   });
 });
 
@@ -252,7 +293,10 @@ describe("verify-m004-s05 public evidence redaction", () => {
       [{ value: `${profileRoot}/profile-store/profiles/profile-a/user-data` }, profileRoot],
       [{ value: userDataRoot }, userDataRoot],
       [{ rawDiagnostics: { stdout: "raw child output", stderr: "raw child failure" } }, "stdout"],
-      [{ argv: ["--remote-debugging-port=9222"], env: { THEPRIVATOR_AUTOMATION_API_TOKEN: token } }, "--remote-debugging-port"],
+      [
+        { argv: ["--remote-debugging-port=9222"], env: { THEPRIVATOR_AUTOMATION_API_TOKEN: token } },
+        "--remote-debugging-port",
+      ],
       [{ stack: "Traceback: sensitive failure" }, "Traceback"],
       [{ leaseId }, leaseId],
       [{ handoff: { endpoint } }, endpoint],
@@ -267,20 +311,23 @@ describe("verify-m004-s05 public evidence redaction", () => {
     for (const [artifact, rawMarker] of cases) {
       const marker = findS05ForbiddenPublicMarker(artifact, context);
       expect(marker, JSON.stringify(artifact)).toBeTruthy();
-      const error = expectSafeFailure(() => assertS05PublicEvidenceRedacted(artifact, context), [
-        rawMarker,
-        token,
-        leaseId,
-        endpoint,
-        apiBaseUrl,
-        targetUrl,
-        proxyAuthority,
-        proxyUser,
-        proxyPassword,
-        appDataRoot,
-        profileRoot,
-        userDataRoot,
-      ]);
+      const error = expectSafeFailure(
+        () => assertS05PublicEvidenceRedacted(artifact, context),
+        [
+          rawMarker,
+          token,
+          leaseId,
+          endpoint,
+          apiBaseUrl,
+          targetUrl,
+          proxyAuthority,
+          proxyUser,
+          proxyPassword,
+          appDataRoot,
+          profileRoot,
+          userDataRoot,
+        ],
+      );
       expect(error.details.markerClass).toBeTruthy();
     }
   });
@@ -289,22 +336,51 @@ describe("verify-m004-s05 public evidence redaction", () => {
     const { context, token, endpoint } = makeContext();
     expect(findS05ForbiddenPublicMarker("plain safe status", context)).toBeNull();
     expect(findS05ForbiddenPublicMarker(204, context)).toBeNull();
-    expect(findS05ForbiddenPublicMarker([{ status: "pass" }, ["nested", { stderr: `failed ${token}` }]], context)).toMatchObject({ markerClass: "raw_diag" });
-    expectSafeFailure(() => assertS05PublicEvidenceRedacted([{ ok: true }, ["nested", { endpoint }]], context), [endpoint, token]);
+    expect(
+      findS05ForbiddenPublicMarker([{ status: "pass" }, ["nested", { stderr: `failed ${token}` }]], context),
+    ).toMatchObject({ markerClass: "raw_diag" });
+    expectSafeFailure(
+      () => assertS05PublicEvidenceRedacted([{ ok: true }, ["nested", { endpoint }]], context),
+      [endpoint, token],
+    );
   });
 
   it("builds a clean final summary with safe booleans, counts, statuses, codes, request IDs, and detailRefs", () => {
-    const { context, token, leaseId, endpoint, apiBaseUrl, targetUrl, proxyAuthority, proxyUser, proxyPassword, appDataRoot, profileRoot, userDataRoot } = makeContext();
+    const {
+      context,
+      token,
+      leaseId,
+      endpoint,
+      apiBaseUrl,
+      targetUrl,
+      proxyAuthority,
+      proxyUser,
+      proxyPassword,
+      appDataRoot,
+      profileRoot,
+      userDataRoot,
+    } = makeContext();
     const summary = cleanSummary(context);
     const encoded = JSON.stringify(summary);
 
     expect(summary.event).toBe(VERIFY_EVENT);
     expect(summary.status).toBe("pass");
     expect(summary.proofScope).toMatchObject({ packagedHarness: true, automationApi: true, playwrightAttach: true });
-    expect(summary.http.auth).toEqual(expect.arrayContaining([
-      expect.objectContaining({ statusCode: 401, errorCode: "AUTOMATION_AUTH_REQUIRED", requestId: "automation-s05auth1", detailRef: "sidecar-s05auth1" }),
-    ]));
-    expect(summary.leaseFlow.releasedReuse).toMatchObject({ statusCode: 409, errorCode: "AUTOMATION_LEASE_RELEASED", detailRefPresent: true });
+    expect(summary.http.auth).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statusCode: 401,
+          errorCode: "AUTOMATION_AUTH_REQUIRED",
+          requestId: "automation-s05auth1",
+          detailRef: "sidecar-s05auth1",
+        }),
+      ]),
+    );
+    expect(summary.leaseFlow.releasedReuse).toMatchObject({
+      statusCode: 409,
+      errorCode: "AUTOMATION_LEASE_RELEASED",
+      detailRefPresent: true,
+    });
     expect(encoded).not.toContain(token);
     expect(encoded).not.toContain(leaseId);
     expect(encoded).not.toContain(endpoint);
@@ -316,7 +392,9 @@ describe("verify-m004-s05 public evidence redaction", () => {
     expect(encoded).not.toContain(appDataRoot);
     expect(encoded).not.toContain(profileRoot);
     expect(encoded).not.toContain(userDataRoot);
-    expect(encoded).not.toMatch(/Authorization|Bearer|--proxy-server|direct:\/\/|DevToolsActivePort|webSocketDebuggerUrl|stdout|stderr|Traceback|profile-store|user-data/i);
+    expect(encoded).not.toMatch(
+      /Authorization|Bearer|--proxy-server|direct:\/\/|DevToolsActivePort|webSocketDebuggerUrl|stdout|stderr|Traceback|profile-store|user-data/i,
+    );
     expect(() => assertS05PublicEvidenceRedacted(summary, context)).not.toThrow();
   });
 
@@ -332,7 +410,9 @@ describe("verify-m004-s05 public evidence redaction", () => {
 
   it("formats failures and unknown CLI arguments without raw token, endpoint, path, credential, or process markers", () => {
     const { context, token, endpoint, appDataRoot, proxyUser, proxyPassword } = makeContext();
-    const rawError = new Error(`Failed with ${token} ${endpoint} ${appDataRoot} ${proxyUser}:${proxyPassword} --proxy-server=http://user:pass@127.0.0.1:8080 Traceback`);
+    const rawError = new Error(
+      `Failed with ${token} ${endpoint} ${appDataRoot} ${proxyUser}:${proxyPassword} --proxy-server=http://user:pass@127.0.0.1:8080 Traceback`,
+    );
     const safeError = safeS05ErrorForPublic(rawError, context);
     const encoded = JSON.stringify(safeError);
 
@@ -360,20 +440,26 @@ describe("verify-m004-s05 public evidence redaction", () => {
     });
     expect(metrics).toMatchObject({ apiBaseUrl: "http://127.0.0.1:43123", port: 43123, copyAvailable: true });
 
-    expectSafeFailure(() => validateAutomationApiStatusMetrics({
-      lifecycle: "Running",
-      loopbackUrl: "http://localhost:43123",
-      port: "43123",
-      scope: "loopback",
-      copyAvailable: "yes",
-    }), ["http://localhost:43123"]);
-    expectSafeFailure(() => validateAutomationApiStatusMetrics({
-      lifecycle: "Running",
-      loopbackUrl: "http://127.0.0.1:43123",
-      port: "43123",
-      scope: "loopback",
-      copyAvailable: "no",
-    }));
+    expectSafeFailure(
+      () =>
+        validateAutomationApiStatusMetrics({
+          lifecycle: "Running",
+          loopbackUrl: "http://localhost:43123",
+          port: "43123",
+          scope: "loopback",
+          copyAvailable: "yes",
+        }),
+      ["http://localhost:43123"],
+    );
+    expectSafeFailure(() =>
+      validateAutomationApiStatusMetrics({
+        lifecycle: "Running",
+        loopbackUrl: "http://127.0.0.1:43123",
+        port: "43123",
+        scope: "loopback",
+        copyAvailable: "no",
+      }),
+    );
   });
 
   it("captures copied tokens only through the private clipboard hook helpers", async () => {
@@ -392,7 +478,9 @@ describe("verify-m004-s05 public evidence redaction", () => {
     };
 
     await expect(installPrivateClipboardCapture(driver)).resolves.toEqual({ hookInstalled: true });
-    await expect(readPrivateClipboardToken(driver, { timeoutMs: 25, pollMs: 1 })).resolves.toBe("tpapi-privateCapture123");
+    await expect(readPrivateClipboardToken(driver, { timeoutMs: 25, pollMs: 1 })).resolves.toBe(
+      "tpapi-privateCapture123",
+    );
     await expect(clearPrivateClipboardCapture(driver)).resolves.toEqual({ privateClipboardCleared: true });
     expect(scripts.join("\n")).toContain(S05_CLIPBOARD_TOKEN_KEY);
   });
@@ -414,26 +502,52 @@ describe("verify-m004-s05 public evidence redaction", () => {
 
   it("builds a lifecycle-only summary that exposes protected discovery proof without private authority", () => {
     const { context, token, apiBaseUrl, endpoint, proxyAuthority } = makeContext();
-    const summary = buildS05FinalSummary({
-      status: "pass",
-      mode: "lifecycle-only",
-      packageProof: { buildFresh: false, artifactsChecked: true, artifactCount: 5, preflightStatus: "pass" },
-      ui: { profileCreated: true, identityConfigured: true, proxyConfigured: true, copyFlowUsed: true, apiStarted: true },
-      api: { started: true, stopped: true, status: "running", statusCode: 200, requestId: "automation-lifecycle1" },
-      http: {
-        health: { statusCode: 200, requestId: "automation-health1" },
-        auth: [
-          { statusCode: 401, errorCode: "AUTOMATION_AUTH_REQUIRED", requestId: "automation-auth1", detailRef: "sidecar-auth1" },
-          { statusCode: 401, errorCode: "AUTOMATION_AUTH_INVALID", requestId: "automation-auth2", detailRef: "sidecar-auth2" },
-        ],
-        profiles: { statusCode: 200, requestId: "automation-profiles1" },
-        profileStatus: { statusCode: 200, requestId: "automation-profile1", status: "stopped" },
-        runtime: { statusCode: 200, requestId: "automation-runtime1", status: "stopped" },
+    const summary = buildS05FinalSummary(
+      {
+        status: "pass",
+        mode: "lifecycle-only",
+        packageProof: { buildFresh: false, artifactsChecked: true, artifactCount: 5, preflightStatus: "pass" },
+        ui: {
+          profileCreated: true,
+          identityConfigured: true,
+          proxyConfigured: true,
+          copyFlowUsed: true,
+          apiStarted: true,
+        },
+        api: { started: true, stopped: true, status: "running", statusCode: 200, requestId: "automation-lifecycle1" },
+        http: {
+          health: { statusCode: 200, requestId: "automation-health1" },
+          auth: [
+            {
+              statusCode: 401,
+              errorCode: "AUTOMATION_AUTH_REQUIRED",
+              requestId: "automation-auth1",
+              detailRef: "sidecar-auth1",
+            },
+            {
+              statusCode: 401,
+              errorCode: "AUTOMATION_AUTH_INVALID",
+              requestId: "automation-auth2",
+              detailRef: "sidecar-auth2",
+            },
+          ],
+          profiles: { statusCode: 200, requestId: "automation-profiles1" },
+          profileStatus: { statusCode: 200, requestId: "automation-profile1", status: "stopped" },
+          runtime: { statusCode: 200, requestId: "automation-runtime1", status: "stopped" },
+        },
+        cleanup: {
+          appStopped: true,
+          apiStopped: true,
+          listenerClosed: true,
+          runtimeStopped: true,
+          fixtureStopped: true,
+          retainedSmokeData: true,
+        },
+        redaction: { status: "clean", scanned: true, forbiddenMarkerCount: 0 },
+        checks: [{ name: "packaged-token-copy-private", status: "pass", durationMs: 3 }],
       },
-      cleanup: { appStopped: true, apiStopped: true, listenerClosed: true, runtimeStopped: true, fixtureStopped: true, retainedSmokeData: true },
-      redaction: { status: "clean", scanned: true, forbiddenMarkerCount: 0 },
-      checks: [{ name: "packaged-token-copy-private", status: "pass", durationMs: 3 }],
-    }, context);
+      context,
+    );
     const encoded = JSON.stringify(summary);
     expect(summary.mode).toBe("lifecycle-only");
     expect(summary.proofScope).toMatchObject({ automationApi: true, protectedHttp: true, cleanupVerified: true });
@@ -446,43 +560,133 @@ describe("verify-m004-s05 public evidence redaction", () => {
 
   it("builds a full lease summary with safe failure, Playwright, diagnostics, and profile-store proof", () => {
     const { context, token, leaseId, endpoint, apiBaseUrl, targetUrl, proxyAuthority, appDataRoot } = makeContext();
-    const summary = buildS05FinalSummary({
-      status: "pass",
-      mode: "full",
-      packageProof: { buildFresh: true, artifactsChecked: true, artifactCount: 5, preflightStatus: "pass" },
-      ui: { profileCreated: true, identityConfigured: true, proxyConfigured: true, copyFlowUsed: true, apiStarted: true },
-      api: { started: true, stopped: true, status: "running", statusCode: 200, requestId: "automation-full1" },
-      http: {
-        health: { statusCode: 200, requestId: "automation-health-full" },
-        profiles: { statusCode: 200, requestId: "automation-profiles-full" },
-        runtime: { statusCode: 200, requestId: "automation-runtime-full", runningCount: 0 },
+    const summary = buildS05FinalSummary(
+      {
+        status: "pass",
+        mode: "full",
+        packageProof: { buildFresh: true, artifactsChecked: true, artifactCount: 5, preflightStatus: "pass" },
+        ui: {
+          profileCreated: true,
+          identityConfigured: true,
+          proxyConfigured: true,
+          copyFlowUsed: true,
+          apiStarted: true,
+        },
+        api: { started: true, stopped: true, status: "running", statusCode: 200, requestId: "automation-full1" },
+        http: {
+          health: { statusCode: 200, requestId: "automation-health-full" },
+          profiles: { statusCode: 200, requestId: "automation-profiles-full" },
+          runtime: { statusCode: 200, requestId: "automation-runtime-full", runningCount: 0 },
+        },
+        failureMatrix: [
+          {
+            caseName: "invalid-ttl",
+            statusCode: 400,
+            errorCode: "INVALID_REQUEST",
+            errorPhase: "lease",
+            requestCorrelated: true,
+            detailRefPresent: true,
+          },
+          {
+            caseName: "unknown-lease",
+            statusCode: 404,
+            errorCode: "AUTOMATION_LEASE_NOT_FOUND",
+            errorPhase: "lease",
+            requestCorrelated: true,
+            detailRefPresent: true,
+          },
+        ],
+        leaseFlow: {
+          create: {
+            statusCode: 201,
+            leaseStatus: "active",
+            requestId: "automation-create-full",
+            runtimeStatus: "running",
+            runningCount: 1,
+            ttlSeconds: 30,
+          },
+          active: { statusCode: 200, leaseStatus: "active", requestId: "automation-active-full", ttlSeconds: 30 },
+          release: {
+            statusCode: 200,
+            leaseStatus: "released",
+            requestId: "automation-release-full",
+            runtimeStatus: "stopped",
+            runningCount: 0,
+          },
+          releasedReuse: {
+            statusCode: 409,
+            errorCode: "AUTOMATION_LEASE_RELEASED",
+            errorPhase: "lease",
+            requestCorrelated: true,
+            detailRefPresent: true,
+          },
+          revocation: { status: "pass" },
+          expiry: {
+            statusCode: 200,
+            leaseStatus: "expired",
+            requestId: "automation-expiry-full",
+            runningCount: 0,
+            ttlSeconds: 1,
+          },
+          expiredReuse: {
+            statusCode: 409,
+            errorCode: "AUTOMATION_LEASE_EXPIRED",
+            errorPhase: "lease",
+            requestCorrelated: true,
+            detailRefPresent: true,
+          },
+          expiredRevocation: { status: "pass" },
+        },
+        playwright: {
+          attached: true,
+          navigated: true,
+          targetMarker: true,
+          identityMatches: 8,
+          proxyObservationCount: 2,
+        },
+        profileStore: {
+          storeVersion: 4,
+          profileCount: 1,
+          identity: { presetId: "ubuntu-linux-chrome-120" },
+          proxy: { credentialState: "configured" },
+          persistedRuntimeFields: 0,
+        },
+        diagnostics: {
+          requiredMethods: ["profiles.create", "chromium.launch"],
+          leaseFailureMethods: S05_REQUIRED_DIAGNOSTIC_FAILURE_METHODS,
+          typedFailureCount: 5,
+          totalRowsRead: 12,
+          validRows: 12,
+          malformedRows: 0,
+        },
+        cleanup: {
+          appStopped: true,
+          apiStopped: true,
+          listenerClosed: true,
+          runtimeStopped: true,
+          fixtureStopped: true,
+          retainedSmokeData: true,
+          diagnosticsScanned: true,
+        },
+        redaction: { status: "clean", scanned: true, forbiddenMarkerCount: 0 },
+        checks: [{ name: "redaction-scan", status: "pass", durationMs: 3 }],
       },
-      failureMatrix: [
-        { caseName: "invalid-ttl", statusCode: 400, errorCode: "INVALID_REQUEST", errorPhase: "lease", requestCorrelated: true, detailRefPresent: true },
-        { caseName: "unknown-lease", statusCode: 404, errorCode: "AUTOMATION_LEASE_NOT_FOUND", errorPhase: "lease", requestCorrelated: true, detailRefPresent: true },
-      ],
-      leaseFlow: {
-        create: { statusCode: 201, leaseStatus: "active", requestId: "automation-create-full", runtimeStatus: "running", runningCount: 1, ttlSeconds: 30 },
-        active: { statusCode: 200, leaseStatus: "active", requestId: "automation-active-full", ttlSeconds: 30 },
-        release: { statusCode: 200, leaseStatus: "released", requestId: "automation-release-full", runtimeStatus: "stopped", runningCount: 0 },
-        releasedReuse: { statusCode: 409, errorCode: "AUTOMATION_LEASE_RELEASED", errorPhase: "lease", requestCorrelated: true, detailRefPresent: true },
-        revocation: { status: "pass" },
-        expiry: { statusCode: 200, leaseStatus: "expired", requestId: "automation-expiry-full", runningCount: 0, ttlSeconds: 1 },
-        expiredReuse: { statusCode: 409, errorCode: "AUTOMATION_LEASE_EXPIRED", errorPhase: "lease", requestCorrelated: true, detailRefPresent: true },
-        expiredRevocation: { status: "pass" },
-      },
-      playwright: { attached: true, navigated: true, targetMarker: true, identityMatches: 8, proxyObservationCount: 2 },
-      profileStore: { storeVersion: 4, profileCount: 1, identity: { presetId: "ubuntu-linux-chrome-120" }, proxy: { credentialState: "configured" }, persistedRuntimeFields: 0 },
-      diagnostics: { requiredMethods: ["profiles.create", "chromium.launch"], leaseFailureMethods: S05_REQUIRED_DIAGNOSTIC_FAILURE_METHODS, typedFailureCount: 5, totalRowsRead: 12, validRows: 12, malformedRows: 0 },
-      cleanup: { appStopped: true, apiStopped: true, listenerClosed: true, runtimeStopped: true, fixtureStopped: true, retainedSmokeData: true, diagnosticsScanned: true },
-      redaction: { status: "clean", scanned: true, forbiddenMarkerCount: 0 },
-      checks: [{ name: "redaction-scan", status: "pass", durationMs: 3 }],
-    }, context);
+      context,
+    );
     const encoded = JSON.stringify(summary);
     expect(summary.proofScope).toMatchObject({ playwrightAttach: true, cleanupVerified: true });
     expect(summary.failures).toHaveLength(2);
-    expect(summary.profileStore).toMatchObject({ scanned: true, storeVersion: 4, identityPresetApplied: true, proxyConfigured: true });
-    expect(summary.diagnostics).toMatchObject({ scanned: true, leaseFailureMethodCount: S05_REQUIRED_DIAGNOSTIC_FAILURE_METHODS.length, typedFailureCount: 5 });
+    expect(summary.profileStore).toMatchObject({
+      scanned: true,
+      storeVersion: 4,
+      identityPresetApplied: true,
+      proxyConfigured: true,
+    });
+    expect(summary.diagnostics).toMatchObject({
+      scanned: true,
+      leaseFailureMethodCount: S05_REQUIRED_DIAGNOSTIC_FAILURE_METHODS.length,
+      typedFailureCount: 5,
+    });
     for (const privateMarker of [token, leaseId, endpoint, apiBaseUrl, targetUrl, proxyAuthority, appDataRoot]) {
       expect(encoded).not.toContain(privateMarker);
     }
@@ -513,15 +717,61 @@ describe("verify-m004-s05 public evidence redaction", () => {
       logPath: "profile-store/diagnostics/events.jsonl",
     };
     writeDiagnostics(diagnosticsPath, [
-      ...S05_REQUIRED_DIAGNOSTIC_SUCCESS_METHODS.map((method, index) => ({ ...baseRow, status: "ok", requestId: `s05-ok-${index}`, method, errorCode: null, detailRef: null })),
-      { ...baseRow, status: "error", requestId: "s05-invalid-ttl", method: "automation.leases.create", errorCode: "INVALID_REQUEST", detailRef: "sidecar-invalid-ttl" },
-      { ...baseRow, status: "error", requestId: "s05-unknown-profile", method: "automation.leases.create", errorCode: "PROFILE_NOT_FOUND", detailRef: "sidecar-unknown-profile" },
-      { ...baseRow, status: "error", requestId: "s05-unknown-lease", method: "automation.leases.status", errorCode: "AUTOMATION_LEASE_NOT_FOUND", detailRef: "sidecar-unknown-lease" },
-      { ...baseRow, status: "error", requestId: "s05-released", method: "automation.leases.release", errorCode: "AUTOMATION_LEASE_RELEASED", detailRef: "sidecar-released" },
-      { ...baseRow, status: "error", requestId: "s05-expired", method: "automation.leases.release", errorCode: "AUTOMATION_LEASE_EXPIRED", detailRef: "sidecar-expired" },
+      ...S05_REQUIRED_DIAGNOSTIC_SUCCESS_METHODS.map((method, index) => ({
+        ...baseRow,
+        status: "ok",
+        requestId: `s05-ok-${index}`,
+        method,
+        errorCode: null,
+        detailRef: null,
+      })),
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-invalid-ttl",
+        method: "automation.leases.create",
+        errorCode: "INVALID_REQUEST",
+        detailRef: "sidecar-invalid-ttl",
+      },
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-unknown-profile",
+        method: "automation.leases.create",
+        errorCode: "PROFILE_NOT_FOUND",
+        detailRef: "sidecar-unknown-profile",
+      },
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-unknown-lease",
+        method: "automation.leases.status",
+        errorCode: "AUTOMATION_LEASE_NOT_FOUND",
+        detailRef: "sidecar-unknown-lease",
+      },
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-released",
+        method: "automation.leases.release",
+        errorCode: "AUTOMATION_LEASE_RELEASED",
+        detailRef: "sidecar-released",
+      },
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-expired",
+        method: "automation.leases.release",
+        errorCode: "AUTOMATION_LEASE_EXPIRED",
+        detailRef: "sidecar-expired",
+      },
     ]);
 
-    const context = createS05RedactionContext({ rootDir: root, smokeRoots: [smokeContext.smokeRoot], appDataRoots: [appDataRoot] });
+    const context = createS05RedactionContext({
+      rootDir: root,
+      smokeRoots: [smokeContext.smokeRoot],
+      appDataRoots: [appDataRoot],
+    });
     const proof = assertS05PostSmokeDiagnostics({ rootDir: root, smokeContext, context });
 
     expect(proof.leaseFailureMethods).toEqual(S05_REQUIRED_DIAGNOSTIC_FAILURE_METHODS);
@@ -529,12 +779,48 @@ describe("verify-m004-s05 public evidence redaction", () => {
     expect(JSON.stringify(proof)).not.toContain(root);
 
     writeDiagnostics(diagnosticsPath, [
-      ...S05_REQUIRED_DIAGNOSTIC_SUCCESS_METHODS.filter((method) => method !== "chromium.status").map((method, index) => ({ ...baseRow, status: "ok", requestId: `s05-ok-missing-${index}`, method, errorCode: null, detailRef: null })),
-      { ...baseRow, status: "error", requestId: "s05-invalid-ttl", method: "automation.leases.create", errorCode: "INVALID_REQUEST", detailRef: "sidecar-invalid-ttl" },
-      { ...baseRow, status: "error", requestId: "s05-unknown-profile", method: "automation.leases.create", errorCode: "PROFILE_NOT_FOUND", detailRef: "sidecar-unknown-profile" },
-      { ...baseRow, status: "error", requestId: "s05-unknown-lease", method: "automation.leases.status", errorCode: "AUTOMATION_LEASE_NOT_FOUND", detailRef: "sidecar-unknown-lease" },
+      ...S05_REQUIRED_DIAGNOSTIC_SUCCESS_METHODS.filter((method) => method !== "chromium.status").map(
+        (method, index) => ({
+          ...baseRow,
+          status: "ok",
+          requestId: `s05-ok-missing-${index}`,
+          method,
+          errorCode: null,
+          detailRef: null,
+        }),
+      ),
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-invalid-ttl",
+        method: "automation.leases.create",
+        errorCode: "INVALID_REQUEST",
+        detailRef: "sidecar-invalid-ttl",
+      },
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-unknown-profile",
+        method: "automation.leases.create",
+        errorCode: "PROFILE_NOT_FOUND",
+        detailRef: "sidecar-unknown-profile",
+      },
+      {
+        ...baseRow,
+        status: "error",
+        requestId: "s05-unknown-lease",
+        method: "automation.leases.status",
+        errorCode: "AUTOMATION_LEASE_NOT_FOUND",
+        detailRef: "sidecar-unknown-lease",
+      },
     ]);
-    const error = expectSafeFailure(() => assertS05PostSmokeDiagnostics({ rootDir: root, smokeContext, context }), [root, appDataRoot]);
-    expect(error.details).toMatchObject({ code: "S05_DIAGNOSTICS_SUCCESS_METHOD_MISSING", expectedMethod: "chromium.status" });
+    const error = expectSafeFailure(
+      () => assertS05PostSmokeDiagnostics({ rootDir: root, smokeContext, context }),
+      [root, appDataRoot],
+    );
+    expect(error.details).toMatchObject({
+      code: "S05_DIAGNOSTICS_SUCCESS_METHOD_MISSING",
+      expectedMethod: "chromium.status",
+    });
   });
 });

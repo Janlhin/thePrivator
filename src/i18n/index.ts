@@ -10,7 +10,14 @@
  */
 import { useEffect, useState } from "react";
 
-import { currentLanguage, readPreference, subscribe, writePreference, type Language, type LanguagePreference } from "./language";
+import {
+  currentLanguage,
+  readPreference,
+  subscribe,
+  writePreference,
+  type Language,
+  type LanguagePreference,
+} from "./language";
 import { ZH } from "./messages/zh";
 
 export type TParams = Readonly<Record<string, string | number>>;
@@ -44,7 +51,11 @@ export function useT(): typeof t {
 }
 
 /** The current preference plus a setter, for the Appearance settings control. */
-export function useLanguagePreference(): { preference: LanguagePreference; language: Language; choose: (next: LanguagePreference) => void } {
+export function useLanguagePreference(): {
+  preference: LanguagePreference;
+  language: Language;
+  choose: (next: LanguagePreference) => void;
+} {
   const [, bump] = useState(0);
   useEffect(() => subscribe(() => bump((count) => count + 1)), []);
   return {

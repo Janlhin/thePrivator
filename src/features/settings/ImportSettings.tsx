@@ -100,7 +100,9 @@ export function ImportSettings() {
       <header className={styles.header}>
         <h1>{t("Import")}</h1>
         <p className={styles.lede}>
-          {t("Bring in a profile someone exported, or the profiles an older version of ThePrivator left on this computer. Both arrive as new profiles; nothing here replaces what you already have.")}
+          {t(
+            "Bring in a profile someone exported, or the profiles an older version of ThePrivator left on this computer. Both arrive as new profiles; nothing here replaces what you already have.",
+          )}
         </p>
       </header>
 
@@ -113,7 +115,9 @@ export function ImportSettings() {
       <section className={styles.card} aria-labelledby="package-heading">
         <h2 id="package-heading">{t("From a package")}</h2>
         <p className={styles.hint}>
-          {t("A .tpkg carries the fingerprint, the proxy server and the browsing data. Proxy passwords are deliberately left out, so you will need to enter those again.")}
+          {t(
+            "A .tpkg carries the fingerprint, the proxy server and the browsing data. Proxy passwords are deliberately left out, so you will need to enter those again.",
+          )}
         </p>
 
         <div className={styles.actions}>

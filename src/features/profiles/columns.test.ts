@@ -97,17 +97,13 @@ describe("reconcileLayout", () => {
 
   it("re-shows a locked column that a stale layout had hidden", () => {
     // Otherwise a layout written before "name" was locked leaves a nameless table.
-    const stored = defaultLayout().map((entry) =>
-      entry.key === "name" ? { ...entry, visible: false } : entry,
-    );
+    const stored = defaultLayout().map((entry) => (entry.key === "name" ? { ...entry, visible: false } : entry));
 
     expect(reconcileLayout(stored).find((entry) => entry.key === "name")?.visible).toBe(true);
   });
 
   it("clamps a width that would push a column off screen", () => {
-    const stored = defaultLayout().map((entry) =>
-      entry.key === "folder" ? { ...entry, width: 99_999 } : entry,
-    );
+    const stored = defaultLayout().map((entry) => (entry.key === "folder" ? { ...entry, width: 99_999 } : entry));
 
     expect(reconcileLayout(stored).find((entry) => entry.key === "folder")?.width).toBe(MAX_COLUMN_WIDTH);
   });
@@ -194,7 +190,10 @@ describe("layout edits", () => {
 
 /** Count grid tracks without splitting `minmax(260px, 1fr)` down its comma. */
 function trackCount(template: string): number {
-  return template.replace(/\([^)]*\)/g, "").trim().split(/\s+/).length;
+  return template
+    .replace(/\([^)]*\)/g, "")
+    .trim()
+    .split(/\s+/).length;
 }
 
 describe("gridTemplate", () => {

@@ -13,7 +13,9 @@ function rowsFrom(...rows: ProfileRow[]): ProfileRow[] {
 type TableProps = Parameters<typeof ProfileTable>[0];
 
 function renderTable(
-  overrides: Partial<Pick<TableProps, "rows" | "layout" | "sort" | "selection" | "folderNames" | "busyIds" | "emptyMessage">> = {},
+  overrides: Partial<
+    Pick<TableProps, "rows" | "layout" | "sort" | "selection" | "folderNames" | "busyIds" | "emptyMessage">
+  > = {},
 ) {
   const props = {
     rows: rowsFrom(
@@ -80,8 +82,12 @@ describe("ProfileTable", () => {
   it("speaks the run state, rather than leaving it to a colour alone", () => {
     renderTable();
 
-    expect(within(screen.getByRole("row", { name: /alpha/i })).getByRole("img", { name: "Stopped" })).toBeInTheDocument();
-    expect(within(screen.getByRole("row", { name: /beta/i })).getByRole("img", { name: "Running" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("row", { name: /alpha/i })).getByRole("img", { name: "Stopped" }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("row", { name: /beta/i })).getByRole("img", { name: "Running" }),
+    ).toBeInTheDocument();
   });
 
   it("marks a row with a mutation in flight as working and blocks its action", () => {
@@ -306,7 +312,11 @@ describe("ProfileTable re-render cost", () => {
     rerender(<ProfileTable {...props} rows={nextRows} />);
 
     expect(document.querySelectorAll('[role="row"]')).toHaveLength(initial);
-    expect(within(screen.getByRole("row", { name: /Select B/ })).getByRole("img", { name: "Running" })).toBeInTheDocument();
-    expect(within(screen.getByRole("row", { name: /Select A/ })).getByRole("img", { name: "Stopped" })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("row", { name: /Select B/ })).getByRole("img", { name: "Running" }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("row", { name: /Select A/ })).getByRole("img", { name: "Stopped" }),
+    ).toBeInTheDocument();
   });
 });

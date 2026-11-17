@@ -142,23 +142,23 @@ describe("Diagnostics", () => {
     respond({
       sidecar_health: health,
       diagnostics_lookup: () => ({
-          found: true,
-          detailRef: "sidecar-abc123",
-          logPath: "profile-store/diagnostics/events.jsonl",
-          reason: "found",
-          entries: [
-            {
-              schemaVersion: 1,
-              ts: "2026-05-04T18:00:00.000Z",
-              source: "python-sidecar",
-              event: "sidecar.request",
-              status: "error",
-              logPath: "profile-store/diagnostics/events.jsonl",
-              method: "profiles.create",
-              errorCode: "PROFILE_DUPLICATE_NAME",
-              detailRef: "sidecar-abc123",
-            },
-          ],
+        found: true,
+        detailRef: "sidecar-abc123",
+        logPath: "profile-store/diagnostics/events.jsonl",
+        reason: "found",
+        entries: [
+          {
+            schemaVersion: 1,
+            ts: "2026-05-04T18:00:00.000Z",
+            source: "python-sidecar",
+            event: "sidecar.request",
+            status: "error",
+            logPath: "profile-store/diagnostics/events.jsonl",
+            method: "profiles.create",
+            errorCode: "PROFILE_DUPLICATE_NAME",
+            detailRef: "sidecar-abc123",
+          },
+        ],
       }),
     });
 
@@ -312,7 +312,11 @@ describe("Import", () => {
 
     const found = await screen.findByRole("list", { name: /profiles found/i });
     expect(within(found).getAllByRole("checkbox")).toHaveLength(2);
-    expect(within(found).getAllByRole("checkbox").every((box) => !(box as HTMLInputElement).checked)).toBe(true);
+    expect(
+      within(found)
+        .getAllByRole("checkbox")
+        .every((box) => !(box as HTMLInputElement).checked),
+    ).toBe(true);
     expect(screen.getByRole("button", { name: /import 0 profiles/i })).toBeDisabled();
   });
 

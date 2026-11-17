@@ -264,7 +264,13 @@ function parseHost(value: string, errors: ProxyDraftFieldErrors): string {
     return host;
   }
 
-  if (containsControlCharacters(host) || /:\/\//.test(host) || /[@\\/?#]/.test(host) || host.startsWith("--") || host.includes("=")) {
+  if (
+    containsControlCharacters(host) ||
+    /:\/\//.test(host) ||
+    /[@\\/?#]/.test(host) ||
+    host.startsWith("--") ||
+    host.includes("=")
+  ) {
     errors.host = "Proxy host must be a host name or IP address, not a URL, path, argv, or userinfo value.";
   }
 
@@ -293,7 +299,8 @@ function parseCredentials(
   const hasPassword = draft.credentialPassword.length > 0;
 
   if (draft.credentialMode === "saved") {
-    errors.credentials = "Saved proxy credentials are masked; enter replacement credentials or choose no credentials before checking or saving.";
+    errors.credentials =
+      "Saved proxy credentials are masked; enter replacement credentials or choose no credentials before checking or saving.";
     return undefined;
   }
 
@@ -314,7 +321,10 @@ function parseCredentials(
     errors.credentials = "Replacement proxy credentials cannot contain control characters.";
     return undefined;
   }
-  if (draft.credentialUsername.length > MAX_PROXY_CREDENTIAL_LENGTH || draft.credentialPassword.length > MAX_PROXY_CREDENTIAL_LENGTH) {
+  if (
+    draft.credentialUsername.length > MAX_PROXY_CREDENTIAL_LENGTH ||
+    draft.credentialPassword.length > MAX_PROXY_CREDENTIAL_LENGTH
+  ) {
     errors.credentials = `Replacement proxy credentials must be ${MAX_PROXY_CREDENTIAL_LENGTH} characters or fewer.`;
     return undefined;
   }
@@ -326,7 +336,12 @@ function parseCredentials(
 }
 
 function validateDirectCredentials(draft: ProxyDraftState, errors: ProxyDraftFieldErrors): void {
-  if (draft.credentialMode === "replace" || draft.credentialMode === "saved" || draft.credentialUsername || draft.credentialPassword) {
+  if (
+    draft.credentialMode === "replace" ||
+    draft.credentialMode === "saved" ||
+    draft.credentialUsername ||
+    draft.credentialPassword
+  ) {
     errors.credentials = "Direct proxy mode cannot include proxy credentials.";
   }
 }

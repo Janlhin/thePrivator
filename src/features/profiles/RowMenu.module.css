@@ -12,7 +12,11 @@
     box-shadow: var(--shadow-2);
   }
 
-  .submenuAnchor { position: relative; display: flex; flex-direction: column; }
+  .submenuAnchor {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
   .submenu {
     position: fixed;
     max-width: calc(100vw - 8px);

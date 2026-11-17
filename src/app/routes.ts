@@ -17,14 +17,20 @@ export type Route =
   | { name: "profiles"; view: ProfileView; folderId: string | null }
   | { name: "profile"; id: string }
   | { name: "profile-new" }
-
   | { name: "automation" }
   | { name: "settings"; section: SettingsSection };
 
 export const DEFAULT_ROUTE: Route = { name: "profiles", view: "all", folderId: null };
 
 const PROFILE_VIEWS: readonly ProfileView[] = ["all", "favorites", "running", "trash"];
-const SETTINGS_SECTIONS: readonly SettingsSection[] = ["appearance", "sync", "diagnostics", "import", "security", "storage"];
+const SETTINGS_SECTIONS: readonly SettingsSection[] = [
+  "appearance",
+  "sync",
+  "diagnostics",
+  "import",
+  "security",
+  "storage",
+];
 
 /**
  * Ids come out of the address bar, so they are treated as untrusted input and
@@ -69,9 +75,7 @@ export function parseRoute(hash: string): Route {
       const section = segments[1];
       return {
         name: "settings",
-        section: SETTINGS_SECTIONS.includes(section as SettingsSection)
-          ? (section as SettingsSection)
-          : "appearance",
+        section: SETTINGS_SECTIONS.includes(section as SettingsSection) ? (section as SettingsSection) : "appearance",
       };
     }
     default:

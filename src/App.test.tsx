@@ -129,7 +129,9 @@ describe("App", () => {
 });
 
 describe("App sidebar counts", () => {
-  beforeEach(() => { window.location.hash = "#/profiles"; });
+  beforeEach(() => {
+    window.location.hash = "#/profiles";
+  });
   it("removes standalone proxy and template navigation and falls back for old links", async () => {
     render(<App />);
     await screen.findByLabelText("Profiles: 2");
@@ -193,8 +195,12 @@ describe("App sidebar counts", () => {
           envelope({
             storeVersion: 4,
             profiles: [
-              record(ALPHA, "Alpha", { organization: { folderId: null, tags: [], notes: "", favorite: true, color: null } }),
-              record(BETA, "Beta", { organization: { folderId: BETA, tags: [], notes: "", favorite: false, color: null } }),
+              record(ALPHA, "Alpha", {
+                organization: { folderId: null, tags: [], notes: "", favorite: true, color: null },
+              }),
+              record(BETA, "Beta", {
+                organization: { folderId: BETA, tags: [], notes: "", favorite: false, color: null },
+              }),
             ],
             count: 2,
           }),
@@ -221,7 +227,11 @@ describe("App sidebar counts", () => {
         return Promise.resolve(
           envelope({
             storeVersion: 4,
-            profiles: [record(GONE, "Deleted", { lifecycle: { deletedAt: "2026-01-02T00:00:00.000Z", lastLaunchedAt: null, launchCount: 0 } })],
+            profiles: [
+              record(GONE, "Deleted", {
+                lifecycle: { deletedAt: "2026-01-02T00:00:00.000Z", lastLaunchedAt: null, launchCount: 0 },
+              }),
+            ],
             count: 1,
           }),
         ) as ReturnType<typeof invoke>;

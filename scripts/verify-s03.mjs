@@ -1,19 +1,16 @@
 import { spawn } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const VENV_PYTHON = process.platform === "win32"
-  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
-  : join(ROOT_DIR, ".venv", "bin", "python");
-const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === "win32" ? "python" : "python3"));
+const VENV_PYTHON =
+  process.platform === "win32"
+    ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+    : join(ROOT_DIR, ".venv", "bin", "python");
+const PYTHON =
+  process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : process.platform === "win32" ? "python" : "python3");
 const PYTHON_LABEL = "python";
 const SIDECAR_MODULE_LABEL = `${PYTHON_LABEL} -m theprivator_sidecar`;
 const SIDECAR_TIMEOUT_MS = 15_000;
@@ -33,8 +30,10 @@ const SENSITIVE_VALUES = new Set([
   BAD_PROXY_USERNAME,
   BAD_PROXY_PASSWORD,
 ]);
-const DANGEROUS_VALUE_KEY_RE = /^(?:auth|authorization|credentials?|password|proxyauthorization|proxypass|proxypassword|proxyuser|proxyusername|username)$/i;
-const PUBLIC_SECRET_KEY_RE = /^(?:credentials?|password|proxyAuthorization|proxyPassword|proxyPass|proxyUser|proxyUsername|username)$/i;
+const DANGEROUS_VALUE_KEY_RE =
+  /^(?:auth|authorization|credentials?|password|proxyauthorization|proxypass|proxypassword|proxyuser|proxyusername|username)$/i;
+const PUBLIC_SECRET_KEY_RE =
+  /^(?:credentials?|password|proxyAuthorization|proxyPassword|proxyPass|proxyUser|proxyUsername|username)$/i;
 const FORBIDDEN_DURABLE_KEYS = new Set([
   "args",
   "argv",
@@ -137,7 +136,9 @@ class LineReader {
     while (this.waiters.length > 0) {
       const waiter = this.waiters.shift();
       clearTimeout(waiter.timer);
-      waiter.reject(error ?? new Error(`${this.streamName} ended before the source sidecar emitted the expected NDJSON line.`));
+      waiter.reject(
+        error ?? new Error(`${this.streamName} ended before the source sidecar emitted the expected NDJSON line.`),
+      );
     }
   }
 
@@ -146,7 +147,9 @@ class LineReader {
       return Promise.resolve(this.lines.shift());
     }
     if (this.ended) {
-      return Promise.reject(new Error(`${this.streamName} ended before the source sidecar emitted the expected NDJSON line.`));
+      return Promise.reject(
+        new Error(`${this.streamName} ended before the source sidecar emitted the expected NDJSON line.`),
+      );
     }
 
     return new Promise((resolveLine, rejectLine) => {
@@ -186,11 +189,8 @@ function redactText(value, extra = []) {
     if (!sensitive) {
       continue;
     }
-    const replacement = sensitive === ROOT_DIR
-      ? "<repo>"
-      : sensitive.includes("theprivator-s03-proxy-")
-        ? "<temp-root>"
-        : "<redacted>";
+    const replacement =
+      sensitive === ROOT_DIR ? "<repo>" : sensitive.includes("theprivator-s03-proxy-") ? "<temp-root>" : "<redacted>";
     redacted = redacted.split(sensitive).join(replacement);
   }
   return redacted
@@ -214,12 +214,14 @@ function redact(value, extra = []) {
   }
 
   if (typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => {
-      if (DANGEROUS_VALUE_KEY_RE.test(key)) {
-        return ["<redacted-key>", "<redacted>"];
-      }
-      return [redactText(key, extra), redact(item, extra)];
-    }));
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => {
+        if (DANGEROUS_VALUE_KEY_RE.test(key)) {
+          return ["<redacted-key>", "<redacted>"];
+        }
+        return [redactText(key, extra), redact(item, extra)];
+      }),
+    );
   }
 
   return value;
@@ -503,7 +505,11 @@ async function sidecarSuccess(client, id, method, params, options = {}) {
     method,
     detailRef: diagnostic.detailRef,
   });
-  assert(response.result && typeof response.result === "object" && !Array.isArray(response.result), "Success response result must be an object.", { method });
+  assert(
+    response.result && typeof response.result === "object" && !Array.isArray(response.result),
+    "Success response result must be an object.",
+    { method },
+  );
   return { ...transcript, result: response.result };
 }
 
@@ -529,15 +535,23 @@ async function sidecarError(client, id, method, params, options = {}) {
     responseCode: response.error.code,
     diagnosticCode: diagnostic.errorCode,
   });
-  assert(diagnostic.detailRef === response.error.detailRef, "Diagnostic detailRef did not match response error detailRef.", {
-    method,
-    responseDetailRef: response.error.detailRef,
-    diagnosticDetailRef: diagnostic.detailRef,
-  });
-  assert(typeof response.error.detailRef === "string" && response.error.detailRef.startsWith("sidecar-"), "Sidecar error did not include an opaque detailRef.", {
-    method,
-    detailRef: response.error.detailRef,
-  });
+  assert(
+    diagnostic.detailRef === response.error.detailRef,
+    "Diagnostic detailRef did not match response error detailRef.",
+    {
+      method,
+      responseDetailRef: response.error.detailRef,
+      diagnosticDetailRef: diagnostic.detailRef,
+    },
+  );
+  assert(
+    typeof response.error.detailRef === "string" && response.error.detailRef.startsWith("sidecar-"),
+    "Sidecar error did not include an opaque detailRef.",
+    {
+      method,
+      detailRef: response.error.detailRef,
+    },
+  );
   assert(response.error.recoverable === true, "Proxy verifier expected a recoverable typed sidecar error.", {
     method,
     recoverable: response.error.recoverable,
@@ -546,11 +560,13 @@ async function sidecarError(client, id, method, params, options = {}) {
 }
 
 function isSafeRelativeStoragePath(value) {
-  return typeof value === "string"
-    && value.startsWith("profile-store/profiles/")
-    && value.endsWith("/user-data")
-    && !value.startsWith("/")
-    && !value.includes("..");
+  return (
+    typeof value === "string" &&
+    value.startsWith("profile-store/profiles/") &&
+    value.endsWith("/user-data") &&
+    !value.startsWith("/") &&
+    !value.includes("..")
+  );
 }
 
 function assertProfileShape(profile, expectedName = SMOKE_PROFILE_NAME) {
@@ -561,7 +577,10 @@ function assertProfileShape(profile, expectedName = SMOKE_PROFILE_NAME) {
   assert(isSafeRelativeStoragePath(profile.storage.userDataDir), "Profile userDataDir is not a safe relative path.", {
     userDataDir: profile.storage.userDataDir,
   });
-  assert(profile.identity && typeof profile.identity === "object" && !Array.isArray(profile.identity), "Profile is missing identity.");
+  assert(
+    profile.identity && typeof profile.identity === "object" && !Array.isArray(profile.identity),
+    "Profile is missing identity.",
+  );
   assert(profile.identity.identityVersion === 2, "Profile identity version mismatch.", {
     identityVersion: profile.identity.identityVersion,
   });
@@ -570,7 +589,9 @@ function assertProfileShape(profile, expectedName = SMOKE_PROFILE_NAME) {
 }
 
 function assertCollectionShape(result, expectedProfileId) {
-  assert([4, 5].includes(result.storeVersion), "Profile collection must use storeVersion 4.", { storeVersion: result.storeVersion });
+  assert([4, 5].includes(result.storeVersion), "Profile collection must use storeVersion 4.", {
+    storeVersion: result.storeVersion,
+  });
   assert(Array.isArray(result.profiles), "Profile collection profiles field is not an array.");
   assert(result.count === result.profiles.length, "Profile collection count mismatch.", {
     count: result.count,
@@ -590,7 +611,11 @@ function sortJson(value) {
     return value.map((item) => sortJson(item));
   }
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, sortJson(item)]));
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, sortJson(item)]),
+    );
   }
   return value;
 }
@@ -621,8 +646,13 @@ function expectedSummary(proxy) {
 
 function assertPublicProxySummary(proxy, expected) {
   assert(proxy && typeof proxy === "object" && !Array.isArray(proxy), "Proxy summary is missing.");
-  assert(proxy.proxyVersion === 1, "Proxy summary did not report proxyVersion 1.", { proxyVersion: proxy.proxyVersion });
-  assert(proxy.mode === expected.mode, "Proxy summary mode mismatch.", { mode: proxy.mode, expectedMode: expected.mode });
+  assert(proxy.proxyVersion === 1, "Proxy summary did not report proxyVersion 1.", {
+    proxyVersion: proxy.proxyVersion,
+  });
+  assert(proxy.mode === expected.mode, "Proxy summary mode mismatch.", {
+    mode: proxy.mode,
+    expectedMode: expected.mode,
+  });
   assert(proxy.credentialState === expected.credentialState, "Proxy summary credential state mismatch.", {
     credentialState: proxy.credentialState,
     expectedCredentialState: expected.credentialState,
@@ -632,25 +662,42 @@ function assertPublicProxySummary(proxy, expected) {
     expectedSummary: expected.summary,
   });
   if (expected.mode === "fixedServer") {
-    assert(proxy.protocol === expected.protocol, "Proxy summary protocol mismatch.", { protocol: proxy.protocol, expectedProtocol: expected.protocol });
-    assert(proxy.host === expected.host, "Proxy summary host mismatch.", { host: proxy.host, expectedHost: expected.host });
-    assert(proxy.port === expected.port, "Proxy summary port mismatch.", { port: proxy.port, expectedPort: expected.port });
+    assert(proxy.protocol === expected.protocol, "Proxy summary protocol mismatch.", {
+      protocol: proxy.protocol,
+      expectedProtocol: expected.protocol,
+    });
+    assert(proxy.host === expected.host, "Proxy summary host mismatch.", {
+      host: proxy.host,
+      expectedHost: expected.host,
+    });
+    assert(proxy.port === expected.port, "Proxy summary port mismatch.", {
+      port: proxy.port,
+      expectedPort: expected.port,
+    });
   }
   assertPublicPayloadSafe(proxy, "public proxy summary");
   return proxy;
 }
 
 function assertProxyValidationResult(result, expected) {
-  assert(result.proxyVersion === 1, "Proxy validation result did not report proxyVersion 1.", { proxyVersion: result.proxyVersion });
-  assert(Array.isArray(result.warnings) && result.warnings.length === 0, "Proxy validation returned unexpected warnings.", {
-    warningCount: Array.isArray(result.warnings) ? result.warnings.length : "not-array",
+  assert(result.proxyVersion === 1, "Proxy validation result did not report proxyVersion 1.", {
+    proxyVersion: result.proxyVersion,
   });
+  assert(
+    Array.isArray(result.warnings) && result.warnings.length === 0,
+    "Proxy validation returned unexpected warnings.",
+    {
+      warningCount: Array.isArray(result.warnings) ? result.warnings.length : "not-array",
+    },
+  );
   assertPublicProxySummary(result.proxy, expected);
   return result.proxy;
 }
 
 function assertProxyMutationResult(result, profileId, expected) {
-  assert([4, 5].includes(result.storeVersion), "Proxy update did not preserve store v4.", { storeVersion: result.storeVersion });
+  assert([4, 5].includes(result.storeVersion), "Proxy update did not preserve store v4.", {
+    storeVersion: result.storeVersion,
+  });
   assert(Array.isArray(result.profiles), "Proxy update did not return a profiles array.");
   assert(result.profile?.id === profileId, "Proxy update returned the wrong profile id.", {
     profileId: result.profile?.id,
@@ -693,14 +740,18 @@ function findPrivateProfile(storeRoot, profileId) {
 
 function assertPrivateProxy(storeRoot, profileId, expectedPrivateProxy) {
   const { payload, profile } = findPrivateProfile(storeRoot, profileId);
-  assert(deepEqualJson(profile.proxy, expectedPrivateProxy), "Persisted private proxy did not match the expected canonical shape.", {
-    expectedMode: expectedPrivateProxy.mode,
-    actualMode: profile.proxy?.mode,
-    expectedProtocol: expectedPrivateProxy.protocol ?? "none",
-    actualProtocol: profile.proxy?.protocol ?? "none",
-    expectedCredentialState: expectedPrivateProxy.credentials ? "private" : "none",
-    actualCredentialState: profile.proxy?.credentials ? "private" : "none",
-  });
+  assert(
+    deepEqualJson(profile.proxy, expectedPrivateProxy),
+    "Persisted private proxy did not match the expected canonical shape.",
+    {
+      expectedMode: expectedPrivateProxy.mode,
+      actualMode: profile.proxy?.mode,
+      expectedProtocol: expectedPrivateProxy.protocol ?? "none",
+      actualProtocol: profile.proxy?.protocol ?? "none",
+      expectedCredentialState: expectedPrivateProxy.credentials ? "private" : "none",
+      actualCredentialState: profile.proxy?.credentials ? "private" : "none",
+    },
+  );
   return {
     storeVersion: payload.storeVersion,
     profileCount: payload.profiles.length,
@@ -718,7 +769,10 @@ function readDiagnosticLogEntries(storeRoot) {
   assert(existsSync(path), "Diagnostic JSONL log was not written.");
   const text = readFileSync(path, "utf8");
   assertNoPublicLeaks("diagnostic JSONL log", text);
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
   assert(lines.length > 0, "Diagnostic JSONL log did not contain any entries.");
   return lines.map((line, index) => {
     let entry;
@@ -736,14 +790,38 @@ function readDiagnosticLogEntries(storeRoot) {
 }
 
 function assertDiagnosticEntrySafe(entry, lineNumber) {
-  const allowedKeys = new Set(["schemaVersion", "ts", "source", "event", "status", "logPath", "requestId", "method", "durationMs", "errorCode", "detailRef"]);
+  const allowedKeys = new Set([
+    "schemaVersion",
+    "ts",
+    "source",
+    "event",
+    "status",
+    "logPath",
+    "requestId",
+    "method",
+    "durationMs",
+    "errorCode",
+    "detailRef",
+  ]);
   for (const key of Object.keys(entry)) {
     assert(allowedKeys.has(key), "Persisted diagnostic contained an unexpected field.", { lineNumber, key });
   }
-  assert(entry.schemaVersion === 1, "Persisted diagnostic schema version mismatch.", { lineNumber, schemaVersion: entry.schemaVersion });
-  assert(entry.source === "python-sidecar", "Persisted diagnostic source mismatch.", { lineNumber, source: entry.source });
-  assert(entry.event === "sidecar.request", "Persisted diagnostic event name changed.", { lineNumber, event: entry.event });
-  assert(entry.logPath === DIAGNOSTIC_RELATIVE_LOG_PATH, "Persisted diagnostic log path changed.", { lineNumber, logPath: entry.logPath });
+  assert(entry.schemaVersion === 1, "Persisted diagnostic schema version mismatch.", {
+    lineNumber,
+    schemaVersion: entry.schemaVersion,
+  });
+  assert(entry.source === "python-sidecar", "Persisted diagnostic source mismatch.", {
+    lineNumber,
+    source: entry.source,
+  });
+  assert(entry.event === "sidecar.request", "Persisted diagnostic event name changed.", {
+    lineNumber,
+    event: entry.event,
+  });
+  assert(entry.logPath === DIAGNOSTIC_RELATIVE_LOG_PATH, "Persisted diagnostic log path changed.", {
+    lineNumber,
+    logPath: entry.logPath,
+  });
   assert(!("params" in entry), "Persisted diagnostic leaked params.", { lineNumber });
   assert(!("storeRoot" in entry), "Persisted diagnostic leaked storeRoot.", { lineNumber });
   assertPublicPayloadSafe(entry, "persisted diagnostic entry");
@@ -752,7 +830,9 @@ function assertDiagnosticEntrySafe(entry, lineNumber) {
 function assertStoredDiagnosticLogEntries(storeRoot, expectedDiagnostics) {
   const entries = readDiagnosticLogEntries(storeRoot);
   for (const expected of expectedDiagnostics) {
-    const matching = entries.filter((entry) => entry.requestId === expected.requestId && entry.method === expected.method);
+    const matching = entries.filter(
+      (entry) => entry.requestId === expected.requestId && entry.method === expected.method,
+    );
     assert(matching.length === 1, "Persisted diagnostic log did not contain exactly one matching command entry.", {
       requestId: expected.requestId,
       method: expected.method,
@@ -805,16 +885,24 @@ function assertNoForbiddenKeys(value, context, path = "$", allowProxyCredentials
 
   for (const [key, nestedValue] of Object.entries(value)) {
     const nextPath = `${path}.${key}`;
-    const isAllowedCredentialKey = allowProxyCredentials && (nextPath.endsWith(".proxy.credentials") || nextPath.endsWith(".proxy.credentials.username") || nextPath.endsWith(".proxy.credentials.password"));
+    const isAllowedCredentialKey =
+      allowProxyCredentials &&
+      (nextPath.endsWith(".proxy.credentials") ||
+        nextPath.endsWith(".proxy.credentials.username") ||
+        nextPath.endsWith(".proxy.credentials.password"));
     // Anchored to the profile record root on purpose. A suffix match would also
     // exempt metadata.launch.args or proxy.launch.args, so a captured Chromium
     // launch record shaped {"launch": {"args": [...]}} persisted anywhere in the
     // store would pass the guard it exists to trip.
     const isAllowedLaunchArgsKey = /^\$\.profiles\[\d+\]\.launch\.args$/.test(nextPath);
-    assert(isAllowedCredentialKey || isAllowedLaunchArgsKey || !FORBIDDEN_DURABLE_KEYS.has(key), `${context} contains forbidden runtime/debug field ${key}.`, {
-      key,
-      path: nextPath,
-    });
+    assert(
+      isAllowedCredentialKey || isAllowedLaunchArgsKey || !FORBIDDEN_DURABLE_KEYS.has(key),
+      `${context} contains forbidden runtime/debug field ${key}.`,
+      {
+        key,
+        path: nextPath,
+      },
+    );
     assertNoForbiddenKeys(nestedValue, context, nextPath, allowProxyCredentials);
   }
 }
@@ -868,7 +956,9 @@ function assertNoPrivateRuntimeLeaks(text, payload) {
 }
 
 function assertNoForbiddenTextWithoutCredentials(text, context) {
-  const nonCredentialSensitive = [...SENSITIVE_VALUES].filter((value) => ![HTTP_PROXY_USERNAME, HTTP_PROXY_PASSWORD, BAD_PROXY_USERNAME, BAD_PROXY_PASSWORD].includes(value));
+  const nonCredentialSensitive = [...SENSITIVE_VALUES].filter(
+    (value) => ![HTTP_PROXY_USERNAME, HTTP_PROXY_PASSWORD, BAD_PROXY_USERNAME, BAD_PROXY_PASSWORD].includes(value),
+  );
   for (const sensitive of nonCredentialSensitive) {
     assert(!text.includes(sensitive), `${context} leaked a sensitive absolute path.`, {
       context,
@@ -891,11 +981,17 @@ function assertVerifierRedactionHelpers() {
     credentialState: "configured",
   });
   assertNoPublicLeaks("verifier redaction helper output", redacted);
-  assert(JSON.stringify(redacted).includes("credentialState"), "Verifier redaction helper should preserve safe credentialState vocabulary.");
+  assert(
+    JSON.stringify(redacted).includes("credentialState"),
+    "Verifier redaction helper should preserve safe credentialState vocabulary.",
+  );
 
   let caughtLeak = false;
   try {
-    assertPublicPayloadSafe({ proxy: { credentials: { username: HTTP_PROXY_USERNAME } } }, "synthetic malformed public payload");
+    assertPublicPayloadSafe(
+      { proxy: { credentials: { username: HTTP_PROXY_USERNAME } } },
+      "synthetic malformed public payload",
+    );
   } catch (error) {
     caughtLeak = error instanceof VerifyFailure;
   }
@@ -948,7 +1044,15 @@ const SOCKS5_NO_CREDENTIAL_PROXY = {
   port: 19050,
 };
 
-async function runInvalidProxyUpdateNoWrite({ client, expectedDiagnostics, storeRoot, profileId, requestId, proxy, expectedErrorCode }) {
+async function runInvalidProxyUpdateNoWrite({
+  client,
+  expectedDiagnostics,
+  storeRoot,
+  profileId,
+  requestId,
+  proxy,
+  expectedErrorCode,
+}) {
   const before = readProfilesJson(storeRoot).text;
   const result = trackStoredDiagnostic(
     expectedDiagnostics,
@@ -997,12 +1101,10 @@ async function runProxyConfigVerifier(storeRoot) {
     profile = await runStep("profile-create", async () => {
       const create = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("profile-create"),
-          "profiles.create",
-          { storeRoot, name: SMOKE_PROFILE_NAME },
-        ),
+        await sidecarSuccess(client, makeRequestId("profile-create"), "profiles.create", {
+          storeRoot,
+          name: SMOKE_PROFILE_NAME,
+        }),
       );
       const createdProfile = assertProfileShape(create.result.profile);
       assertCollectionShape(create.result, createdProfile.id);
@@ -1024,12 +1126,7 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("profile-list-initial-direct", async () => {
       const list = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("profile-list-initial"),
-          "profiles.list",
-          { storeRoot },
-        ),
+        await sidecarSuccess(client, makeRequestId("profile-list-initial"), "profiles.list", { storeRoot }),
       );
       const listedProfile = assertCollectionShape(list.result, profile.id);
       assertPublicProxySummary(listedProfile.proxy, expectedSummary(DIRECT_PROXY));
@@ -1043,12 +1140,9 @@ async function runProxyConfigVerifier(storeRoot) {
     });
 
     await runStep("proxy-validate-direct", async () => {
-      const validation = await sidecarSuccess(
-        client,
-        makeRequestId("validate-direct"),
-        "proxy.validate",
-        { proxy: DIRECT_PROXY },
-      );
+      const validation = await sidecarSuccess(client, makeRequestId("validate-direct"), "proxy.validate", {
+        proxy: DIRECT_PROXY,
+      });
       const proxy = assertProxyValidationResult(validation.result, expectedSummary(DIRECT_PROXY));
       return {
         phase: "proxy-config",
@@ -1061,12 +1155,11 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("profile-proxy-save-direct", async () => {
       const update = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("save-direct"),
-          "profiles.proxy.update",
-          { storeRoot, profileId: profile.id, proxy: DIRECT_PROXY },
-        ),
+        await sidecarSuccess(client, makeRequestId("save-direct"), "profiles.proxy.update", {
+          storeRoot,
+          profileId: profile.id,
+          proxy: DIRECT_PROXY,
+        }),
       );
       const updatedProfile = assertProxyMutationResult(update.result, profile.id, expectedSummary(DIRECT_PROXY));
       const privateState = assertPrivateProxy(storeRoot, profile.id, DIRECT_PROXY);
@@ -1090,12 +1183,9 @@ async function runProxyConfigVerifier(storeRoot) {
       const protocols = [];
       const credentialStates = [];
       for (const draft of fixtures) {
-        const validation = await sidecarSuccess(
-          client,
-          makeRequestId(`validate-${draft.protocol}`),
-          "proxy.validate",
-          { proxy: draft },
-        );
+        const validation = await sidecarSuccess(client, makeRequestId(`validate-${draft.protocol}`), "proxy.validate", {
+          proxy: draft,
+        });
         const proxy = assertProxyValidationResult(validation.result, expectedSummary(draft));
         protocols.push(proxy.protocol);
         credentialStates.push(proxy.credentialState);
@@ -1111,14 +1201,17 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("profile-proxy-save-http-credentials", async () => {
       const update = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("save-http-fixed"),
-          "profiles.proxy.update",
-          { storeRoot, profileId: profile.id, proxy: HTTP_CREDENTIAL_PROXY },
-        ),
+        await sidecarSuccess(client, makeRequestId("save-http-fixed"), "profiles.proxy.update", {
+          storeRoot,
+          profileId: profile.id,
+          proxy: HTTP_CREDENTIAL_PROXY,
+        }),
       );
-      const updatedProfile = assertProxyMutationResult(update.result, profile.id, expectedSummary(HTTP_CREDENTIAL_PROXY));
+      const updatedProfile = assertProxyMutationResult(
+        update.result,
+        profile.id,
+        expectedSummary(HTTP_CREDENTIAL_PROXY),
+      );
       const privateState = assertPrivateProxy(storeRoot, profile.id, HTTP_CREDENTIAL_PROXY);
       return {
         phase: "proxy-config",
@@ -1133,12 +1226,7 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("reload-masked-http-credentials", async () => {
       const list = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("reload-http-fixed"),
-          "profiles.list",
-          { storeRoot },
-        ),
+        await sidecarSuccess(client, makeRequestId("reload-http-fixed"), "profiles.list", { storeRoot }),
       );
       const listedProfile = assertCollectionShape(list.result, profile.id);
       assertPublicProxySummary(listedProfile.proxy, expectedSummary(HTTP_CREDENTIAL_PROXY));
@@ -1154,14 +1242,17 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("profile-proxy-save-socks5-no-credentials", async () => {
       const update = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("save-socks5-open"),
-          "profiles.proxy.update",
-          { storeRoot, profileId: profile.id, proxy: SOCKS5_NO_CREDENTIAL_PROXY },
-        ),
+        await sidecarSuccess(client, makeRequestId("save-socks5-open"), "profiles.proxy.update", {
+          storeRoot,
+          profileId: profile.id,
+          proxy: SOCKS5_NO_CREDENTIAL_PROXY,
+        }),
       );
-      const updatedProfile = assertProxyMutationResult(update.result, profile.id, expectedSummary(SOCKS5_NO_CREDENTIAL_PROXY));
+      const updatedProfile = assertProxyMutationResult(
+        update.result,
+        profile.id,
+        expectedSummary(SOCKS5_NO_CREDENTIAL_PROXY),
+      );
       const privateState = assertPrivateProxy(storeRoot, profile.id, SOCKS5_NO_CREDENTIAL_PROXY);
       finalSummary = cloneJson(updatedProfile.proxy);
       return {
@@ -1177,12 +1268,7 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("reload-socks5-no-credentials", async () => {
       const list = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("reload-socks5-open"),
-          "profiles.list",
-          { storeRoot },
-        ),
+        await sidecarSuccess(client, makeRequestId("reload-socks5-open"), "profiles.list", { storeRoot }),
       );
       const listedProfile = assertCollectionShape(list.result, profile.id);
       assertPublicProxySummary(listedProfile.proxy, expectedSummary(SOCKS5_NO_CREDENTIAL_PROXY));
@@ -1315,12 +1401,7 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("post-invalid-store-truth", async () => {
       const list = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("post-invalid-list"),
-          "profiles.list",
-          { storeRoot },
-        ),
+        await sidecarSuccess(client, makeRequestId("post-invalid-list"), "profiles.list", { storeRoot }),
       );
       const listedProfile = assertCollectionShape(list.result, profile.id);
       assertPublicProxySummary(listedProfile.proxy, expectedSummary(SOCKS5_NO_CREDENTIAL_PROXY));
@@ -1337,19 +1418,18 @@ async function runProxyConfigVerifier(storeRoot) {
     await runStep("runtime-guard-boundary-status", async () => {
       const status = trackStoredDiagnostic(
         expectedDiagnostics,
-        await sidecarSuccess(
-          client,
-          makeRequestId("chromium-status-boundary"),
-          "chromium.status",
-          { storeRoot },
-        ),
+        await sidecarSuccess(client, makeRequestId("chromium-status-boundary"), "chromium.status", { storeRoot }),
       );
       assert(status.result.runningCount === 0, "Runtime guard boundary smoke expected no running Chromium profiles.", {
         runningCount: status.result.runningCount,
       });
-      assert(Array.isArray(status.result.profiles) && status.result.profiles.length === 0, "Runtime guard boundary smoke found running profile payloads.", {
-        runningProfiles: status.result.profiles?.length,
-      });
+      assert(
+        Array.isArray(status.result.profiles) && status.result.profiles.length === 0,
+        "Runtime guard boundary smoke found running profile payloads.",
+        {
+          runningProfiles: status.result.profiles?.length,
+        },
+      );
       return {
         phase: "runtime-guard-boundary",
         action: "status-only",

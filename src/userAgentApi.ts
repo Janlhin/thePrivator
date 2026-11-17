@@ -20,7 +20,10 @@ export async function fetchRandomUserAgent(os: UserAgentOs, signal: AbortSignal)
   const abort = () => controller.abort();
   signal.addEventListener("abort", abort, { once: true });
   let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 10_000);
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 10_000);
   try {
     const ua = await requestUserAgent(os, controller.signal);
     if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
@@ -36,7 +39,12 @@ export async function fetchRandomUserAgent(os: UserAgentOs, signal: AbortSignal)
 
 async function requestUserAgent(os: UserAgentOs, signal: AbortSignal): Promise<string> {
   const response = await fetch(`https://randomapi.dev/api/user-agents?count=1&browser=chrome&os=${os}&device=desktop`, {
-    method: "GET", credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store", redirect: "error", signal,
+    method: "GET",
+    credentials: "omit",
+    referrerPolicy: "no-referrer",
+    cache: "no-store",
+    redirect: "error",
+    signal,
   });
   if (!response.ok) throw new Error("randomapi.dev is unavailable. Please try again.");
   const body: unknown = await response.json();
@@ -47,13 +55,22 @@ async function requestUserAgent(os: UserAgentOs, signal: AbortSignal): Promise<s
   const ua = item.userAgent;
   // The identity descriptor and sidecar both cap UA at 512 safe characters.
   // Chrome desktop UAs are ASCII; reject non-ASCII as well as all controls.
-  if (typeof ua !== "string" || ua.length > 512 || !/^[\x20-\x7e]+$/.test(ua) ||
-      !ua.startsWith("Mozilla/5.0 (") || !ua.includes("AppleWebKit/") || !ua.includes("Safari/") ||
-      /Mobile|Android|iPhone|iPad|Firefox\/|CriOS\/|Edg\/|OPR\//i.test(ua) ||
-      item.browser !== "chrome" || item.os !== os || item.device !== "desktop" ||
-      detectOs(ua) !== os ||
-      !/Chrome\/\d+\.\d+\.\d+\.\d+(?: |$)/.test(ua) ||
-      ua.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)(?: |$)/)?.[1] !== item.browserVersion) throw invalid;
+  if (
+    typeof ua !== "string" ||
+    ua.length > 512 ||
+    !/^[\x20-\x7e]+$/.test(ua) ||
+    !ua.startsWith("Mozilla/5.0 (") ||
+    !ua.includes("AppleWebKit/") ||
+    !ua.includes("Safari/") ||
+    /Mobile|Android|iPhone|iPad|Firefox\/|CriOS\/|Edg\/|OPR\//i.test(ua) ||
+    item.browser !== "chrome" ||
+    item.os !== os ||
+    item.device !== "desktop" ||
+    detectOs(ua) !== os ||
+    !/Chrome\/\d+\.\d+\.\d+\.\d+(?: |$)/.test(ua) ||
+    ua.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)(?: |$)/)?.[1] !== item.browserVersion
+  )
+    throw invalid;
   return ua;
 }
 

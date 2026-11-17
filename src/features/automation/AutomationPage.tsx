@@ -40,23 +40,20 @@ export function AutomationPage() {
     void refresh();
   }, [refresh]);
 
-  const act = useCallback(
-    (label: string, work: () => Promise<AutomationApiStatusResult>) => {
-      setBusy(label);
-      setError(null);
-      setCopyNote(null);
-      void (async () => {
-        try {
-          setStatus(await work());
-        } catch (caught) {
-          setError(normalizeSidecarError(caught).message);
-        } finally {
-          setBusy(null);
-        }
-      })();
-    },
-    [],
-  );
+  const act = useCallback((label: string, work: () => Promise<AutomationApiStatusResult>) => {
+    setBusy(label);
+    setError(null);
+    setCopyNote(null);
+    void (async () => {
+      try {
+        setStatus(await work());
+      } catch (caught) {
+        setError(normalizeSidecarError(caught).message);
+      } finally {
+        setBusy(null);
+      }
+    })();
+  }, []);
 
   const copyToken = useCallback(() => {
     setBusy("copying");
@@ -89,7 +86,9 @@ export function AutomationPage() {
       <header className={styles.header}>
         <h1>{t("Automation")}</h1>
         <p className={styles.lede}>
-          {t("A small HTTP endpoint on this machine that lets Selenium, Playwright or Puppeteer drive your profiles. It listens on loopback only and requires an access token.")}
+          {t(
+            "A small HTTP endpoint on this machine that lets Selenium, Playwright or Puppeteer drive your profiles. It listens on loopback only and requires an access token.",
+          )}
         </p>
       </header>
 

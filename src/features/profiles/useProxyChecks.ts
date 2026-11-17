@@ -8,8 +8,13 @@ import type { ProxyCheckState } from "./ProxyExit";
  * since list records intentionally omit credentials. Never persist proxy secrets. */
 function scope(profile: ProfileRecord): string {
   const proxy = profile.proxy;
-  return JSON.stringify([profile.id, profile.proxyRevision ?? "initial", proxy.mode,
-    proxy.credentialState, ...(proxy.mode === "fixedServer" ? [proxy.protocol, proxy.host, proxy.port] : [])]);
+  return JSON.stringify([
+    profile.id,
+    profile.proxyRevision ?? "initial",
+    proxy.mode,
+    proxy.credentialState,
+    ...(proxy.mode === "fixedServer" ? [proxy.protocol, proxy.host, proxy.port] : []),
+  ]);
 }
 export function useProxyChecks(rows: readonly ProfileRow[]) {
   const scopes = useMemo(() => new Map(rows.map(({ profile }) => [profile.id, scope(profile)])), [rows]);
@@ -41,6 +46,12 @@ export function useProxyChecks(rows: readonly ProfileRow[]) {
       inFlight.current.delete(id);
     }
   }, []);
-  const states = useMemo(() => new Map([...cache].filter(([id, entry]) => scopes.get(id) === entry.scope).map(([id, entry]) => [id, entry.state])), [cache, scopes]);
+  const states = useMemo(
+    () =>
+      new Map(
+        [...cache].filter(([id, entry]) => scopes.get(id) === entry.scope).map(([id, entry]) => [id, entry.state]),
+      ),
+    [cache, scopes],
+  );
   return { states, check };
 }

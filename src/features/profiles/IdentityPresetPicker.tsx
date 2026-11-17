@@ -37,10 +37,13 @@ export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  useLayoutEffect(() => () => {
-    request.current?.abort();
-    request.current = null;
-  }, []);
+  useLayoutEffect(
+    () => () => {
+      request.current?.abort();
+      request.current = null;
+    },
+    [],
+  );
 
   async function refresh() {
     if (request.current) return;
@@ -69,38 +72,83 @@ export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
 
   const selected = generated.findIndex((preset) => JSON.stringify(preset) === JSON.stringify(draft.identity));
   const isRealPreset = JSON.stringify(draft.identity) === JSON.stringify(REAL_PRESET);
-  return <div className={styles.labelRow}>
-    <label htmlFor={id}>{t("Start from a preset")}</label>
-    <div className={styles.inputAction}>
-      <select id={id} value={isRealPreset ? "real" : selected >= 0 ? `api:${selected}` : ""}
-        onChange={(event) => {
-          const value = event.target.value;
-          if (value === "real") {
-            onChange(createIdentityDraftState(structuredClone(REAL_PRESET)));
-          } else if (value.startsWith("api:")) {
-            const preset = generated[Number(value.slice(4))];
-            if (preset) onChange(createIdentityDraftState(preset));
-          }
-        }}>
-        <option value="">{t("Custom")}</option>
-        <option value="real">{t("Real")}</option>
-        {generated.length > 0 ? <optgroup label={t("Generated from API")}>
-          {generated.map((preset, index) => <option key={index} value={`api:${index}`}>{preset.label}</option>)}
-        </optgroup> : null}
-      </select>
-      <button type="button" className={styles.refreshButton} disabled={busy || presets.length === 0} aria-label={t("Refresh presets")} aria-describedby={`${id}-hint`} onClick={() => void refresh()}>
-        <span aria-hidden="true">↻</span> {busy ? t("Refreshing…") : t("Refresh")}
-      </button>
-      <button type="button" className={styles.infoButton} aria-label={t("Preset information")} aria-expanded={showInfo}
-        aria-controls={`${id}-info`} title={t("Preset information")} onClick={() => setShowInfo(!showInfo)}>ⓘ</button>
-    </div>
-    <div id={`${id}-info`} className={styles.presetInfo} hidden={!showInfo}>
-    <p className={styles.hint}>{t("A preset sets every surface at once. Editing any field afterwards makes the identity custom.")}</p>
+  return (
+    <div className={styles.labelRow}>
+      <label htmlFor={id}>{t("Start from a preset")}</label>
+      <div className={styles.inputAction}>
+        <select
+          id={id}
+          value={isRealPreset ? "real" : selected >= 0 ? `api:${selected}` : ""}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value === "real") {
+              onChange(createIdentityDraftState(structuredClone(REAL_PRESET)));
+            } else if (value.startsWith("api:")) {
+              const preset = generated[Number(value.slice(4))];
+              if (preset) onChange(createIdentityDraftState(preset));
+            }
+          }}
+        >
+          <option value="">{t("Custom")}</option>
+          <option value="real">{t("Real")}</option>
+          {generated.length > 0 ? (
+            <optgroup label={t("Generated from API")}>
+              {generated.map((preset, index) => (
+                <option key={index} value={`api:${index}`}>
+                  {preset.label}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+        </select>
+        <button
+          type="button"
+          className={styles.refreshButton}
+          disabled={busy || presets.length === 0}
+          aria-label={t("Refresh presets")}
+          aria-describedby={`${id}-hint`}
+          onClick={() => void refresh()}
+        >
+          <span aria-hidden="true">↻</span> {busy ? t("Refreshing…") : t("Refresh")}
+        </button>
+        <button
+          type="button"
+          className={styles.infoButton}
+          aria-label={t("Preset information")}
+          aria-expanded={showInfo}
+          aria-controls={`${id}-info`}
+          title={t("Preset information")}
+          onClick={() => setShowInfo(!showInfo)}
+        >
+          ⓘ
+        </button>
+      </div>
+      <div id={`${id}-info`} className={styles.presetInfo} hidden={!showInfo}>
+        <p className={styles.hint}>
+          {t("A preset sets every surface at once. Editing any field afterwards makes the identity custom.")}
+        </p>
 
-    <p className={styles.hint}>{t("Real disables masking on every surface, restores real WebRTC and asks for geolocation permission. Changes stay in the draft until Save.")}</p>
-    <p className={styles.hint} id={`${id}-hint`}>{t("randomapi.dev: direct connection, not the profile proxy. Sends only OS/browser filters, no profile configuration or cookies; the provider sees your IP. Refresh does not change your draft.")}</p>
-    <p className={styles.hint}>{t("API supplies random Chrome desktop user agents, not necessarily the latest Chrome. Other settings come from OS-matched local templates. This does not update Chromium; review consistency warnings before saving.")}</p>
+        <p className={styles.hint}>
+          {t(
+            "Real disables masking on every surface, restores real WebRTC and asks for geolocation permission. Changes stay in the draft until Save.",
+          )}
+        </p>
+        <p className={styles.hint} id={`${id}-hint`}>
+          {t(
+            "randomapi.dev: direct connection, not the profile proxy. Sends only OS/browser filters, no profile configuration or cookies; the provider sees your IP. Refresh does not change your draft.",
+          )}
+        </p>
+        <p className={styles.hint}>
+          {t(
+            "API supplies random Chrome desktop user agents, not necessarily the latest Chrome. Other settings come from OS-matched local templates. This does not update Chromium; review consistency warnings before saving.",
+          )}
+        </p>
+      </div>
+      {message ? (
+        <p className={failed ? styles.error : styles.hint} role={failed ? "alert" : "status"}>
+          {message}
+        </p>
+      ) : null}
     </div>
-    {message ? <p className={failed ? styles.error : styles.hint} role={failed ? "alert" : "status"}>{message}</p> : null}
-  </div>;
+  );
 }

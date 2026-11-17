@@ -34,6 +34,8 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <DesktopSession><App /></DesktopSession>
+    <DesktopSession>
+      <App />
+    </DesktopSession>
   </StrictMode>,
 );

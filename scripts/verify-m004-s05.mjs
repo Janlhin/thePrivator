@@ -37,11 +37,7 @@ import {
   safeErrorForPublic,
   waitForLeaseStatus,
 } from "./verify-m004-s03.mjs";
-import {
-  assertS04DomainFailure,
-  createS04RedactionContext,
-  findS04ForbiddenPublicMarker,
-} from "./verify-m004-s04.mjs";
+import { assertS04DomainFailure, createS04RedactionContext, findS04ForbiddenPublicMarker } from "./verify-m004-s04.mjs";
 import {
   assertBuildArtifactsPresent,
   assertFreshBuildArtifacts,
@@ -221,15 +217,31 @@ const S05_FORBIDDEN_TEXT_PATTERNS = Object.freeze([
   { markerClass: "proxy_bypass", pattern: /--proxy-bypass-list(?:=|\s+)/i },
   { markerClass: "direct_fallback", pattern: /direct:\/\//i },
   { markerClass: "credential_proxy_uri", pattern: /(?:https?|socks4|socks5):\/\/[^\s"'/:@]+:[^\s"'/:@]+@/i },
-  { markerClass: "handoff_field", pattern: /\b(?:handoff|connect-over-cdp|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i },
-  { markerClass: "debug_endpoint", pattern: /\b(?:DevToolsActivePort|debugPort|devtoolsPort|remoteDebuggingPort|remote-debugging|--remote-debugging-port|cdp:\/\/|cdpEndpoint|cdpPort)\b/i },
+  {
+    markerClass: "handoff_field",
+    pattern: /\b(?:handoff|connect-over-cdp|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i,
+  },
+  {
+    markerClass: "debug_endpoint",
+    pattern:
+      /\b(?:DevToolsActivePort|debugPort|devtoolsPort|remoteDebuggingPort|remote-debugging|--remote-debugging-port|cdp:\/\/|cdpEndpoint|cdpPort)\b/i,
+  },
   { markerClass: "ws_endpoint", pattern: /wss?:\/\/[^\s"']+/i },
-  { markerClass: "profile_private_path", pattern: /\b(?:profile-store|profiles\.json|user-data|app-data-root|XDG_DATA_HOME|APPDATA|LOCALAPPDATA|Application Support)\b/i },
+  {
+    markerClass: "profile_private_path",
+    pattern:
+      /\b(?:profile-store|profiles\.json|user-data|app-data-root|XDG_DATA_HOME|APPDATA|LOCALAPPDATA|Application Support)\b/i,
+  },
   { markerClass: "process_config", pattern: /\b(?:argv|args|env|NODE_OPTIONS|THEPRIVATOR_[A-Z0-9_]+)\b/i },
-  { markerClass: "raw_diag", pattern: /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|rawBody|rawPayload|Traceback|traceback|stack trace)\b/i },
+  {
+    markerClass: "raw_diag",
+    pattern:
+      /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|rawBody|rawPayload|Traceback|traceback|stack trace)\b/i,
+  },
 ]);
 
-const S05_FORBIDDEN_KEY_PATTERN = /^(?:authorization|bearer|token|apiToken|copiedToken|automationToken|credentials?|username|password|secret|proxyAuthorization|proxyServer|proxyBypass|leaseId|leaseIds|handoff|handoffEndpoint|handoffEndpoints|endpoint|baseUrl|apiBaseUrl|loopbackBaseUrl|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|devtoolsPort|remoteDebuggingPort|cdpEndpoint|cdpPort|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|stack|traceback|argv|args|env|storeRoot|appDataRoot|profileRoot|profileDir|userDataDir|smokeRoot|runtimePath|paths?|targetUrl|proxyAuthority)$/i;
+const S05_FORBIDDEN_KEY_PATTERN =
+  /^(?:authorization|bearer|token|apiToken|copiedToken|automationToken|credentials?|username|password|secret|proxyAuthorization|proxyServer|proxyBypass|leaseId|leaseIds|handoff|handoffEndpoint|handoffEndpoints|endpoint|baseUrl|apiBaseUrl|loopbackBaseUrl|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|devtoolsPort|remoteDebuggingPort|cdpEndpoint|cdpPort|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|stack|traceback|argv|args|env|storeRoot|appDataRoot|profileRoot|profileDir|userDataDir|smokeRoot|runtimePath|paths?|targetUrl|proxyAuthority)$/i;
 const SAFE_STATUS_PATTERN = /^[A-Za-z][A-Za-z0-9_.:-]{0,96}$/;
 const SAFE_CODE_PATTERN = /^[A-Z][A-Z0-9_:-]{1,120}$/;
 const SAFE_REQUEST_ID_PATTERN = /^(?:automation|bridge|sidecar|ui)-[A-Za-z0-9_.:-]{4,160}$/;
@@ -304,7 +316,17 @@ function createContextTracker(rootDir) {
   let context = createS05RedactionContext(privateValues);
 
   const update = (updates = {}) => {
-    for (const key of ["leaseIds", "handoffEndpoints", "proxyAuthorities", "targetUrls", "smokeRoots", "appDataRoots", "profileRoots", "userDataRoots", "extraSensitiveValues"]) {
+    for (const key of [
+      "leaseIds",
+      "handoffEndpoints",
+      "proxyAuthorities",
+      "targetUrls",
+      "smokeRoots",
+      "appDataRoots",
+      "profileRoots",
+      "userDataRoots",
+      "extraSensitiveValues",
+    ]) {
       if (updates[key]) {
         privateValues[key] = uniqueStrings([...privateValues[key], ...updates[key]]);
       }
@@ -371,7 +393,10 @@ function xpathLiteral(value) {
   if (!text.includes('"')) {
     return `"${text}"`;
   }
-  return `concat(${text.split("'").map((part) => `'${part}'`).join(', "\'", ')})`;
+  return `concat(${text
+    .split("'")
+    .map((part) => `'${part}'`)
+    .join(', "\'", ')})`;
 }
 
 function safeUrlForValidation(value, phase) {
@@ -391,11 +416,15 @@ function safeUrlForValidation(value, phase) {
 
 function safePortMetric(value, expectedPort, phase) {
   const port = Number.parseInt(String(value ?? ""), 10);
-  assert(Number.isInteger(port) && port === expectedPort, "Automation API UI port metric did not match the loopback URL.", {
-    code: "S05_API_PORT_MISMATCH",
-    phase,
-    portPresent: Number.isInteger(port),
-  });
+  assert(
+    Number.isInteger(port) && port === expectedPort,
+    "Automation API UI port metric did not match the loopback URL.",
+    {
+      code: "S05_API_PORT_MISMATCH",
+      phase,
+      portPresent: Number.isInteger(port),
+    },
+  );
   return port;
 }
 
@@ -404,7 +433,11 @@ function assertNoUnsafeAutomationApiVisibleText(value, phase = "packaged-api-sta
   const patterns = [
     { code: "S05_VISIBLE_TOKEN_MARKER", pattern: /tpapi-[A-Za-z0-9._:-]{8,}/i },
     { code: "S05_VISIBLE_AUTH_MARKER", pattern: /\b(?:Authorization|Bearer)\b/i },
-    { code: "S05_VISIBLE_CDP_MARKER", pattern: /\b(?:DevToolsActivePort|debugPort|remote-debugging|cdp:\/\/|webSocketDebuggerUrl|browserWSEndpoint|wsEndpoint)\b|wss?:\/\/[^\s"']+/i },
+    {
+      code: "S05_VISIBLE_CDP_MARKER",
+      pattern:
+        /\b(?:DevToolsActivePort|debugPort|remote-debugging|cdp:\/\/|webSocketDebuggerUrl|browserWSEndpoint|wsEndpoint)\b|wss?:\/\/[^\s"']+/i,
+    },
   ];
   for (const { code, pattern } of patterns) {
     if (pattern.test(text)) {
@@ -428,21 +461,29 @@ async function visibleText(driver) {
 }
 
 async function failS05Ui(driver, runtime, message, details = {}) {
-  const selectorContext = driver && runtime?.rootDir && runtime?.smokeContext
-    ? await safeSelectorContext(driver, runtime.rootDir, runtime.smokeContext)
-    : undefined;
-  fail(message, compactObject({
-    code: details.code ?? "S05_UI_CONTRACT_DRIFT",
-    phase: details.phase,
-    action: details.action,
-    selectorContext,
-    ...details,
-  }));
+  const selectorContext =
+    driver && runtime?.rootDir && runtime?.smokeContext
+      ? await safeSelectorContext(driver, runtime.rootDir, runtime.smokeContext)
+      : undefined;
+  fail(
+    message,
+    compactObject({
+      code: details.code ?? "S05_UI_CONTRACT_DRIFT",
+      phase: details.phase,
+      action: details.action,
+      selectorContext,
+      ...details,
+    }),
+  );
 }
 
 async function clickAutomationApiButton(driver, runtime, buttonText, phase) {
-  const selector = By.xpath(`//section[@aria-label='Automation endpoint']//div[@aria-label='Automation endpoint actions']//button[normalize-space()=${xpathLiteral(buttonText)}]`);
-  const button = await waitForVisibleElement(driver, selector, runtime, `${buttonText} Automation API button`, { step: phase });
+  const selector = By.xpath(
+    `//section[@aria-label='Automation endpoint']//div[@aria-label='Automation endpoint actions']//button[normalize-space()=${xpathLiteral(buttonText)}]`,
+  );
+  const button = await waitForVisibleElement(driver, selector, runtime, `${buttonText} Automation API button`, {
+    step: phase,
+  });
   try {
     if (!(await button.isEnabled())) {
       await failS05Ui(driver, runtime, `Automation API ${buttonText} button was disabled.`, {
@@ -467,8 +508,12 @@ async function clickAutomationApiButton(driver, runtime, buttonText, phase) {
 }
 
 async function assertCopyTokenDisabledBeforeStart(driver, runtime) {
-  const selector = By.xpath("//section[@aria-label='Automation endpoint']//button[normalize-space()='Copy access token']");
-  const button = await waitForVisibleElement(driver, selector, runtime, "Copy access token button", { step: "packaged-token-copy-disabled" });
+  const selector = By.xpath(
+    "//section[@aria-label='Automation endpoint']//button[normalize-space()='Copy access token']",
+  );
+  const button = await waitForVisibleElement(driver, selector, runtime, "Copy access token button", {
+    step: "packaged-token-copy-disabled",
+  });
   const enabled = await button.isEnabled();
   assert(!enabled, "Automation API copy access token button was enabled before the API started.", {
     code: "S05_COPY_ENABLED_BEFORE_START",
@@ -488,13 +533,17 @@ export function validateAutomationApiStatusMetrics(metrics = {}, { phase = "pack
   });
   const { apiBaseUrl, port } = safeUrlForValidation(metrics.loopbackUrl, phase);
   safePortMetric(metrics.port, port, phase);
-  const scope = String(metrics.scope ?? "").trim().toLowerCase();
+  const scope = String(metrics.scope ?? "")
+    .trim()
+    .toLowerCase();
   assert(scope === "loopback", "Automation API UI scope metric was not loopback.", {
     code: "S05_API_SCOPE_MISMATCH",
     phase,
     scopeObserved: scope ? "present" : "missing",
   });
-  const copyAvailable = String(metrics.copyAvailable ?? "").trim().toLowerCase();
+  const copyAvailable = String(metrics.copyAvailable ?? "")
+    .trim()
+    .toLowerCase();
   assert(copyAvailable === "yes", "Automation API UI copy availability metric was not enabled.", {
     code: "S05_API_COPY_UNAVAILABLE",
     phase,
@@ -525,9 +574,27 @@ async function waitForAutomationApiRunningMetrics(driver, runtime, { timeoutMs =
       const metrics = validateAutomationApiStatusMetrics(lastMetrics);
       const text = await visibleText(driver);
       assertNoUnsafeAutomationApiVisibleText(text, "packaged-api-status");
-      return { metrics, publicMetrics: { lifecycle: metrics.lifecycle, port: "loopback-port-present", scope: metrics.scope, copyAvailable: metrics.copyAvailable } };
+      return {
+        metrics,
+        publicMetrics: {
+          lifecycle: metrics.lifecycle,
+          port: "loopback-port-present",
+          scope: metrics.scope,
+          copyAvailable: metrics.copyAvailable,
+        },
+      };
     } catch (error) {
-      if (error instanceof VerifyFailure && ["S05_API_URL_MALFORMED", "S05_API_PORT_MALFORMED", "S05_API_PORT_MISMATCH", "S05_API_SCOPE_MISMATCH", "S05_API_COPY_UNAVAILABLE", "S05_API_LIFECYCLE_NOT_RUNNING"].includes(error.details?.code)) {
+      if (
+        error instanceof VerifyFailure &&
+        [
+          "S05_API_URL_MALFORMED",
+          "S05_API_PORT_MALFORMED",
+          "S05_API_PORT_MISMATCH",
+          "S05_API_SCOPE_MISMATCH",
+          "S05_API_COPY_UNAVAILABLE",
+          "S05_API_LIFECYCLE_NOT_RUNNING",
+        ].includes(error.details?.code)
+      ) {
         await sleep(UI_POLL_MS);
         continue;
       }
@@ -707,7 +774,12 @@ export function createS05RedactionContext({
   exactValues = addExactValues({ exactValues }, "proxy_authority", proxyAuthorities);
   exactValues = addExactValues({ exactValues }, "target_url", targetUrls);
   exactValues = addExactValues({ exactValues }, "smoke_root", smokeRoots);
-  exactValues = addExactValues({ exactValues }, "app_root", [storeRoot, ...appDataRoots, ...profileRoots, ...userDataRoots]);
+  exactValues = addExactValues({ exactValues }, "app_root", [
+    storeRoot,
+    ...appDataRoots,
+    ...profileRoots,
+    ...userDataRoots,
+  ]);
   exactValues = addExactValues({ exactValues }, "extra_value", extraSensitiveValues);
   exactValues = exactValues.sort((left, right) => right.value.length - left.value.length);
 
@@ -715,10 +787,7 @@ export function createS05RedactionContext({
     ...context,
     rootDir,
     exactValues,
-    forbiddenPatterns: [
-      ...(context.forbiddenPatterns ?? []),
-      ...S05_FORBIDDEN_TEXT_PATTERNS,
-    ],
+    forbiddenPatterns: [...(context.forbiddenPatterns ?? []), ...S05_FORBIDDEN_TEXT_PATTERNS],
   };
 }
 
@@ -735,7 +804,8 @@ function classifyS05ForbiddenKey(key) {
   if (/handoff|endpoint|baseUrl|webSocket|wsEndpoint/i.test(key)) return "lease_endpoint";
   if (/debug|remoteDebugging|cdp/i.test(key)) return "debug_endpoint";
   if (/stdout|stderr|raw|stack|traceback/i.test(key)) return "raw_diag";
-  if (/storeRoot|appDataRoot|userDataDir|profileDir|profileRoot|smokeRoot|runtimePath|path/i.test(key)) return "profile_private_path";
+  if (/storeRoot|appDataRoot|userDataDir|profileDir|profileRoot|smokeRoot|runtimePath|path/i.test(key))
+    return "profile_private_path";
   if (/argv|args|env/i.test(key)) return "process_config";
   return "unsafe_field";
 }
@@ -756,7 +826,12 @@ function safeFieldPath(path, keyOrIndex) {
   return /^[A-Za-z_$][\w$]*$/.test(segment) ? `${path}.${segment}` : `${path}[${JSON.stringify(segment)}]`;
 }
 
-export function findS05ForbiddenPublicMarker(value, context = createS05RedactionContext(), path = "$", state = { count: 0 }) {
+export function findS05ForbiddenPublicMarker(
+  value,
+  context = createS05RedactionContext(),
+  path = "$",
+  state = { count: 0 },
+) {
   if (path === "$") {
     const s04Marker = findS04ForbiddenPublicMarker(value, context, path, { count: 0 });
     if (s04Marker) {
@@ -801,7 +876,11 @@ export function findS05ForbiddenPublicMarker(value, context = createS05Redaction
 
   for (const [key, nested] of Object.entries(value)) {
     if (!isRedactedPlaceholderKey(key) && S05_FORBIDDEN_KEY_PATTERN.test(key)) {
-      return { markerClass: classifyS05ForbiddenKey(key), fieldPath: safeFieldPath(path, key), reason: "forbidden S05 key" };
+      return {
+        markerClass: classifyS05ForbiddenKey(key),
+        fieldPath: safeFieldPath(path, key),
+        reason: "forbidden S05 key",
+      };
     }
     const nestedMarker = findS05ForbiddenPublicMarker(nested, context, safeFieldPath(path, key), state);
     if (nestedMarker) return nestedMarker;
@@ -849,7 +928,10 @@ export function redactS05(value, context = createS05RedactionContext()) {
 
 export function safeS05ErrorForPublic(error, context = createS05RedactionContext()) {
   if (error?.name === "VerifyFailure" && isPlainObject(error.details)) {
-    return redactS05({ name: "VerifyFailure", message: error.message ?? "Verifier failure.", details: error.details }, context);
+    return redactS05(
+      { name: "VerifyFailure", message: error.message ?? "Verifier failure.", details: error.details },
+      context,
+    );
   }
   return redactS05(safeErrorForPublic(error), context);
 }
@@ -902,7 +984,8 @@ function summarizeHttpResult(value) {
 
 function summarizeFailureResult(value) {
   if (!isPlainObject(value)) return undefined;
-  const caseName = typeof value.caseName === "string" && SAFE_CHECK_NAME_PATTERN.test(value.caseName) ? value.caseName : undefined;
+  const caseName =
+    typeof value.caseName === "string" && SAFE_CHECK_NAME_PATTERN.test(value.caseName) ? value.caseName : undefined;
   return compactObject({
     caseName,
     statusCode: Number.isInteger(value.statusCode) ? value.statusCode : undefined,
@@ -917,7 +1000,8 @@ function summarizeCheck(value) {
   if (!isPlainObject(value)) {
     return { name: "malformed-check", status: "fail", code: "S05_CHECK_MALFORMED" };
   }
-  const name = typeof value.name === "string" && SAFE_CHECK_NAME_PATTERN.test(value.name) ? value.name : "unnamed-check";
+  const name =
+    typeof value.name === "string" && SAFE_CHECK_NAME_PATTERN.test(value.name) ? value.name : "unnamed-check";
   return compactObject({
     name,
     status: safeStatus(value.status, "unknown"),
@@ -993,30 +1077,35 @@ function summarizeDiagnosticsProof(value) {
     scanned: true,
     requiredMethodCount: Array.isArray(value.requiredMethods) ? value.requiredMethods.length : undefined,
     leaseFailureMethodCount: Array.isArray(value.leaseFailureMethods) ? value.leaseFailureMethods.length : undefined,
-    typedFailureCount: Array.isArray(value.typedFailures) ? value.typedFailures.length : safeCount(value.typedFailureCount),
+    typedFailureCount: Array.isArray(value.typedFailures)
+      ? value.typedFailures.length
+      : safeCount(value.typedFailureCount),
     totalRowsRead: safeCount(value.totalRowsRead),
     validRows: safeCount(value.validRows),
     malformedRows: safeCount(value.malformedRows),
   });
 }
 
-export function buildS05FinalSummary({
-  status = "needs-runtime",
-  mode = "contract",
-  packageProof = {},
-  ui = {},
-  api = {},
-  http = {},
-  failureMatrix = [],
-  leaseFlow = {},
-  playwright = {},
-  profileStore = {},
-  diagnostics = {},
-  cleanup = {},
-  redaction = {},
-  error = null,
-  checks = STEP_RESULTS,
-} = {}, context = createS05RedactionContext()) {
+export function buildS05FinalSummary(
+  {
+    status = "needs-runtime",
+    mode = "contract",
+    packageProof = {},
+    ui = {},
+    api = {},
+    http = {},
+    failureMatrix = [],
+    leaseFlow = {},
+    playwright = {},
+    profileStore = {},
+    diagnostics = {},
+    cleanup = {},
+    redaction = {},
+    error = null,
+    checks = STEP_RESULTS,
+  } = {},
+  context = createS05RedactionContext(),
+) {
   const summary = compactDeep({
     event: VERIFY_EVENT,
     status: safeStatus(status, "needs-runtime"),
@@ -1032,7 +1121,8 @@ export function buildS05FinalSummary({
     },
     package: {
       buildFresh: packageProof.buildFresh === undefined ? undefined : safeBoolean(packageProof.buildFresh),
-      artifactsChecked: packageProof.artifactsChecked === undefined ? undefined : safeBoolean(packageProof.artifactsChecked),
+      artifactsChecked:
+        packageProof.artifactsChecked === undefined ? undefined : safeBoolean(packageProof.artifactsChecked),
       artifactCount: safeCount(packageProof.artifactCount),
       preflightStatus: safeStatus(packageProof.preflightStatus),
     },
@@ -1127,7 +1217,13 @@ function runStep(name, action, contextOrProvider = createS05RedactionContext()) 
     recordStep(name, "pass", started, publicResult, resolveStepContext(contextOrProvider));
     return returnValue;
   } catch (error) {
-    recordStep(name, "fail", started, safeS05ErrorForPublic(error, resolveStepContext(contextOrProvider)), resolveStepContext(contextOrProvider));
+    recordStep(
+      name,
+      "fail",
+      started,
+      safeS05ErrorForPublic(error, resolveStepContext(contextOrProvider)),
+      resolveStepContext(contextOrProvider),
+    );
     throw error;
   }
 }
@@ -1139,13 +1235,27 @@ async function runStepAsync(name, action, contextOrProvider = createS05Redaction
     recordStep(name, "pass", started, publicResult, resolveStepContext(contextOrProvider));
     return returnValue;
   } catch (error) {
-    recordStep(name, "fail", started, safeS05ErrorForPublic(error, resolveStepContext(contextOrProvider)), resolveStepContext(contextOrProvider));
+    recordStep(
+      name,
+      "fail",
+      started,
+      safeS05ErrorForPublic(error, resolveStepContext(contextOrProvider)),
+      resolveStepContext(contextOrProvider),
+    );
     throw error;
   }
 }
 
 export function parseArgs(argv = []) {
-  const allowed = new Set(["--contracts-only", "--preflight-only", "--strict-preflight", "--skip-build", "--ui-only", "--lifecycle-only", "--help"]);
+  const allowed = new Set([
+    "--contracts-only",
+    "--preflight-only",
+    "--strict-preflight",
+    "--skip-build",
+    "--ui-only",
+    "--lifecycle-only",
+    "--help",
+  ]);
   const unknown = argv.filter((arg) => String(arg).startsWith("-") && !allowed.has(arg));
   assert(unknown.length === 0, "verify:m004:s05 received an unsupported argument.", {
     code: "S05_UNKNOWN_ARGUMENT",
@@ -1199,40 +1309,74 @@ function runTauriBuildCommand(rootDir, context) {
 function runPackageProof({ rootDir, args, tracker }) {
   const getContext = tracker.current;
   const platform = process.platform;
-  const targetTriple = runStep("package-target-triple", () => ({ value: readTargetTriple(rootDir), log: { targetTriple: "detected" } }), getContext);
-  runStep("package-tauri-guardrails", () => ({ value: assertTauriGuardrails({ rootDir, platform }), log: { externalBin: "fixed-sidecar", capability: "fixed-sidecar-only" } }), getContext);
-  const preflight = runStep("package-preflight", () => {
-    const result = assertWebDriverPreflight({ rootDir, platform, env: process.env, strict: true });
-    return {
-      value: result,
-      log: {
-        strict: result.strict,
-        missingPrerequisites: result.missing.map((item) => item.name),
-        display: result.display,
-        chromium: result.chromium?.name ? { name: result.chromium.name, source: result.chromium.source } : result.chromium,
-      },
-    };
-  }, getContext);
+  const targetTriple = runStep(
+    "package-target-triple",
+    () => ({ value: readTargetTriple(rootDir), log: { targetTriple: "detected" } }),
+    getContext,
+  );
+  runStep(
+    "package-tauri-guardrails",
+    () => ({
+      value: assertTauriGuardrails({ rootDir, platform }),
+      log: { externalBin: "fixed-sidecar", capability: "fixed-sidecar-only" },
+    }),
+    getContext,
+  );
+  const preflight = runStep(
+    "package-preflight",
+    () => {
+      const result = assertWebDriverPreflight({ rootDir, platform, env: process.env, strict: true });
+      return {
+        value: result,
+        log: {
+          strict: result.strict,
+          missingPrerequisites: result.missing.map((item) => item.name),
+          display: result.display,
+          chromium: result.chromium?.name
+            ? { name: result.chromium.name, source: result.chromium.source }
+            : result.chromium,
+        },
+      };
+    },
+    getContext,
+  );
 
   let proof;
   if (args.skipBuild) {
-    proof = runStep("package-artifacts-present", () => {
-      const artifacts = assertBuildArtifactsPresent({ rootDir, platform, targetTriple });
-      return { value: artifacts, log: summarizePackageProofForPublic(artifacts, { buildFresh: false, preflightStatus: "pass" }) };
-    }, getContext);
+    proof = runStep(
+      "package-artifacts-present",
+      () => {
+        const artifacts = assertBuildArtifactsPresent({ rootDir, platform, targetTriple });
+        return {
+          value: artifacts,
+          log: summarizePackageProofForPublic(artifacts, { buildFresh: false, preflightStatus: "pass" }),
+        };
+      },
+      getContext,
+    );
   } else {
     const buildStartedAt = new Date(Date.now() - FRESHNESS_SKEW_MS);
     runStep("package-build-window", () => ({ buildStartedAt: buildStartedAt.toISOString() }), getContext);
     runStep("package-build", () => runTauriBuildCommand(rootDir, getContext()), getContext);
-    proof = runStep("package-artifacts-fresh", () => {
-      const artifacts = assertFreshBuildArtifacts({ rootDir, platform, targetTriple, buildStartedAt });
-      return { value: artifacts, log: summarizePackageProofForPublic(artifacts, { buildFresh: true, preflightStatus: "pass" }) };
-    }, getContext);
+    proof = runStep(
+      "package-artifacts-fresh",
+      () => {
+        const artifacts = assertFreshBuildArtifacts({ rootDir, platform, targetTriple, buildStartedAt });
+        return {
+          value: artifacts,
+          log: summarizePackageProofForPublic(artifacts, { buildFresh: true, preflightStatus: "pass" }),
+        };
+      },
+      getContext,
+    );
   }
 
   return {
     proof,
-    packageProof: summarizePackageProofForPublic(proof, { buildFresh: !args.skipBuild, preflightStatus: preflight.missing.length === 0 ? "pass" : "advisory" }),
+    packageProof: summarizePackageProofForPublic(proof, {
+      buildFresh: !args.skipBuild,
+      preflightStatus: preflight.missing.length === 0 ? "pass" : "advisory",
+    }),
   };
 }
 
@@ -1242,7 +1386,10 @@ async function exerciseProtectedDiscovery({ baseUrl, token, profileName, context
   const healthResponse = await requestJson(`${baseUrl}/health`, { timeoutMs: HTTP_TIMEOUT_MS, phase: "api-health" });
   http.health = assertHealthWithHeader(healthResponse, context);
 
-  const missingAuth = await requestJson(`${baseUrl}/v1/status`, { timeoutMs: HTTP_TIMEOUT_MS, phase: "api-auth-missing" });
+  const missingAuth = await requestJson(`${baseUrl}/v1/status`, {
+    timeoutMs: HTTP_TIMEOUT_MS,
+    phase: "api-auth-missing",
+  });
   const missingResult = assertProtectedAuthErrorResponse({
     ...missingAuth,
     expectedCode: AUTOMATION_AUTH_REQUIRED,
@@ -1261,15 +1408,37 @@ async function exerciseProtectedDiscovery({ baseUrl, token, profileName, context
     phase: "api-auth-invalid",
   });
   http.auth = [
-    { statusCode: missingResult.statusCode, errorCode: missingResult.errorCode, requestId: missingResult.requestId, detailRef: missingResult.detailRef },
-    { statusCode: invalidResult.statusCode, errorCode: invalidResult.errorCode, requestId: invalidResult.requestId, detailRef: invalidResult.detailRef },
+    {
+      statusCode: missingResult.statusCode,
+      errorCode: missingResult.errorCode,
+      requestId: missingResult.requestId,
+      detailRef: missingResult.detailRef,
+    },
+    {
+      statusCode: invalidResult.statusCode,
+      errorCode: invalidResult.errorCode,
+      requestId: invalidResult.requestId,
+      detailRef: invalidResult.detailRef,
+    },
   ];
 
-  const validStatusResponse = await requestJson(`${baseUrl}/v1/status`, { token, timeoutMs: HTTP_TIMEOUT_MS, phase: "api-status" });
+  const validStatusResponse = await requestJson(`${baseUrl}/v1/status`, {
+    token,
+    timeoutMs: HTTP_TIMEOUT_MS,
+    phase: "api-status",
+  });
   const statusPort = Number(new URL(baseUrl).port);
-  http.status = assertStatusResponse({ ...validStatusResponse, context, readiness: { host: "127.0.0.1", port: statusPort } });
+  http.status = assertStatusResponse({
+    ...validStatusResponse,
+    context,
+    readiness: { host: "127.0.0.1", port: statusPort },
+  });
 
-  const profilesResponse = await requestJson(`${baseUrl}/v1/profiles`, { token, timeoutMs: HTTP_TIMEOUT_MS, phase: "api-profiles" });
+  const profilesResponse = await requestJson(`${baseUrl}/v1/profiles`, {
+    token,
+    timeoutMs: HTTP_TIMEOUT_MS,
+    phase: "api-profiles",
+  });
   const discoveredProfile = assertProfileDiscoveredByName(profilesResponse.body, profileName, "api-profiles");
   const discoveredProfileId = String(discoveredProfile.id);
   assert(isPlainObject(discoveredProfile.identity), "Automation API discovered profile identity was missing.", {
@@ -1283,11 +1452,14 @@ async function exerciseProtectedDiscovery({ baseUrl, token, profileName, context
     phase: "api-profiles",
   });
 
-  const selectedResponse = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(discoveredProfileId)}/status`, {
-    token,
-    timeoutMs: HTTP_TIMEOUT_MS,
-    phase: "api-profile-status",
-  });
+  const selectedResponse = await requestJson(
+    `${baseUrl}/v1/profiles/${encodeURIComponent(discoveredProfileId)}/status`,
+    {
+      token,
+      timeoutMs: HTTP_TIMEOUT_MS,
+      phase: "api-profile-status",
+    },
+  );
   http.profileStatus = assertSelectedProfileStatusResponse({
     ...selectedResponse,
     expectedProfileId: discoveredProfileId,
@@ -1296,7 +1468,11 @@ async function exerciseProtectedDiscovery({ baseUrl, token, profileName, context
     phase: "api-profile-status",
   });
 
-  const runtimeResponse = await requestJson(`${baseUrl}/v1/runtime/status`, { token, timeoutMs: HTTP_TIMEOUT_MS, phase: "api-runtime-status" });
+  const runtimeResponse = await requestJson(`${baseUrl}/v1/runtime/status`, {
+    token,
+    timeoutMs: HTTP_TIMEOUT_MS,
+    phase: "api-runtime-status",
+  });
   http.runtime = assertRuntimeStatusResponse({
     ...runtimeResponse,
     expectedRunningProfileIds: [],
@@ -1322,7 +1498,18 @@ function failureMatrixEntry(caseName, result) {
   };
 }
 
-async function expectLeaseDomainFailure({ baseUrl, token, path, method = "GET", body, expectedCode, expectedStatusCode, phase, caseName, context }) {
+async function expectLeaseDomainFailure({
+  baseUrl,
+  token,
+  path,
+  method = "GET",
+  body,
+  expectedCode,
+  expectedStatusCode,
+  phase,
+  caseName,
+  context,
+}) {
   const response = await requestJson(`${baseUrl}${path}`, {
     method,
     token,
@@ -1383,15 +1570,19 @@ async function attachNavigateAndAssertPackagedLease({ endpoint, targetUrl, ident
     try {
       browser = await playwrightChromium.connectOverCDP(endpoint, { timeout: PLAYWRIGHT_TIMEOUT_MS });
       const contexts = browser.contexts();
-      const browserContext = contexts[0] ?? await browser.newContext();
+      const browserContext = contexts[0] ?? (await browser.newContext());
       page = await browserContext.newPage();
       await page.goto(targetUrl, { waitUntil: "load", timeout: NAVIGATION_TIMEOUT_MS });
       const bodyText = await page.locator("body").textContent({ timeout: 5_000 });
-      assert(typeof bodyText === "string" && bodyText.toLowerCase().includes("theprivator proxy proof"), "Playwright page did not observe the proxy proof target marker.", {
-        code: "S05_PLAYWRIGHT_TARGET_MARKER_MISSING",
-        phase: "playwright-navigation",
-        markerObserved: false,
-      });
+      assert(
+        typeof bodyText === "string" && bodyText.toLowerCase().includes("theprivator proxy proof"),
+        "Playwright page did not observe the proxy proof target marker.",
+        {
+          code: "S05_PLAYWRIGHT_TARGET_MARKER_MISSING",
+          phase: "playwright-navigation",
+          markerObserved: false,
+        },
+      );
       const proof = await page.evaluate(() => {
         const canvas = document.createElement("canvas");
         const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
@@ -1484,7 +1675,11 @@ async function waitForProxyObservation(fixture, { timeoutMs = PROXY_OBSERVATION_
 }
 
 async function assertRuntimeStoppedAfterLease({ baseUrl, token, profileId, context, phase }) {
-  const runtimeResponse = await requestJson(`${baseUrl}/v1/runtime/status`, { token, timeoutMs: HTTP_TIMEOUT_MS, phase });
+  const runtimeResponse = await requestJson(`${baseUrl}/v1/runtime/status`, {
+    token,
+    timeoutMs: HTTP_TIMEOUT_MS,
+    phase,
+  });
   const runtime = assertRuntimeStatusResponse({
     ...runtimeResponse,
     expectedRunningProfileIds: [],
@@ -1503,12 +1698,16 @@ async function assertRuntimeStoppedAfterLease({ baseUrl, token, profileId, conte
     context,
     phase: `${phase}-profile`,
   });
-  assert(runtime.runningCount === 0 && selected.runtimeStatus === "stopped", "Automation runtime was not stopped after lease cleanup.", {
-    code: "S05_RUNTIME_STILL_RUNNING",
-    phase,
-    runningCount: runtime.runningCount,
-    selectedStatus: selected.runtimeStatus,
-  });
+  assert(
+    runtime.runningCount === 0 && selected.runtimeStatus === "stopped",
+    "Automation runtime was not stopped after lease cleanup.",
+    {
+      code: "S05_RUNTIME_STILL_RUNNING",
+      phase,
+      runningCount: runtime.runningCount,
+      selectedStatus: selected.runtimeStatus,
+    },
+  );
   return {
     status: "stopped",
     runtimeRunningCount: runtime.runningCount,
@@ -1547,7 +1746,10 @@ function parseSafeDiagnosticMethods(diagnosticsPath) {
   let malformedRows = 0;
   let validRows = 0;
   const forbiddenKeys = new Set(["params", "command", "env", "stdout", "stderr", "stack", "traceback"]);
-  for (const line of text.split(/\r?\n/).map((row) => row.trim()).filter(Boolean)) {
+  for (const line of text
+    .split(/\r?\n/)
+    .map((row) => row.trim())
+    .filter(Boolean)) {
     let parsed;
     try {
       parsed = JSON.parse(line);
@@ -1586,15 +1788,23 @@ function parseSafeDiagnosticMethods(diagnosticsPath) {
       phase: "post-diagnostics",
       status: safeStatus(parsed.status),
     });
-    assert(typeof parsed.method === "string" && SAFE_CHECK_NAME_PATTERN.test(parsed.method), "Diagnostics row used an unsafe method name.", {
-      code: "S05_DIAGNOSTICS_METHOD_UNSAFE",
-      phase: "post-diagnostics",
-    });
-    assert(typeof parsed.durationMs === "number" && Number.isFinite(parsed.durationMs) && parsed.durationMs >= 0, "Diagnostics row omitted durationMs.", {
-      code: "S05_DIAGNOSTICS_DURATION_MISSING",
-      phase: "post-diagnostics",
-      method: parsed.method,
-    });
+    assert(
+      typeof parsed.method === "string" && SAFE_CHECK_NAME_PATTERN.test(parsed.method),
+      "Diagnostics row used an unsafe method name.",
+      {
+        code: "S05_DIAGNOSTICS_METHOD_UNSAFE",
+        phase: "post-diagnostics",
+      },
+    );
+    assert(
+      typeof parsed.durationMs === "number" && Number.isFinite(parsed.durationMs) && parsed.durationMs >= 0,
+      "Diagnostics row omitted durationMs.",
+      {
+        code: "S05_DIAGNOSTICS_DURATION_MISSING",
+        phase: "post-diagnostics",
+        method: parsed.method,
+      },
+    );
     assert(typeof parsed.ts === "string" && parsed.ts.endsWith("Z"), "Diagnostics row omitted UTC timestamp.", {
       code: "S05_DIAGNOSTICS_TS_MISSING",
       phase: "post-diagnostics",
@@ -1605,16 +1815,24 @@ function parseSafeDiagnosticMethods(diagnosticsPath) {
       okMethods.add(parsed.method);
     }
     if (parsed.status === "error") {
-      assert(parsed.errorCode === undefined || safeCode(parsed.errorCode), "Diagnostics error row used an unsafe error code.", {
-        code: "S05_DIAGNOSTICS_ERROR_CODE_UNSAFE",
-        phase: "post-diagnostics",
-        method: parsed.method,
-      });
-      assert(parsed.detailRef === undefined || safeDetailRef(parsed.detailRef), "Diagnostics error row used an unsafe detailRef.", {
-        code: "S05_DIAGNOSTICS_DETAIL_REF_UNSAFE",
-        phase: "post-diagnostics",
-        method: parsed.method,
-      });
+      assert(
+        parsed.errorCode === undefined || safeCode(parsed.errorCode),
+        "Diagnostics error row used an unsafe error code.",
+        {
+          code: "S05_DIAGNOSTICS_ERROR_CODE_UNSAFE",
+          phase: "post-diagnostics",
+          method: parsed.method,
+        },
+      );
+      assert(
+        parsed.detailRef === undefined || safeDetailRef(parsed.detailRef),
+        "Diagnostics error row used an unsafe detailRef.",
+        {
+          code: "S05_DIAGNOSTICS_DETAIL_REF_UNSAFE",
+          phase: "post-diagnostics",
+          method: parsed.method,
+        },
+      );
       typedFailures.push({
         method: parsed.method,
         errorCode: safeCode(parsed.errorCode),
@@ -1650,37 +1868,61 @@ function findS05DiagnosticsPath({ rootDir = ROOT_DIR, smokeContext }) {
   });
   candidates.sort();
   const selected = candidates[0];
-  const relativePath = selected.startsWith(`${rootDir}/`) ? selected.slice(rootDir.length + 1) : "profile-store/diagnostics/events.jsonl";
+  const relativePath = selected.startsWith(`${rootDir}/`)
+    ? selected.slice(rootDir.length + 1)
+    : "profile-store/diagnostics/events.jsonl";
   return { path: selected, relativePath };
 }
 
-export function assertS05PostSmokeDiagnostics({ rootDir = ROOT_DIR, smokeContext, context = createS05RedactionContext() } = {}) {
+export function assertS05PostSmokeDiagnostics({
+  rootDir = ROOT_DIR,
+  smokeContext,
+  context = createS05RedactionContext(),
+} = {}) {
   const diagnosticsPath = findS05DiagnosticsPath({ rootDir, smokeContext });
   const parsed = parseSafeDiagnosticMethods(diagnosticsPath.path);
   for (const method of S05_REQUIRED_DIAGNOSTIC_SUCCESS_METHODS) {
-    assert(parsed.okMethods.has(method), "Packaged diagnostics are missing required successful S05 sidecar request evidence.", {
-      code: "S05_DIAGNOSTICS_SUCCESS_METHOD_MISSING",
-      phase: "post-diagnostics",
-      expectedMethod: method,
-      observedMethodCount: parsed.methods.size,
-    });
+    assert(
+      parsed.okMethods.has(method),
+      "Packaged diagnostics are missing required successful S05 sidecar request evidence.",
+      {
+        code: "S05_DIAGNOSTICS_SUCCESS_METHOD_MISSING",
+        phase: "post-diagnostics",
+        expectedMethod: method,
+        observedMethodCount: parsed.methods.size,
+      },
+    );
   }
   for (const method of S05_REQUIRED_DIAGNOSTIC_FAILURE_METHODS) {
-    assert(parsed.methods.has(method), "Packaged diagnostics are missing required Automation API lease failure evidence.", {
-      code: "S05_DIAGNOSTICS_LEASE_METHOD_MISSING",
-      phase: "post-diagnostics",
-      expectedMethod: method,
-      observedMethodCount: parsed.methods.size,
-    });
+    assert(
+      parsed.methods.has(method),
+      "Packaged diagnostics are missing required Automation API lease failure evidence.",
+      {
+        code: "S05_DIAGNOSTICS_LEASE_METHOD_MISSING",
+        phase: "post-diagnostics",
+        expectedMethod: method,
+        observedMethodCount: parsed.methods.size,
+      },
+    );
   }
   const observedCodes = new Set(parsed.typedFailures.map((entry) => entry.errorCode).filter(Boolean));
-  for (const code of [INVALID_REQUEST, PROFILE_NOT_FOUND, AUTOMATION_LEASE_NOT_FOUND, AUTOMATION_LEASE_RELEASED, AUTOMATION_LEASE_EXPIRED]) {
-    assert(observedCodes.has(code), "Packaged diagnostics are missing required typed Automation API failure evidence.", {
-      code: "S05_DIAGNOSTICS_LEASE_ERROR_MISSING",
-      phase: "post-diagnostics",
-      expectedErrorCode: code,
-      observedErrorCount: observedCodes.size,
-    });
+  for (const code of [
+    INVALID_REQUEST,
+    PROFILE_NOT_FOUND,
+    AUTOMATION_LEASE_NOT_FOUND,
+    AUTOMATION_LEASE_RELEASED,
+    AUTOMATION_LEASE_EXPIRED,
+  ]) {
+    assert(
+      observedCodes.has(code),
+      "Packaged diagnostics are missing required typed Automation API failure evidence.",
+      {
+        code: "S05_DIAGNOSTICS_LEASE_ERROR_MISSING",
+        phase: "post-diagnostics",
+        expectedErrorCode: code,
+        observedErrorCount: observedCodes.size,
+      },
+    );
   }
   const result = {
     smokeProfileName: smokeContext.smokeProfileName,
@@ -1700,14 +1942,20 @@ export function assertS05PostSmokeDiagnostics({ rootDir = ROOT_DIR, smokeContext
 
 async function stopAutomationApiThroughUi(driver, runtime, port, { waitForListener = false } = {}) {
   await clickAutomationApiButton(driver, runtime, "Stop", "packaged-api-stop");
-  const stopped = await pollForValue(driver, runtime, "Automation API stopped UI metrics", async () => {
-    const lifecycle = await readMetricValue(driver, "Automation endpoint status", "State");
-    const copyAvailable = await readMetricValue(driver, "Automation endpoint status", "State");
-    if (lifecycle === "stopped · stopped" && copyAvailable === "no") {
-      return { lifecycle: "stopped", copyAvailable: false };
-    }
-    return null;
-  }, { step: "packaged-api-stop", timeoutMs: UI_WAIT_TIMEOUT_MS });
+  const stopped = await pollForValue(
+    driver,
+    runtime,
+    "Automation API stopped UI metrics",
+    async () => {
+      const lifecycle = await readMetricValue(driver, "Automation endpoint status", "State");
+      const copyAvailable = await readMetricValue(driver, "Automation endpoint status", "State");
+      if (lifecycle === "stopped · stopped" && copyAvailable === "no") {
+        return { lifecycle: "stopped", copyAvailable: false };
+      }
+      return null;
+    },
+    { step: "packaged-api-stop", timeoutMs: UI_WAIT_TIMEOUT_MS },
+  );
   let listenerClosed = false;
   if (waitForListener && Number.isInteger(port)) {
     await waitForListenerClosed({ host: "127.0.0.1", port, timeoutMs: API_LISTENER_CLOSE_TIMEOUT_MS });
@@ -1719,15 +1967,22 @@ async function stopAutomationApiThroughUi(driver, runtime, port, { waitForListen
 async function runPackagedLifecycleProof({ rootDir, proof, tracker, fullRuntime = true }) {
   const getContext = tracker.current;
   const applicationPath = join(rootDir, proof.releaseExecutable);
-  const smokeContext = runStep("smoke-root", () => {
-    const context = createSmokeRunContext({ rootDir, baseEnv: process.env, profilePrefix: S05_PROFILE_PREFIX });
-    tracker.update({
-      smokeRoots: [context.smokeRoot],
-      appDataRoots: [context.dataRoot, context.configRoot, context.cacheRoot],
-      extraSensitiveValues: [context.smokeRootRelative],
-    });
-    return { value: context, log: { runId: context.runId, smokeProfileName: context.smokeProfileName, retained: true } };
-  }, getContext);
+  const smokeContext = runStep(
+    "smoke-root",
+    () => {
+      const context = createSmokeRunContext({ rootDir, baseEnv: process.env, profilePrefix: S05_PROFILE_PREFIX });
+      tracker.update({
+        smokeRoots: [context.smokeRoot],
+        appDataRoots: [context.dataRoot, context.configRoot, context.cacheRoot],
+        extraSensitiveValues: [context.smokeRootRelative],
+      });
+      return {
+        value: context,
+        log: { runId: context.runId, smokeProfileName: context.smokeProfileName, retained: true },
+      };
+    },
+    getContext,
+  );
   const runtime = { rootDir, smokeContext, driverProcess: null };
   let driverProcess = null;
   let driver = null;
@@ -1756,353 +2011,507 @@ async function runPackagedLifecycleProof({ rootDir, proof, tracker, fullRuntime 
   let diagnostics = {};
 
   try {
-    driverProcess = await runStepAsync("webdriver-startup", async () => startTauriDriverProcess({
-      rootDir,
-      smokeContext,
-      platform: process.platform,
-      env: process.env,
-    }), getContext);
+    driverProcess = await runStepAsync(
+      "webdriver-startup",
+      async () =>
+        startTauriDriverProcess({
+          rootDir,
+          smokeContext,
+          platform: process.platform,
+          env: process.env,
+        }),
+      getContext,
+    );
     runtime.driverProcess = driverProcess;
 
-    driver = await runStepAsync("webdriver-session", async () => createTauriWebDriverSession({
-      applicationPath,
-      applicationRelativePath: proof.releaseExecutable,
-      driverProcess,
-      rootDir,
-      smokeContext,
-    }), getContext);
+    driver = await runStepAsync(
+      "webdriver-session",
+      async () =>
+        createTauriWebDriverSession({
+          applicationPath,
+          applicationRelativePath: proof.releaseExecutable,
+          driverProcess,
+          rootDir,
+          smokeContext,
+        }),
+      getContext,
+    );
 
     await runStepAsync("packaged-ui-initial", async () => assertInitialPackagedUi(driver, runtime), getContext);
-    await runStepAsync("packaged-token-copy-disabled", async () => assertCopyTokenDisabledBeforeStart(driver, runtime), getContext);
+    await runStepAsync(
+      "packaged-token-copy-disabled",
+      async () => assertCopyTokenDisabledBeforeStart(driver, runtime),
+      getContext,
+    );
     await runStepAsync("packaged-profile-create", async () => createSmokeProfile(driver, runtime), getContext);
     ui.profileCreated = true;
     await runStepAsync("packaged-identity-config", async () => openSmokeIdentityConfig(driver, runtime), getContext);
     await runStepAsync("packaged-identity-apply", async () => applySmokeIdentityPreset(driver, runtime), getContext);
     ui.identityConfigured = true;
 
-    fixture = await runStepAsync("proxy-fixture-ready", async () => {
-      const result = await startProxyFixture({
-        kind: "http",
-        label: smokeContext.runId,
-        targetHost: S05_PROXY_TARGET_HOST,
-        targetPath: S05_PROXY_TARGET_PATH,
-        fixtureCredentials: {
-          username: S05_PRIVATE_PROXY_USERNAME,
-          password: S05_PRIVATE_PROXY_PASSWORD,
-        },
-      }, runtime);
-      const handle = result.value;
-      tracker.update({
-        proxyAuthorities: [`${handle.ready.proxy.host}:${handle.ready.proxy.port}`, `http://${handle.ready.proxy.host}:${handle.ready.proxy.port}`],
-        targetUrls: [handle.ready.target.url],
-        extraSensitiveValues: [S05_PRIVATE_PROXY_USERNAME, S05_PRIVATE_PROXY_PASSWORD],
-      });
-      return result;
-    }, getContext);
-
-    await runStepAsync("packaged-proxy-configure", async () => configureSmokeProxy(driver, runtime, fixture, {
-      credentials: {
-        username: S05_PRIVATE_PROXY_USERNAME,
-        password: S05_PRIVATE_PROXY_PASSWORD,
+    fixture = await runStepAsync(
+      "proxy-fixture-ready",
+      async () => {
+        const result = await startProxyFixture(
+          {
+            kind: "http",
+            label: smokeContext.runId,
+            targetHost: S05_PROXY_TARGET_HOST,
+            targetPath: S05_PROXY_TARGET_PATH,
+            fixtureCredentials: {
+              username: S05_PRIVATE_PROXY_USERNAME,
+              password: S05_PRIVATE_PROXY_PASSWORD,
+            },
+          },
+          runtime,
+        );
+        const handle = result.value;
+        tracker.update({
+          proxyAuthorities: [
+            `${handle.ready.proxy.host}:${handle.ready.proxy.port}`,
+            `http://${handle.ready.proxy.host}:${handle.ready.proxy.port}`,
+          ],
+          targetUrls: [handle.ready.target.url],
+          extraSensitiveValues: [S05_PRIVATE_PROXY_USERNAME, S05_PRIVATE_PROXY_PASSWORD],
+        });
+        return result;
       },
-    }), getContext);
+      getContext,
+    );
+
+    await runStepAsync(
+      "packaged-proxy-configure",
+      async () =>
+        configureSmokeProxy(driver, runtime, fixture, {
+          credentials: {
+            username: S05_PRIVATE_PROXY_USERNAME,
+            password: S05_PRIVATE_PROXY_PASSWORD,
+          },
+        }),
+      getContext,
+    );
     ui.proxyConfigured = true;
 
-    await runStepAsync("packaged-api-start", async () => clickAutomationApiButton(driver, runtime, "Start", "packaged-api-start"), getContext);
+    await runStepAsync(
+      "packaged-api-start",
+      async () => clickAutomationApiButton(driver, runtime, "Start", "packaged-api-start"),
+      getContext,
+    );
     apiStarted = true;
     ui.apiStarted = true;
     api.started = true;
 
-    const apiMetrics = await runStepAsync("packaged-api-status", async () => {
-      const { metrics, publicMetrics } = await waitForAutomationApiRunningMetrics(driver, runtime);
-      tracker.update({ apiBaseUrl: metrics.apiBaseUrl, baseUrl: metrics.apiBaseUrl });
-      apiBaseUrl = metrics.apiBaseUrl;
-      apiPort = metrics.port;
-      return { value: metrics, log: publicMetrics };
-    }, getContext);
+    const apiMetrics = await runStepAsync(
+      "packaged-api-status",
+      async () => {
+        const { metrics, publicMetrics } = await waitForAutomationApiRunningMetrics(driver, runtime);
+        tracker.update({ apiBaseUrl: metrics.apiBaseUrl, baseUrl: metrics.apiBaseUrl });
+        apiBaseUrl = metrics.apiBaseUrl;
+        apiPort = metrics.port;
+        return { value: metrics, log: publicMetrics };
+      },
+      getContext,
+    );
 
-    const tokenProof = await runStepAsync("packaged-token-copy-private", async () => captureTokenThroughPrivateCopyFlow(driver, runtime, tracker), getContext);
+    const tokenProof = await runStepAsync(
+      "packaged-token-copy-private",
+      async () => captureTokenThroughPrivateCopyFlow(driver, runtime, tracker),
+      getContext,
+    );
     ui.copyFlowUsed = tokenProof.copyFlowUsed;
     privateToken = tracker.values.copiedToken;
 
-    const discovery = await runStepAsync("api-discovery", async () => {
-      const result = await exerciseProtectedDiscovery({
-        baseUrl: apiMetrics.apiBaseUrl,
-        token: privateToken,
-        profileName: smokeContext.smokeProfileName,
-        context: createHttpValidationContext(tracker),
-      });
-      return {
-        value: result,
-        log: {
-          health: result.http.health,
-          auth: result.http.auth,
-          profiles: { statusCode: result.http.profiles.statusCode, requestId: result.http.profiles.requestId, expectedProfilePresent: true },
-          profileStatus: { statusCode: result.http.profileStatus.statusCode, requestId: result.http.profileStatus.requestId, runtimeStatus: result.http.profileStatus.runtimeStatus },
-          runtime: { statusCode: result.http.runtime.statusCode, requestId: result.http.runtime.requestId, runningCount: result.http.runtime.runningCount },
-        },
-      };
-    }, getContext);
+    const discovery = await runStepAsync(
+      "api-discovery",
+      async () => {
+        const result = await exerciseProtectedDiscovery({
+          baseUrl: apiMetrics.apiBaseUrl,
+          token: privateToken,
+          profileName: smokeContext.smokeProfileName,
+          context: createHttpValidationContext(tracker),
+        });
+        return {
+          value: result,
+          log: {
+            health: result.http.health,
+            auth: result.http.auth,
+            profiles: {
+              statusCode: result.http.profiles.statusCode,
+              requestId: result.http.profiles.requestId,
+              expectedProfilePresent: true,
+            },
+            profileStatus: {
+              statusCode: result.http.profileStatus.statusCode,
+              requestId: result.http.profileStatus.requestId,
+              runtimeStatus: result.http.profileStatus.runtimeStatus,
+            },
+            runtime: {
+              statusCode: result.http.runtime.statusCode,
+              requestId: result.http.runtime.requestId,
+              runningCount: result.http.runtime.runningCount,
+            },
+          },
+        };
+      },
+      getContext,
+    );
     http = discovery.http;
     profileId = discovery.profileId;
     profileIdentity = discovery.profileIdentity;
     api = { ...api, status: "running", statusCode: http.status.statusCode, requestId: http.status.requestId };
 
     if (fullRuntime) {
-      failureMatrix.push(await runStepAsync("failure-invalid-ttl", async () => {
-        const result = await expectLeaseDomainFailure({
-          baseUrl: apiBaseUrl,
-          token: privateToken,
-          path: `/v1/profiles/${encodeURIComponent(profileId)}/leases`,
-          method: "POST",
-          body: { framework: "playwright", ttlSeconds: 0 },
-          expectedCode: INVALID_REQUEST,
-          expectedStatusCode: 400,
-          phase: "failure-invalid-ttl",
-          caseName: "invalid-ttl",
-          context: createHttpValidationContext(tracker),
-        });
-        leaseFlow.invalidTtl = failureMatrixEntry("invalid-ttl", result);
-        return result;
-      }, getContext));
+      failureMatrix.push(
+        await runStepAsync(
+          "failure-invalid-ttl",
+          async () => {
+            const result = await expectLeaseDomainFailure({
+              baseUrl: apiBaseUrl,
+              token: privateToken,
+              path: `/v1/profiles/${encodeURIComponent(profileId)}/leases`,
+              method: "POST",
+              body: { framework: "playwright", ttlSeconds: 0 },
+              expectedCode: INVALID_REQUEST,
+              expectedStatusCode: 400,
+              phase: "failure-invalid-ttl",
+              caseName: "invalid-ttl",
+              context: createHttpValidationContext(tracker),
+            });
+            leaseFlow.invalidTtl = failureMatrixEntry("invalid-ttl", result);
+            return result;
+          },
+          getContext,
+        ),
+      );
 
-      failureMatrix.push(await runStepAsync("failure-invalid-body", async () => {
-        const result = await expectLeaseDomainFailure({
-          baseUrl: apiBaseUrl,
-          token: privateToken,
-          path: `/v1/profiles/${encodeURIComponent(profileId)}/leases`,
-          method: "POST",
-          body: [],
-          expectedCode: INVALID_REQUEST,
-          expectedStatusCode: 400,
-          phase: "failure-invalid-body",
-          caseName: "invalid-body",
-          context: createHttpValidationContext(tracker),
-        });
-        leaseFlow.invalidBody = failureMatrixEntry("invalid-body", result);
-        return result;
-      }, getContext));
+      failureMatrix.push(
+        await runStepAsync(
+          "failure-invalid-body",
+          async () => {
+            const result = await expectLeaseDomainFailure({
+              baseUrl: apiBaseUrl,
+              token: privateToken,
+              path: `/v1/profiles/${encodeURIComponent(profileId)}/leases`,
+              method: "POST",
+              body: [],
+              expectedCode: INVALID_REQUEST,
+              expectedStatusCode: 400,
+              phase: "failure-invalid-body",
+              caseName: "invalid-body",
+              context: createHttpValidationContext(tracker),
+            });
+            leaseFlow.invalidBody = failureMatrixEntry("invalid-body", result);
+            return result;
+          },
+          getContext,
+        ),
+      );
 
-      failureMatrix.push(await runStepAsync("failure-unknown-profile", async () => {
-        const result = await expectLeaseDomainFailure({
-          baseUrl: apiBaseUrl,
-          token: privateToken,
-          path: "/v1/profiles/missing-m004-s05-profile/leases",
-          method: "POST",
-          body: { framework: "playwright", ttlSeconds: 1 },
-          expectedCode: PROFILE_NOT_FOUND,
-          expectedStatusCode: 404,
-          phase: "failure-unknown-profile",
-          caseName: "unknown-profile",
-          context: createHttpValidationContext(tracker),
-        });
-        leaseFlow.unknownProfile = failureMatrixEntry("unknown-profile", result);
-        return result;
-      }, getContext));
+      failureMatrix.push(
+        await runStepAsync(
+          "failure-unknown-profile",
+          async () => {
+            const result = await expectLeaseDomainFailure({
+              baseUrl: apiBaseUrl,
+              token: privateToken,
+              path: "/v1/profiles/missing-m004-s05-profile/leases",
+              method: "POST",
+              body: { framework: "playwright", ttlSeconds: 1 },
+              expectedCode: PROFILE_NOT_FOUND,
+              expectedStatusCode: 404,
+              phase: "failure-unknown-profile",
+              caseName: "unknown-profile",
+              context: createHttpValidationContext(tracker),
+            });
+            leaseFlow.unknownProfile = failureMatrixEntry("unknown-profile", result);
+            return result;
+          },
+          getContext,
+        ),
+      );
 
-      failureMatrix.push(await runStepAsync("failure-unknown-lease", async () => {
-        const result = await expectLeaseDomainFailure({
-          baseUrl: apiBaseUrl,
-          token: privateToken,
-          path: "/v1/leases/lease_missing_m004_s05",
-          expectedCode: AUTOMATION_LEASE_NOT_FOUND,
-          expectedStatusCode: 404,
-          phase: "failure-unknown-lease",
-          caseName: "unknown-lease",
-          context: createHttpValidationContext(tracker),
-        });
-        leaseFlow.unknownLease = failureMatrixEntry("unknown-lease", result);
-        return result;
-      }, getContext));
+      failureMatrix.push(
+        await runStepAsync(
+          "failure-unknown-lease",
+          async () => {
+            const result = await expectLeaseDomainFailure({
+              baseUrl: apiBaseUrl,
+              token: privateToken,
+              path: "/v1/leases/lease_missing_m004_s05",
+              expectedCode: AUTOMATION_LEASE_NOT_FOUND,
+              expectedStatusCode: 404,
+              phase: "failure-unknown-lease",
+              caseName: "unknown-lease",
+              context: createHttpValidationContext(tracker),
+            });
+            leaseFlow.unknownLease = failureMatrixEntry("unknown-lease", result);
+            return result;
+          },
+          getContext,
+        ),
+      );
 
-      const firstLease = await runStepAsync("lease-create", async () => {
-        const response = await requestJson(`${apiBaseUrl}/v1/profiles/${encodeURIComponent(profileId)}/leases`, {
-          method: "POST",
-          token: privateToken,
-          body: { framework: "playwright", ttlSeconds: 30 },
-          timeoutMs: HTTP_TIMEOUT_MS,
-          phase: "lease-create",
-        });
-        const result = assertLeaseCreateResponse({
-          ...response,
-          expectedProfileId: profileId,
-          expectedTtlSeconds: 30,
-          phase: "lease-create",
-        });
-        tracker.update({ leaseIds: [result.private.leaseId], handoffEndpoints: [result.private.handoffEndpoint] });
-        activeLeaseIds.add(result.private.leaseId);
-        assertNoForbiddenLeaseSurface({ lease: result.public, request: { requestId: result.public.requestId } }, createHttpValidationContext(tracker));
-        leaseFlow.create = result.public;
-        return { value: result.private, log: result.public };
-      }, getContext);
+      const firstLease = await runStepAsync(
+        "lease-create",
+        async () => {
+          const response = await requestJson(`${apiBaseUrl}/v1/profiles/${encodeURIComponent(profileId)}/leases`, {
+            method: "POST",
+            token: privateToken,
+            body: { framework: "playwright", ttlSeconds: 30 },
+            timeoutMs: HTTP_TIMEOUT_MS,
+            phase: "lease-create",
+          });
+          const result = assertLeaseCreateResponse({
+            ...response,
+            expectedProfileId: profileId,
+            expectedTtlSeconds: 30,
+            phase: "lease-create",
+          });
+          tracker.update({ leaseIds: [result.private.leaseId], handoffEndpoints: [result.private.handoffEndpoint] });
+          activeLeaseIds.add(result.private.leaseId);
+          assertNoForbiddenLeaseSurface(
+            { lease: result.public, request: { requestId: result.public.requestId } },
+            createHttpValidationContext(tracker),
+          );
+          leaseFlow.create = result.public;
+          return { value: result.private, log: result.public };
+        },
+        getContext,
+      );
 
-      leaseFlow.active = await runStepAsync("lease-status-active", async () => {
-        const response = await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-          token: privateToken,
-          timeoutMs: HTTP_TIMEOUT_MS,
-          phase: "lease-status-active",
-        });
-        return assertLeaseStatusResponse({
-          ...response,
-          expectedProfileId: profileId,
-          expectedStatus: "active",
-          expectedTtlSeconds: 30,
-          context: createHttpValidationContext(tracker),
-          phase: "lease-status-active",
-        });
-      }, getContext);
+      leaseFlow.active = await runStepAsync(
+        "lease-status-active",
+        async () => {
+          const response = await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+            token: privateToken,
+            timeoutMs: HTTP_TIMEOUT_MS,
+            phase: "lease-status-active",
+          });
+          return assertLeaseStatusResponse({
+            ...response,
+            expectedProfileId: profileId,
+            expectedStatus: "active",
+            expectedTtlSeconds: 30,
+            context: createHttpValidationContext(tracker),
+            phase: "lease-status-active",
+          });
+        },
+        getContext,
+      );
 
-      playwright = await runStepAsync("playwright-attach-navigation", async () => attachNavigateAndAssertPackagedLease({
-        endpoint: firstLease.handoffEndpoint,
-        targetUrl: fixture.ready.target.url,
-        identity: profileIdentity,
-      }), getContext);
+      playwright = await runStepAsync(
+        "playwright-attach-navigation",
+        async () =>
+          attachNavigateAndAssertPackagedLease({
+            endpoint: firstLease.handoffEndpoint,
+            targetUrl: fixture.ready.target.url,
+            identity: profileIdentity,
+          }),
+        getContext,
+      );
       leaseFlow.playwright = playwright;
 
-      const proxyObservation = await runStepAsync("proxy-observation", async () => {
-        const summary = await waitForProxyObservation(fixture);
-        assert(summary.routeObserved && summary.authAccepted && summary.directFallbackDetected === false, "Proxy fixture observations did not prove credentialed route-through-proxy behavior.", {
-          code: "S05_PROXY_OBSERVATION_NOT_PROVED",
-          phase: "proxy-observation",
-          ...summary,
-        });
-        return summary;
-      }, getContext);
+      const proxyObservation = await runStepAsync(
+        "proxy-observation",
+        async () => {
+          const summary = await waitForProxyObservation(fixture);
+          assert(
+            summary.routeObserved && summary.authAccepted && summary.directFallbackDetected === false,
+            "Proxy fixture observations did not prove credentialed route-through-proxy behavior.",
+            {
+              code: "S05_PROXY_OBSERVATION_NOT_PROVED",
+              phase: "proxy-observation",
+              ...summary,
+            },
+          );
+          return summary;
+        },
+        getContext,
+      );
       playwright.proxyObservationCount = proxyObservation.proxyCount;
       leaseFlow.proxyObservation = { status: "pass", runningCount: proxyObservation.proxyCount };
 
-      leaseFlow.release = await runStepAsync("lease-release", async () => {
-        const response = await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-          method: "DELETE",
-          token: privateToken,
-          timeoutMs: HTTP_TIMEOUT_MS,
-          phase: "lease-release",
-        });
-        const released = assertLeaseReleaseResponse({
-          ...response,
-          expectedProfileId: profileId,
-          expectedTtlSeconds: 30,
-          context: createHttpValidationContext(tracker),
-          phase: "lease-release",
-        });
-        activeLeaseIds.delete(firstLease.leaseId);
-        return released;
-      }, getContext);
+      leaseFlow.release = await runStepAsync(
+        "lease-release",
+        async () => {
+          const response = await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+            method: "DELETE",
+            token: privateToken,
+            timeoutMs: HTTP_TIMEOUT_MS,
+            phase: "lease-release",
+          });
+          const released = assertLeaseReleaseResponse({
+            ...response,
+            expectedProfileId: profileId,
+            expectedTtlSeconds: 30,
+            context: createHttpValidationContext(tracker),
+            phase: "lease-release",
+          });
+          activeLeaseIds.delete(firstLease.leaseId);
+          return released;
+        },
+        getContext,
+      );
 
-      leaseFlow.releasedStatus = await runStepAsync("lease-status-released", async () => {
-        const response = await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-          token: privateToken,
-          timeoutMs: HTTP_TIMEOUT_MS,
-          phase: "lease-status-released",
-        });
-        return assertLeaseStatusResponse({
-          ...response,
-          expectedProfileId: profileId,
-          expectedStatus: "released",
-          expectedTtlSeconds: 30,
-          context: createHttpValidationContext(tracker),
-          phase: "lease-status-released",
-        });
-      }, getContext);
+      leaseFlow.releasedStatus = await runStepAsync(
+        "lease-status-released",
+        async () => {
+          const response = await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+            token: privateToken,
+            timeoutMs: HTTP_TIMEOUT_MS,
+            phase: "lease-status-released",
+          });
+          return assertLeaseStatusResponse({
+            ...response,
+            expectedProfileId: profileId,
+            expectedStatus: "released",
+            expectedTtlSeconds: 30,
+            context: createHttpValidationContext(tracker),
+            phase: "lease-status-released",
+          });
+        },
+        getContext,
+      );
 
-      const releasedReuse = await runStepAsync("failure-released-reuse", async () => {
-        const result = await expectLeaseDomainFailure({
-          baseUrl: apiBaseUrl,
-          token: privateToken,
-          path: `/v1/leases/${encodeURIComponent(firstLease.leaseId)}`,
-          method: "DELETE",
-          expectedCode: AUTOMATION_LEASE_RELEASED,
-          expectedStatusCode: 409,
-          phase: "failure-released-reuse",
-          caseName: "released-reuse",
-          context: createHttpValidationContext(tracker),
-        });
-        leaseFlow.releasedReuse = failureMatrixEntry("released-reuse", result);
-        return result;
-      }, getContext);
+      const releasedReuse = await runStepAsync(
+        "failure-released-reuse",
+        async () => {
+          const result = await expectLeaseDomainFailure({
+            baseUrl: apiBaseUrl,
+            token: privateToken,
+            path: `/v1/leases/${encodeURIComponent(firstLease.leaseId)}`,
+            method: "DELETE",
+            expectedCode: AUTOMATION_LEASE_RELEASED,
+            expectedStatusCode: 409,
+            phase: "failure-released-reuse",
+            caseName: "released-reuse",
+            context: createHttpValidationContext(tracker),
+          });
+          leaseFlow.releasedReuse = failureMatrixEntry("released-reuse", result);
+          return result;
+        },
+        getContext,
+      );
       failureMatrix.push(releasedReuse);
 
-      leaseFlow.postReleaseRuntime = await runStepAsync("runtime-status-released", async () => assertRuntimeStoppedAfterLease({
-        baseUrl: apiBaseUrl,
-        token: privateToken,
-        profileId,
-        context: createHttpValidationContext(tracker),
-        phase: "runtime-status-released",
-      }), getContext);
+      leaseFlow.postReleaseRuntime = await runStepAsync(
+        "runtime-status-released",
+        async () =>
+          assertRuntimeStoppedAfterLease({
+            baseUrl: apiBaseUrl,
+            token: privateToken,
+            profileId,
+            context: createHttpValidationContext(tracker),
+            phase: "runtime-status-released",
+          }),
+        getContext,
+      );
 
-      leaseFlow.revocation = await runStepAsync("release-revocation", async () => {
-        await assertEndpointRevoked(firstLease.handoffEndpoint);
-        return { status: "pass", revoked: true };
-      }, getContext);
+      leaseFlow.revocation = await runStepAsync(
+        "release-revocation",
+        async () => {
+          await assertEndpointRevoked(firstLease.handoffEndpoint);
+          return { status: "pass", revoked: true };
+        },
+        getContext,
+      );
 
-      const expiringLease = await runStepAsync("lease-create-short", async () => {
-        const response = await requestJson(`${apiBaseUrl}/v1/profiles/${encodeURIComponent(profileId)}/leases`, {
-          method: "POST",
-          token: privateToken,
-          body: { framework: "playwright", ttlSeconds: 1 },
-          timeoutMs: HTTP_TIMEOUT_MS,
-          phase: "lease-create-short",
-        });
-        const result = assertLeaseCreateResponse({
-          ...response,
-          expectedProfileId: profileId,
-          expectedTtlSeconds: 1,
-          phase: "lease-create-short",
-        });
-        tracker.update({ leaseIds: [result.private.leaseId], handoffEndpoints: [result.private.handoffEndpoint] });
-        activeLeaseIds.add(result.private.leaseId);
-        assertNoForbiddenLeaseSurface({ lease: result.public, request: { requestId: result.public.requestId } }, createHttpValidationContext(tracker));
-        leaseFlow.expiryCreate = result.public;
-        return { value: result.private, log: { ...result.public, ttlSeconds: 1 } };
-      }, getContext);
+      const expiringLease = await runStepAsync(
+        "lease-create-short",
+        async () => {
+          const response = await requestJson(`${apiBaseUrl}/v1/profiles/${encodeURIComponent(profileId)}/leases`, {
+            method: "POST",
+            token: privateToken,
+            body: { framework: "playwright", ttlSeconds: 1 },
+            timeoutMs: HTTP_TIMEOUT_MS,
+            phase: "lease-create-short",
+          });
+          const result = assertLeaseCreateResponse({
+            ...response,
+            expectedProfileId: profileId,
+            expectedTtlSeconds: 1,
+            phase: "lease-create-short",
+          });
+          tracker.update({ leaseIds: [result.private.leaseId], handoffEndpoints: [result.private.handoffEndpoint] });
+          activeLeaseIds.add(result.private.leaseId);
+          assertNoForbiddenLeaseSurface(
+            { lease: result.public, request: { requestId: result.public.requestId } },
+            createHttpValidationContext(tracker),
+          );
+          leaseFlow.expiryCreate = result.public;
+          return { value: result.private, log: { ...result.public, ttlSeconds: 1 } };
+        },
+        getContext,
+      );
 
-      leaseFlow.expiry = await runStepAsync("lease-expiry", async () => {
-        const expired = await waitForLeaseStatus({
-          baseUrl: apiBaseUrl,
-          token: privateToken,
-          profileId,
-          leaseId: expiringLease.leaseId,
-          expectedStatus: "expired",
-          expectedTtlSeconds: 1,
-          context: createHttpValidationContext(tracker),
-          timeoutMs: EXPIRY_WAIT_TIMEOUT_MS,
-        });
-        activeLeaseIds.delete(expiringLease.leaseId);
-        return expired;
-      }, getContext);
+      leaseFlow.expiry = await runStepAsync(
+        "lease-expiry",
+        async () => {
+          const expired = await waitForLeaseStatus({
+            baseUrl: apiBaseUrl,
+            token: privateToken,
+            profileId,
+            leaseId: expiringLease.leaseId,
+            expectedStatus: "expired",
+            expectedTtlSeconds: 1,
+            context: createHttpValidationContext(tracker),
+            timeoutMs: EXPIRY_WAIT_TIMEOUT_MS,
+          });
+          activeLeaseIds.delete(expiringLease.leaseId);
+          return expired;
+        },
+        getContext,
+      );
 
-      const expiredReuse = await runStepAsync("failure-expired-reuse", async () => {
-        const result = await expectLeaseDomainFailure({
-          baseUrl: apiBaseUrl,
-          token: privateToken,
-          path: `/v1/leases/${encodeURIComponent(expiringLease.leaseId)}`,
-          method: "DELETE",
-          expectedCode: AUTOMATION_LEASE_EXPIRED,
-          expectedStatusCode: 409,
-          phase: "failure-expired-reuse",
-          caseName: "expired-reuse",
-          context: createHttpValidationContext(tracker),
-        });
-        leaseFlow.expiredReuse = failureMatrixEntry("expired-reuse", result);
-        return result;
-      }, getContext);
+      const expiredReuse = await runStepAsync(
+        "failure-expired-reuse",
+        async () => {
+          const result = await expectLeaseDomainFailure({
+            baseUrl: apiBaseUrl,
+            token: privateToken,
+            path: `/v1/leases/${encodeURIComponent(expiringLease.leaseId)}`,
+            method: "DELETE",
+            expectedCode: AUTOMATION_LEASE_EXPIRED,
+            expectedStatusCode: 409,
+            phase: "failure-expired-reuse",
+            caseName: "expired-reuse",
+            context: createHttpValidationContext(tracker),
+          });
+          leaseFlow.expiredReuse = failureMatrixEntry("expired-reuse", result);
+          return result;
+        },
+        getContext,
+      );
       failureMatrix.push(expiredReuse);
 
-      leaseFlow.expiredRevocation = await runStepAsync("expiry-revocation", async () => {
-        await assertEndpointRevoked(expiringLease.handoffEndpoint);
-        return { status: "pass", revoked: true };
-      }, getContext);
+      leaseFlow.expiredRevocation = await runStepAsync(
+        "expiry-revocation",
+        async () => {
+          await assertEndpointRevoked(expiringLease.handoffEndpoint);
+          return { status: "pass", revoked: true };
+        },
+        getContext,
+      );
 
-      leaseFlow.postExpiryRuntime = await runStepAsync("runtime-status-expired", async () => assertRuntimeStoppedAfterLease({
-        baseUrl: apiBaseUrl,
-        token: privateToken,
-        profileId,
-        context: createHttpValidationContext(tracker),
-        phase: "runtime-status-expired",
-      }), getContext);
+      leaseFlow.postExpiryRuntime = await runStepAsync(
+        "runtime-status-expired",
+        async () =>
+          assertRuntimeStoppedAfterLease({
+            baseUrl: apiBaseUrl,
+            token: privateToken,
+            profileId,
+            context: createHttpValidationContext(tracker),
+            phase: "runtime-status-expired",
+          }),
+        getContext,
+      );
     }
 
-    const stopProof = await runStepAsync("packaged-api-stop", async () => stopAutomationApiThroughUi(driver, runtime, apiPort, { waitForListener: fullRuntime }), getContext);
+    const stopProof = await runStepAsync(
+      "packaged-api-stop",
+      async () => stopAutomationApiThroughUi(driver, runtime, apiPort, { waitForListener: fullRuntime }),
+      getContext,
+    );
     apiStarted = false;
     api.stopped = true;
     cleanup.apiStopped = true;
@@ -2110,19 +2519,35 @@ async function runPackagedLifecycleProof({ rootDir, proof, tracker, fullRuntime 
     cleanup.runtimeStopped = true;
 
     if (fullRuntime) {
-      profileStore = await runStepAsync("post-profile-store", async () => {
-        const proofResult = assertPostSmokeProfileStore({ rootDir, smokeContext });
-        return { value: proofResult, log: summarizeProfileStoreProof(proofResult) };
-      }, getContext);
-      diagnostics = await runStepAsync("post-diagnostics", async () => {
-        const proofResult = assertS05PostSmokeDiagnostics({ rootDir, smokeContext, context: getContext() });
-        return { value: proofResult, log: summarizeDiagnosticsProof(proofResult) };
-      }, getContext);
-      const redactionProof = await runStepAsync("redaction-scan", async () => {
-        const smokeRedaction = assertPostSmokeRedaction({ rootDir, smokeContext, evidence: { events: VERIFIER_EVENTS, checks: STEP_RESULTS } });
-        assertS05PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, getContext());
-        return { value: smokeRedaction, log: { status: "clean", scanned: true, forbiddenMarkerCount: 0 } };
-      }, getContext);
+      profileStore = await runStepAsync(
+        "post-profile-store",
+        async () => {
+          const proofResult = assertPostSmokeProfileStore({ rootDir, smokeContext });
+          return { value: proofResult, log: summarizeProfileStoreProof(proofResult) };
+        },
+        getContext,
+      );
+      diagnostics = await runStepAsync(
+        "post-diagnostics",
+        async () => {
+          const proofResult = assertS05PostSmokeDiagnostics({ rootDir, smokeContext, context: getContext() });
+          return { value: proofResult, log: summarizeDiagnosticsProof(proofResult) };
+        },
+        getContext,
+      );
+      const redactionProof = await runStepAsync(
+        "redaction-scan",
+        async () => {
+          const smokeRedaction = assertPostSmokeRedaction({
+            rootDir,
+            smokeContext,
+            evidence: { events: VERIFIER_EVENTS, checks: STEP_RESULTS },
+          });
+          assertS05PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, getContext());
+          return { value: smokeRedaction, log: { status: "clean", scanned: true, forbiddenMarkerCount: 0 } };
+        },
+        getContext,
+      );
       cleanup.diagnosticsScanned = true;
       return {
         mode: "full",
@@ -2154,31 +2579,39 @@ async function runPackagedLifecycleProof({ rootDir, proof, tracker, fullRuntime 
   } finally {
     if (apiStarted && apiBaseUrl && privateToken && activeLeaseIds.size > 0) {
       try {
-        await runStepAsync("lease-cleanup-release", async () => {
-          let releasedCount = 0;
-          for (const leaseId of [...activeLeaseIds]) {
-            try {
-              await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(leaseId)}`, {
-                method: "DELETE",
-                token: privateToken,
-                timeoutMs: HTTP_TIMEOUT_MS,
-                phase: "lease-cleanup-release",
-              });
-              activeLeaseIds.delete(leaseId);
-              releasedCount += 1;
-            } catch {
-              // Best-effort release before stopping the app-owned API; final cleanup still stops the API process.
+        await runStepAsync(
+          "lease-cleanup-release",
+          async () => {
+            let releasedCount = 0;
+            for (const leaseId of [...activeLeaseIds]) {
+              try {
+                await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(leaseId)}`, {
+                  method: "DELETE",
+                  token: privateToken,
+                  timeoutMs: HTTP_TIMEOUT_MS,
+                  phase: "lease-cleanup-release",
+                });
+                activeLeaseIds.delete(leaseId);
+                releasedCount += 1;
+              } catch {
+                // Best-effort release before stopping the app-owned API; final cleanup still stops the API process.
+              }
             }
-          }
-          return { releasedCount, remainingActive: activeLeaseIds.size };
-        }, getContext);
+            return { releasedCount, remainingActive: activeLeaseIds.size };
+          },
+          getContext,
+        );
       } catch {
         cleanup.activeLeaseCleanup = false;
       }
     }
     if (apiStarted && driver) {
       try {
-        await runStepAsync("packaged-api-stop-cleanup", async () => stopAutomationApiThroughUi(driver, runtime, apiPort), getContext);
+        await runStepAsync(
+          "packaged-api-stop-cleanup",
+          async () => stopAutomationApiThroughUi(driver, runtime, apiPort),
+          getContext,
+        );
         cleanup.apiStopped = true;
         cleanup.listenerClosed = Number.isInteger(apiPort);
       } catch {
@@ -2194,15 +2627,28 @@ async function runPackagedLifecycleProof({ rootDir, proof, tracker, fullRuntime 
       }
     }
     if (driver || driverProcess) {
-      const packagedCleanup = await cleanupPackagedSmoke({ driver, driverProcess, runtime, runningObserved: false }).catch((error) => ({ status: "cleanup-failed", error: safeS05ErrorForPublic(error, getContext()) }));
+      const packagedCleanup = await cleanupPackagedSmoke({
+        driver,
+        driverProcess,
+        runtime,
+        runningObserved: false,
+      }).catch((error) => ({ status: "cleanup-failed", error: safeS05ErrorForPublic(error, getContext()) }));
       cleanup.appStopped = true;
       cleanup.webdriver = packagedCleanup?.webdriverSession?.status ?? packagedCleanup?.status;
       if (Number.isInteger(apiPort)) {
         try {
-          await runStepAsync("api-listener-cleanup", async () => {
-            await waitForListenerClosed({ host: "127.0.0.1", port: apiPort, timeoutMs: API_LISTENER_CLOSE_TIMEOUT_MS });
-            return { listenerClosed: true };
-          }, getContext);
+          await runStepAsync(
+            "api-listener-cleanup",
+            async () => {
+              await waitForListenerClosed({
+                host: "127.0.0.1",
+                port: apiPort,
+                timeoutMs: API_LISTENER_CLOSE_TIMEOUT_MS,
+              });
+              return { listenerClosed: true };
+            },
+            getContext,
+          );
           cleanup.listenerClosed = true;
         } catch {
           cleanup.listenerClosed = false;
@@ -2221,32 +2667,42 @@ export async function runVerification({ rootDir = ROOT_DIR, argv = process.argv.
     const args = parseArgs(argv);
     if (args.help) {
       mode = "usage";
-      const summary = buildS05FinalSummary({
-        status: "needs-runtime",
-        mode,
-        redaction: { status: "ready", scanned: true, forbiddenMarkerCount: 0 },
-        checks: STEP_RESULTS,
-      }, getContext());
+      const summary = buildS05FinalSummary(
+        {
+          status: "needs-runtime",
+          mode,
+          redaction: { status: "ready", scanned: true, forbiddenMarkerCount: 0 },
+          checks: STEP_RESULTS,
+        },
+        getContext(),
+      );
       assertS05PublicEvidenceRedacted(summary, getContext());
       emit({ status: "needs-runtime", summary, checks: STEP_RESULTS }, getContext());
       return summary;
     }
 
-    runStep("contract-surface", () => ({
-      packagedHarnessHelpers: S05_REQUIRED_PACKAGED_HELPERS.length,
-      profilePrefix: "M004-safe-visible-prefix",
-      redactionScanner: "ready",
-    }), getContext);
+    runStep(
+      "contract-surface",
+      () => ({
+        packagedHarnessHelpers: S05_REQUIRED_PACKAGED_HELPERS.length,
+        profilePrefix: "M004-safe-visible-prefix",
+        redactionScanner: "ready",
+      }),
+      getContext,
+    );
 
     if (args.contractsOnly) {
       mode = "contracts-only";
-      const summary = buildS05FinalSummary({
-        status: "pass",
-        mode,
-        packageProof: { artifactsChecked: false, artifactCount: 0, preflightStatus: "deferred" },
-        redaction: { status: "ready", scanned: true, forbiddenMarkerCount: 0 },
-        checks: STEP_RESULTS,
-      }, getContext());
+      const summary = buildS05FinalSummary(
+        {
+          status: "pass",
+          mode,
+          packageProof: { artifactsChecked: false, artifactCount: 0, preflightStatus: "deferred" },
+          redaction: { status: "ready", scanned: true, forbiddenMarkerCount: 0 },
+          checks: STEP_RESULTS,
+        },
+        getContext(),
+      );
       assertS05PublicEvidenceRedacted(summary, getContext());
       emit({ status: summary.status, summary, checks: STEP_RESULTS }, getContext());
       return summary;
@@ -2254,67 +2710,97 @@ export async function runVerification({ rootDir = ROOT_DIR, argv = process.argv.
 
     if (args.preflightOnly) {
       mode = "preflight-only";
-      const preflight = runStep("package-preflight", () => {
-        const result = assertWebDriverPreflight({ rootDir, platform: process.platform, env: process.env, strict: true });
-        return {
-          value: result,
-          log: {
-            strict: result.strict,
-            missingPrerequisites: result.missing.map((item) => item.name),
-            display: result.display,
-            chromium: result.chromium?.name ? { name: result.chromium.name, source: result.chromium.source } : result.chromium,
+      const preflight = runStep(
+        "package-preflight",
+        () => {
+          const result = assertWebDriverPreflight({
+            rootDir,
+            platform: process.platform,
+            env: process.env,
+            strict: true,
+          });
+          return {
+            value: result,
+            log: {
+              strict: result.strict,
+              missingPrerequisites: result.missing.map((item) => item.name),
+              display: result.display,
+              chromium: result.chromium?.name
+                ? { name: result.chromium.name, source: result.chromium.source }
+                : result.chromium,
+            },
+          };
+        },
+        getContext,
+      );
+      const summary = buildS05FinalSummary(
+        {
+          status: "pass",
+          mode,
+          packageProof: {
+            artifactsChecked: false,
+            artifactCount: 0,
+            preflightStatus: preflight.missing.length === 0 ? "pass" : "advisory",
           },
-        };
-      }, getContext);
-      const summary = buildS05FinalSummary({
-        status: "pass",
-        mode,
-        packageProof: { artifactsChecked: false, artifactCount: 0, preflightStatus: preflight.missing.length === 0 ? "pass" : "advisory" },
-        redaction: { status: "ready", scanned: true, forbiddenMarkerCount: 0 },
-        checks: STEP_RESULTS,
-      }, getContext());
+          redaction: { status: "ready", scanned: true, forbiddenMarkerCount: 0 },
+          checks: STEP_RESULTS,
+        },
+        getContext(),
+      );
       assertS05PublicEvidenceRedacted(summary, getContext());
       emit({ status: summary.status, summary, checks: STEP_RESULTS }, getContext());
       return summary;
     }
 
     const packageRun = runPackageProof({ rootDir, args, tracker });
-    mode = args.lifecycleOnly ? "lifecycle-only" : (args.skipBuild ? "full-skip-build" : "full");
+    mode = args.lifecycleOnly ? "lifecycle-only" : args.skipBuild ? "full-skip-build" : "full";
 
-    const lifecycle = await runPackagedLifecycleProof({ rootDir, proof: packageRun.proof, tracker, fullRuntime: !args.lifecycleOnly });
-    const summary = buildS05FinalSummary({
-      status: lifecycle.status,
-      mode,
-      packageProof: packageRun.packageProof,
-      ui: lifecycle.ui,
-      api: lifecycle.api,
-      http: lifecycle.http,
-      failureMatrix: lifecycle.failureMatrix,
-      leaseFlow: lifecycle.leaseFlow,
-      playwright: lifecycle.playwright,
-      profileStore: lifecycle.profileStore,
-      diagnostics: lifecycle.diagnostics,
-      cleanup: lifecycle.cleanup,
-      redaction: lifecycle.redaction,
-      checks: STEP_RESULTS,
-    }, getContext());
+    const lifecycle = await runPackagedLifecycleProof({
+      rootDir,
+      proof: packageRun.proof,
+      tracker,
+      fullRuntime: !args.lifecycleOnly,
+    });
+    const summary = buildS05FinalSummary(
+      {
+        status: lifecycle.status,
+        mode,
+        packageProof: packageRun.packageProof,
+        ui: lifecycle.ui,
+        api: lifecycle.api,
+        http: lifecycle.http,
+        failureMatrix: lifecycle.failureMatrix,
+        leaseFlow: lifecycle.leaseFlow,
+        playwright: lifecycle.playwright,
+        profileStore: lifecycle.profileStore,
+        diagnostics: lifecycle.diagnostics,
+        cleanup: lifecycle.cleanup,
+        redaction: lifecycle.redaction,
+        checks: STEP_RESULTS,
+      },
+      getContext(),
+    );
     assertS05PublicEvidenceRedacted(summary, getContext());
     emit({ status: summary.status, summary, checks: STEP_RESULTS }, getContext());
     return summary;
   } catch (error) {
-    const publicError = error?.name === "VerifyFailure"
-      ? error
-      : new VerifyFailure("Unexpected verify:m004:s05 failure.", {
-          code: "S05_UNEXPECTED_FAILURE",
-          message: error instanceof Error ? error.message : String(error),
-        });
-    const summary = buildS05FinalSummary({
-      status: "fail",
-      mode,
-      redaction: { status: "ready", scanned: true },
-      error: publicError,
-      checks: STEP_RESULTS,
-    }, getContext());
+    const publicError =
+      error?.name === "VerifyFailure"
+        ? error
+        : new VerifyFailure("Unexpected verify:m004:s05 failure.", {
+            code: "S05_UNEXPECTED_FAILURE",
+            message: error instanceof Error ? error.message : String(error),
+          });
+    const summary = buildS05FinalSummary(
+      {
+        status: "fail",
+        mode,
+        redaction: { status: "ready", scanned: true },
+        error: publicError,
+        checks: STEP_RESULTS,
+      },
+      getContext(),
+    );
     assertS05PublicEvidenceRedacted(summary, getContext());
     emit({ status: "fail", summary, checks: STEP_RESULTS }, getContext());
     const safeError = safeS05ErrorForPublic(publicError, getContext());

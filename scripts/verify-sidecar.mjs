@@ -33,7 +33,8 @@ const STATIC_SENSITIVE_VALUES = [
   "proxy-password",
 ];
 const REDACTION_VALUES = new Set(STATIC_SENSITIVE_VALUES);
-const SENSITIVE_DETAIL_KEY = /(?:authorization|credential|password|proxy[-_ ]?(?:authorization|pass|password|user|username)|username)/i;
+const SENSITIVE_DETAIL_KEY =
+  /(?:authorization|credential|password|proxy[-_ ]?(?:authorization|pass|password|user|username)|username)/i;
 
 class SmokeFailure extends Error {
   constructor(message, details) {
@@ -140,13 +141,10 @@ function parseNdjsonLines(streamName, value, expectedCount, sensitiveValues = []
     .filter(Boolean);
 
   if (lines.length !== expectedCount) {
-    fail(
-      `${streamName} emitted ${lines.length} NDJSON line(s), expected ${expectedCount}.`,
-      {
-        [`${streamName}LineCount`]: lines.length,
-        [`${streamName}Tail`]: redactedTail(value, sensitiveValues),
-      },
-    );
+    fail(`${streamName} emitted ${lines.length} NDJSON line(s), expected ${expectedCount}.`, {
+      [`${streamName}LineCount`]: lines.length,
+      [`${streamName}Tail`]: redactedTail(value, sensitiveValues),
+    });
   }
 
   return lines.map((line, index) => {
@@ -237,18 +235,8 @@ function runSidecarRaw(binaryPath, input, expectedStdoutCount, expectedStderrCou
     });
   }
 
-  const stdoutEvents = parseNdjsonLines(
-    "stdout",
-    result.stdout,
-    expectedStdoutCount,
-    sensitiveValues,
-  );
-  const stderrEvents = parseNdjsonLines(
-    "stderr",
-    result.stderr,
-    expectedStderrCount,
-    sensitiveValues,
-  );
+  const stdoutEvents = parseNdjsonLines("stdout", result.stdout, expectedStdoutCount, sensitiveValues);
+  const stderrEvents = parseNdjsonLines("stderr", result.stderr, expectedStderrCount, sensitiveValues);
 
   return {
     stdoutEvents,
@@ -259,13 +247,7 @@ function runSidecarRaw(binaryPath, input, expectedStdoutCount, expectedStderrCou
 }
 
 function runSidecarRequest(binaryPath, payload, sensitiveValues = []) {
-  const result = runSidecarRaw(
-    binaryPath,
-    `${JSON.stringify(payload)}\n`,
-    1,
-    1,
-    sensitiveValues,
-  );
+  const result = runSidecarRaw(binaryPath, `${JSON.stringify(payload)}\n`, 1, 1, sensitiveValues);
   return {
     response: result.stdoutEvents[0],
     diagnostic: result.stderrEvents[0],
@@ -353,16 +335,10 @@ function assertHealthEnvelope(health, healthLog) {
   assert(health.id === "verify-health", "Health response did not echo the request id.");
   assert(health.ok === true, "Health response did not return ok:true.");
   assert(health.result?.status, "Health response is missing result.status.");
-  assert(
-    health.result?.product?.name === "ThePrivator",
-    "Health response is missing product metadata.",
-  );
+  assert(health.result?.product?.name === "ThePrivator", "Health response is missing product metadata.");
   assert(health.result?.protocol?.version, "Health response is missing protocol metadata.");
   assert(health.result?.build?.mode, "Health response is missing build metadata.");
-  assert(
-    health.result?.build?.mode === "pyinstaller",
-    "Built sidecar health did not report pyinstaller build mode.",
-  );
+  assert(health.result?.build?.mode === "pyinstaller", "Built sidecar health did not report pyinstaller build mode.");
   assert(health.result?.build?.frozen === true, "Built sidecar health did not report frozen:true.");
   assert(healthLog.status === "ok", "Health diagnostic did not report ok status.");
   assert(healthLog.errorCode === null, "Health diagnostic should not include an error code.");
@@ -373,18 +349,12 @@ function assertHealthEnvelope(health, healthLog) {
 function assertDeliberateErrorEnvelope(deliberateError, errorLog) {
   assert(deliberateError.id === "verify-error", "Diagnostic error did not echo the request id.");
   assert(deliberateError.ok === false, "Diagnostic error did not return ok:false.");
-  assert(
-    deliberateError.error?.code === "DIAGNOSTIC_FAILURE",
-    "Diagnostic error did not preserve DIAGNOSTIC_FAILURE.",
-  );
+  assert(deliberateError.error?.code === "DIAGNOSTIC_FAILURE", "Diagnostic error did not preserve DIAGNOSTIC_FAILURE.");
   assert(deliberateError.error?.recoverable === true, "Diagnostic error is not recoverable.");
   assert(deliberateError.error?.detailRef, "Diagnostic error is missing detailRef.");
   assert(errorLog.status === "error", "Deliberate diagnostic did not report error status.");
   assert(errorLog.errorCode === "DIAGNOSTIC_FAILURE", "Deliberate diagnostic lost errorCode.");
-  assert(
-    errorLog.detailRef === deliberateError.error.detailRef,
-    "detailRef mismatch between stdout and stderr.",
-  );
+  assert(errorLog.detailRef === deliberateError.error.detailRef, "detailRef mismatch between stdout and stderr.");
   return { requestId: deliberateError.id, errorCode: deliberateError.error.code };
 }
 
@@ -406,10 +376,7 @@ function assertProfileCreateEnvelope(response, diagnostic, profileName) {
   assert([4, 5].includes(response.result?.storeVersion), "Profile create did not return storeVersion 4.");
   assert(response.result?.profile?.id, "Profile create is missing profile id.");
   assert(response.result?.profile?.name === profileName, "Profile create returned the wrong profile name.");
-  assert(
-    response.result?.profile?.identity?.identityVersion === 2,
-    "Profile create is missing default identity v2.",
-  );
+  assert(response.result?.profile?.identity?.identityVersion === 2, "Profile create is missing default identity v2.");
   assert(diagnostic.status === "ok", "Profile create diagnostic did not report ok status.");
   assert(diagnostic.errorCode === null, "Profile create diagnostic should not include an error code.");
   return { profileId: response.result.profile.id, storeVersion: response.result.storeVersion };
@@ -422,10 +389,7 @@ function assertPresetListEnvelope(response, diagnostic) {
   assert(Array.isArray(response.result?.presets), "Preset list did not return presets array.");
   assert(response.result.count === response.result.presets.length, "Preset list count mismatch.");
   const presetIds = response.result.presets.map((preset) => preset.presetId);
-  assert(
-    presetIds.includes("windows-10-chrome-120"),
-    "Preset list did not include windows-10-chrome-120.",
-  );
+  assert(presetIds.includes("windows-10-chrome-120"), "Preset list did not include windows-10-chrome-120.");
   assert(diagnostic.status === "ok", "Preset list diagnostic did not report ok status.");
   return { presetId: "windows-10-chrome-120", presetCount: response.result.count };
 }
@@ -447,11 +411,9 @@ function assertSurfaceDescribeEnvelope(response, diagnostic) {
       surfaceId,
     });
   }
-  assert(
-    !surfaces.get("geolocation").modes.includes("masked"),
-    "Surface describe offered a masked geolocation mode.",
-    { modes: surfaces.get("geolocation").modes },
-  );
+  assert(!surfaces.get("geolocation").modes.includes("masked"), "Surface describe offered a masked geolocation mode.", {
+    modes: surfaces.get("geolocation").modes,
+  });
   assert(diagnostic.status === "ok", "Surface describe diagnostic did not report ok status.");
   assert(diagnostic.errorCode === null, "Surface describe diagnostic should not include an error code.");
   return { surfaceCount: surfaces.size };
@@ -558,9 +520,7 @@ function assertPersistedProxyCredentials(storeRoot, profileId) {
   assert([4, 5].includes(payload?.storeVersion), "Persisted profile store did not use storeVersion 4.", {
     storeVersion: payload?.storeVersion,
   });
-  const profile = Array.isArray(payload.profiles)
-    ? payload.profiles.find((item) => item?.id === profileId)
-    : undefined;
+  const profile = Array.isArray(payload.profiles) ? payload.profiles.find((item) => item?.id === profileId) : undefined;
   assert(profile, "Persisted profile store did not include the smoke profile.");
   const proxy = profile.proxy;
   assert(proxy?.mode === "fixedServer", "Persisted proxy did not use fixedServer mode.", {
@@ -569,12 +529,20 @@ function assertPersistedProxyCredentials(storeRoot, profileId) {
   assert(proxy?.protocol === "socks5", "Persisted proxy did not keep the expected protocol.");
   assert(proxy?.host === "proxy.s01-smoke.example", "Persisted proxy did not keep the expected host.");
   assert(proxy?.port === 19050, "Persisted proxy did not keep the expected port.");
-  assert(proxy?.credentials?.username === PROXY_USERNAME_SENTINEL, "Persisted proxy username sentinel was not found at the targeted store path.", {
-    hasCredentialsObject: Boolean(proxy?.credentials),
-  });
-  assert(proxy?.credentials?.password === PROXY_PASSWORD_SENTINEL, "Persisted proxy password sentinel was not found at the targeted store path.", {
-    hasCredentialsObject: Boolean(proxy?.credentials),
-  });
+  assert(
+    proxy?.credentials?.username === PROXY_USERNAME_SENTINEL,
+    "Persisted proxy username sentinel was not found at the targeted store path.",
+    {
+      hasCredentialsObject: Boolean(proxy?.credentials),
+    },
+  );
+  assert(
+    proxy?.credentials?.password === PROXY_PASSWORD_SENTINEL,
+    "Persisted proxy password sentinel was not found at the targeted store path.",
+    {
+      hasCredentialsObject: Boolean(proxy?.credentials),
+    },
+  );
   return { storeVersion: payload.storeVersion, proxyMode: proxy.mode, credentialFieldCount: 2 };
 }
 
@@ -626,17 +594,22 @@ function assertChromiumLaunchGuardEnvelope(response, diagnostic) {
   assert(response.error?.recoverable === true, "Chromium launch guard error is not recoverable.");
   assert(response.error?.detailRef, "Chromium launch guard error is missing detailRef.");
   assert(diagnostic.status === "error", "Chromium launch guard diagnostic did not report error status.");
-  assert(
-    diagnostic.errorCode === "CHROMIUM_EXECUTABLE_NOT_FOUND",
-    "Chromium launch guard diagnostic lost errorCode.",
-  );
+  assert(diagnostic.errorCode === "CHROMIUM_EXECUTABLE_NOT_FOUND", "Chromium launch guard diagnostic lost errorCode.");
   assert(diagnostic.detailRef === response.error.detailRef, "Chromium launch guard detailRef mismatch.");
   assertNoProxyCredentialSentinels(response, "Chromium launch guard public response");
   assertNoProxyCredentialSentinels(diagnostic, "Chromium launch guard stderr diagnostic");
   return { errorCode: response.error.code };
 }
 
-function runInvalidProxyUpdateNoWrite({ binaryPath, storeRoot, profileId, requestId, proxy, expectedErrorCode, sensitiveValues }) {
+function runInvalidProxyUpdateNoWrite({
+  binaryPath,
+  storeRoot,
+  profileId,
+  requestId,
+  proxy,
+  expectedErrorCode,
+  sensitiveValues,
+}) {
   const before = readProfileStore(storeRoot).text;
   const result = runSidecarRequest(
     binaryPath,
@@ -676,7 +649,9 @@ function assertStoredDiagnosticLogEntries(storeRoot, expectedDiagnostics) {
   }
 
   for (const expected of expectedDiagnostics) {
-    const matching = entries.filter((entry) => entry.requestId === expected.requestId && entry.method === expected.method);
+    const matching = entries.filter(
+      (entry) => entry.requestId === expected.requestId && entry.method === expected.method,
+    );
     assert(matching.length === 1, "Persisted diagnostic log did not contain exactly one matching command entry.", {
       requestId: expected.requestId,
       method: expected.method,
@@ -712,7 +687,10 @@ function assertVerifierRedactionHelpers() {
     key: PROXY_KEY_SENTINEL,
   });
   assertNoProxyCredentialSentinels(details, "Verifier redaction helper output");
-  assert(!JSON.stringify(details).includes(PROXY_HEADER_SENTINEL), "Verifier redaction helper leaked proxy header sentinel.");
+  assert(
+    !JSON.stringify(details).includes(PROXY_HEADER_SENTINEL),
+    "Verifier redaction helper leaked proxy header sentinel.",
+  );
   assert(!JSON.stringify(details).includes(PROXY_KEY_SENTINEL), "Verifier redaction helper leaked proxy key sentinel.");
   return { redactionHelper: "proxy-sentinels" };
 }
@@ -772,12 +750,7 @@ try {
   // Accept the executable inside a finished .app to verify shipped libraries too.
   const binaryPath = process.env.THEPRIVATOR_VERIFY_SIDECAR_BINARY
     ? resolve(process.env.THEPRIVATOR_VERIFY_SIDECAR_BINARY)
-    : join(
-    ROOT_DIR,
-    "src-tauri",
-    "binaries",
-    `${SIDECAR_NAME}-${targetTriple}${EXTENSION}`,
-  );
+    : join(ROOT_DIR, "src-tauri", "binaries", `${SIDECAR_NAME}-${targetTriple}${EXTENSION}`);
 
   runStep("target-binary", () => assertTargetBinary(binaryPath, targetTriple));
 
@@ -830,11 +803,7 @@ try {
   try {
     const health = runStep("health-envelope", () => {
       const result = remember(
-        runSidecarRequest(
-          binaryPath,
-          { id: "verify-health", method: "health.status", params: {} },
-          sensitiveValues,
-        ),
+        runSidecarRequest(binaryPath, { id: "verify-health", method: "health.status", params: {} }, sensitiveValues),
       );
       return { value: result, log: { requestId: result.response.id } };
     });
@@ -842,11 +811,7 @@ try {
 
     const deliberateError = runStep("deliberate-error-envelope", () => {
       const result = remember(
-        runSidecarRequest(
-          binaryPath,
-          { id: "verify-error", method: "diagnostics.fail", params: {} },
-          sensitiveValues,
-        ),
+        runSidecarRequest(binaryPath, { id: "verify-error", method: "diagnostics.fail", params: {} }, sensitiveValues),
       );
       return { value: result, log: { requestId: result.response.id } };
     });

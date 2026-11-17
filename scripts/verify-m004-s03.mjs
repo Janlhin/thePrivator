@@ -62,17 +62,31 @@ const VERIFIER_EVENTS = [];
 
 const S03_FORBIDDEN_TEXT_PATTERNS = Object.freeze([
   { markerClass: "lease_id", pattern: /\blease_[A-Za-z0-9_-]{6,}\b/i },
-  { markerClass: "handoff_field", pattern: /\b(?:connect-over-cdp|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i },
-  { markerClass: "debug_endpoint", pattern: /\b(?:DevToolsActivePort|debugPort|remote-debugging|--remote-debugging-port|cdp:\/\/)\b/i },
+  {
+    markerClass: "handoff_field",
+    pattern: /\b(?:connect-over-cdp|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i,
+  },
+  {
+    markerClass: "debug_endpoint",
+    pattern: /\b(?:DevToolsActivePort|debugPort|remote-debugging|--remote-debugging-port|cdp:\/\/)\b/i,
+  },
   { markerClass: "ws_endpoint", pattern: /wss?:\/\/[^\s"']+/i },
   { markerClass: "raw_diag", pattern: /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|Traceback|stack trace)\b/i },
   { markerClass: "profile_private_path", pattern: /\b(?:profile-store|profiles\.json)\b/i },
 ]);
-const S03_FORBIDDEN_KEY_PATTERN = /^(?:leaseId|leaseEndpoint|handoff|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|remoteDebuggingPort|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|stack|traceback)$/i;
-const LEASE_SURFACE_FORBIDDEN_KEY_PATTERN = /(?:handoff|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|remoteDebuggingPort|storeRoot|appDataRoot|userDataDir|profileDir|credentials?|password|secret|token|authorization|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|argv|args|env|stack|traceback)/i;
+const S03_FORBIDDEN_KEY_PATTERN =
+  /^(?:leaseId|leaseEndpoint|handoff|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|remoteDebuggingPort|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|stack|traceback)$/i;
+const LEASE_SURFACE_FORBIDDEN_KEY_PATTERN =
+  /(?:handoff|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint|debugPort|remoteDebuggingPort|storeRoot|appDataRoot|userDataDir|profileDir|credentials?|password|secret|token|authorization|stdout|stderr|rawDiagnostics?|rawBody|rawPayload|argv|args|env|stack|traceback)/i;
 const LEASE_SURFACE_FORBIDDEN_TEXT_PATTERNS = Object.freeze([
-  { markerClass: "handoff_field", pattern: /\b(?:connect-over-cdp|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i },
-  { markerClass: "debug_endpoint", pattern: /\b(?:DevToolsActivePort|debugPort|remote-debugging|--remote-debugging-port|cdp:\/\/)\b/i },
+  {
+    markerClass: "handoff_field",
+    pattern: /\b(?:connect-over-cdp|handoffOrigin|browserWSEndpoint|webSocketDebuggerUrl|wsEndpoint)\b/i,
+  },
+  {
+    markerClass: "debug_endpoint",
+    pattern: /\b(?:DevToolsActivePort|debugPort|remote-debugging|--remote-debugging-port|cdp:\/\/)\b/i,
+  },
   { markerClass: "ws_endpoint", pattern: /wss?:\/\/[^\s"']+/i },
   { markerClass: "raw_diag", pattern: /\b(?:stdout|stderr|raw diagnostics?|rawDiagnostics?|Traceback|stack trace)\b/i },
   { markerClass: "profile_private_path", pattern: /\b(?:profile-store|profiles\.json)\b/i },
@@ -117,10 +131,7 @@ export function createS03RedactionContext({
   return {
     ...context,
     exactValues,
-    forbiddenPatterns: [
-      ...(context.forbiddenPatterns ?? []),
-      ...S03_FORBIDDEN_TEXT_PATTERNS,
-    ],
+    forbiddenPatterns: [...(context.forbiddenPatterns ?? []), ...S03_FORBIDDEN_TEXT_PATTERNS],
   };
 }
 
@@ -153,24 +164,34 @@ function safeFieldPath(path, keyOrIndex, keyPattern = S03_FORBIDDEN_KEY_PATTERN)
 }
 
 function safeKeyForDetails(key) {
-  return (S03_FORBIDDEN_KEY_PATTERN.test(key) || LEASE_SURFACE_FORBIDDEN_KEY_PATTERN.test(key)) ? redactedS03KeyName(key) : key;
+  return S03_FORBIDDEN_KEY_PATTERN.test(key) || LEASE_SURFACE_FORBIDDEN_KEY_PATTERN.test(key)
+    ? redactedS03KeyName(key)
+    : key;
 }
 
 function assertExactKeys(value, expectedKeys, label) {
   const expected = [...expectedKeys].sort();
   const actual = Object.keys(value ?? {}).sort();
-  assert(JSON.stringify(actual) === JSON.stringify(expected), `${label} keys did not match the expected public contract.`, {
-    phase: "contract-shape",
-    expectedKeys: expected,
-    actualKeys: actual.map(safeKeyForDetails),
-  });
+  assert(
+    JSON.stringify(actual) === JSON.stringify(expected),
+    `${label} keys did not match the expected public contract.`,
+    {
+      phase: "contract-shape",
+      expectedKeys: expected,
+      actualKeys: actual.map(safeKeyForDetails),
+    },
+  );
 }
 
 function assertResponseHeaderRequestId(headerRequestId, bodyRequestId, phase) {
-  assert(typeof bodyRequestId === "string" && bodyRequestId.startsWith("automation-"), "Automation API response did not include a safe requestId.", {
-    phase,
-    fieldPath: "$.request.requestId",
-  });
+  assert(
+    typeof bodyRequestId === "string" && bodyRequestId.startsWith("automation-"),
+    "Automation API response did not include a safe requestId.",
+    {
+      phase,
+      fieldPath: "$.request.requestId",
+    },
+  );
   assert(headerRequestId === bodyRequestId, "Automation API X-Request-ID header did not match the body requestId.", {
     phase,
     headerPresent: typeof headerRequestId === "string",
@@ -224,20 +245,43 @@ export function assertPlaywrightHandoffShape(handoff, { phase = "lease-create" }
 
 function assertLeaseRuntimePayload(runtime, expectedProfileId, expectedStatus, phase) {
   assert(isPlainObject(runtime), "Automation lease runtime payload was not an object.", { phase });
-  assert(runtime.runtimeApiVersion === RUNTIME_API_VERSION, "Automation lease runtime API version changed unexpectedly.", { phase });
-  assert(Number.isInteger(runtime.runningCount) && runtime.runningCount >= 0, "Automation lease runtime runningCount was invalid.", { phase });
+  assert(
+    runtime.runtimeApiVersion === RUNTIME_API_VERSION,
+    "Automation lease runtime API version changed unexpectedly.",
+    { phase },
+  );
+  assert(
+    Number.isInteger(runtime.runningCount) && runtime.runningCount >= 0,
+    "Automation lease runtime runningCount was invalid.",
+    { phase },
+  );
   assert(isPlainObject(runtime.profile), "Automation lease runtime profile payload was missing.", { phase });
-  assert(runtime.profile.profileId === expectedProfileId, "Automation lease runtime profile id mismatch.", { phase, expectedProfilePresent: true });
-  assert(runtime.profile.status === expectedStatus, "Automation lease runtime status mismatch.", { phase, expectedStatus, actualStatus: runtime.profile.status });
+  assert(runtime.profile.profileId === expectedProfileId, "Automation lease runtime profile id mismatch.", {
+    phase,
+    expectedProfilePresent: true,
+  });
+  assert(runtime.profile.status === expectedStatus, "Automation lease runtime status mismatch.", {
+    phase,
+    expectedStatus,
+    actualStatus: runtime.profile.status,
+  });
   if (expectedStatus === "running") {
     assertExactKeys(runtime, ["profile", "runningCount", "runtimeApiVersion"], "Automation lease running runtime");
     assertExactKeys(runtime.profile, ["profileId", "startedAt", "status"], "Automation lease running profile runtime");
     assertIsoTimestamp(runtime.profile.startedAt, phase, "$.runtime.profile.startedAt");
   } else {
     assertExactKeys(runtime, ["profile", "runningCount", "runtimeApiVersion"], "Automation lease stopped runtime");
-    assertExactKeys(runtime.profile, ["profileId", "status", "stoppedAt", "termination"], "Automation lease stopped profile runtime");
+    assertExactKeys(
+      runtime.profile,
+      ["profileId", "status", "stoppedAt", "termination"],
+      "Automation lease stopped profile runtime",
+    );
     assertIsoTimestamp(runtime.profile.stoppedAt, phase, "$.runtime.profile.stoppedAt");
-    assert(typeof runtime.profile.termination === "string" && runtime.profile.termination.length > 0, "Automation lease stopped runtime termination was missing.", { phase });
+    assert(
+      typeof runtime.profile.termination === "string" && runtime.profile.termination.length > 0,
+      "Automation lease stopped runtime termination was missing.",
+      { phase },
+    );
   }
   return {
     status: runtime.profile.status,
@@ -250,10 +294,30 @@ function expectedLeaseKeysForStatus(status) {
     return ["createdAt", "expiresAt", "framework", "id", "profileId", "status", "ttlSeconds"];
   }
   if (status === "released") {
-    return ["cleanedUpAt", "createdAt", "expiresAt", "framework", "id", "profileId", "releasedAt", "status", "ttlSeconds"];
+    return [
+      "cleanedUpAt",
+      "createdAt",
+      "expiresAt",
+      "framework",
+      "id",
+      "profileId",
+      "releasedAt",
+      "status",
+      "ttlSeconds",
+    ];
   }
   if (status === "expired") {
-    return ["cleanedUpAt", "createdAt", "expiredAt", "expiresAt", "framework", "id", "profileId", "status", "ttlSeconds"];
+    return [
+      "cleanedUpAt",
+      "createdAt",
+      "expiredAt",
+      "expiresAt",
+      "framework",
+      "id",
+      "profileId",
+      "status",
+      "ttlSeconds",
+    ];
   }
   return [];
 }
@@ -262,12 +326,27 @@ function assertLeaseRecord(lease, { expectedProfileId, expectedStatus, expectedT
   assert(isPlainObject(lease), "Automation lease payload was not an object.", { phase });
   assertExactKeys(lease, expectedLeaseKeysForStatus(expectedStatus), `Automation ${expectedStatus} lease`);
   assertLeaseId(lease.id, phase, "$.lease.id");
-  assert(lease.profileId === expectedProfileId, "Automation lease profile id mismatch.", { phase, expectedProfilePresent: true });
+  assert(lease.profileId === expectedProfileId, "Automation lease profile id mismatch.", {
+    phase,
+    expectedProfilePresent: true,
+  });
   assert(lease.framework === "playwright", "Automation lease framework was not playwright.", { phase });
-  assert(lease.status === expectedStatus, "Automation lease status mismatch.", { phase, expectedStatus, actualStatus: lease.status });
-  assert(Number.isInteger(lease.ttlSeconds) && lease.ttlSeconds >= 1 && lease.ttlSeconds <= 120, "Automation lease TTL was outside allowed bounds.", { phase });
+  assert(lease.status === expectedStatus, "Automation lease status mismatch.", {
+    phase,
+    expectedStatus,
+    actualStatus: lease.status,
+  });
+  assert(
+    Number.isInteger(lease.ttlSeconds) && lease.ttlSeconds >= 1 && lease.ttlSeconds <= 120,
+    "Automation lease TTL was outside allowed bounds.",
+    { phase },
+  );
   if (expectedTtlSeconds !== undefined) {
-    assert(lease.ttlSeconds === expectedTtlSeconds, "Automation lease TTL did not match the request.", { phase, expectedTtlSeconds, actualTtlSeconds: lease.ttlSeconds });
+    assert(lease.ttlSeconds === expectedTtlSeconds, "Automation lease TTL did not match the request.", {
+      phase,
+      expectedTtlSeconds,
+      actualTtlSeconds: lease.ttlSeconds,
+    });
   }
   assertIsoTimestamp(lease.createdAt, phase, "$.lease.createdAt");
   assertIsoTimestamp(lease.expiresAt, phase, "$.lease.expiresAt");
@@ -287,7 +366,12 @@ function assertLeaseRecord(lease, { expectedProfileId, expectedStatus, expectedT
   };
 }
 
-export function findForbiddenLeaseSurfaceMarker(value, context = createS03RedactionContext(), path = "$", state = { count: 0 }) {
+export function findForbiddenLeaseSurfaceMarker(
+  value,
+  context = createS03RedactionContext(),
+  path = "$",
+  state = { count: 0 },
+) {
   if (state.count++ > 4_000) {
     return { markerClass: "scan_limit", fieldPath: path, reason: "Lease surface scan node limit exceeded." };
   }
@@ -312,7 +396,12 @@ export function findForbiddenLeaseSurfaceMarker(value, context = createS03Redact
 
   if (Array.isArray(value)) {
     for (const [index, item] of value.entries()) {
-      const nested = findForbiddenLeaseSurfaceMarker(item, context, safeFieldPath(path, index, LEASE_SURFACE_FORBIDDEN_KEY_PATTERN), state);
+      const nested = findForbiddenLeaseSurfaceMarker(
+        item,
+        context,
+        safeFieldPath(path, index, LEASE_SURFACE_FORBIDDEN_KEY_PATTERN),
+        state,
+      );
       if (nested) return nested;
     }
     return null;
@@ -320,9 +409,18 @@ export function findForbiddenLeaseSurfaceMarker(value, context = createS03Redact
 
   for (const [key, nested] of Object.entries(value)) {
     if (LEASE_SURFACE_FORBIDDEN_KEY_PATTERN.test(key)) {
-      return { markerClass: classifyS03ForbiddenKey(key), fieldPath: safeFieldPath(path, key, LEASE_SURFACE_FORBIDDEN_KEY_PATTERN), reason: "forbidden lease surface key" };
+      return {
+        markerClass: classifyS03ForbiddenKey(key),
+        fieldPath: safeFieldPath(path, key, LEASE_SURFACE_FORBIDDEN_KEY_PATTERN),
+        reason: "forbidden lease surface key",
+      };
     }
-    const nestedMarker = findForbiddenLeaseSurfaceMarker(nested, context, safeFieldPath(path, key, LEASE_SURFACE_FORBIDDEN_KEY_PATTERN), state);
+    const nestedMarker = findForbiddenLeaseSurfaceMarker(
+      nested,
+      context,
+      safeFieldPath(path, key, LEASE_SURFACE_FORBIDDEN_KEY_PATTERN),
+      state,
+    );
     if (nestedMarker) return nestedMarker;
   }
   return null;
@@ -334,7 +432,15 @@ export function assertNoForbiddenLeaseSurface(value, context = createS03Redactio
   return { status: "clean", scanned: true };
 }
 
-export function assertLeaseCreateResponse({ statusCode, body, requestId, location, expectedProfileId, expectedTtlSeconds, phase = "lease-create" } = {}) {
+export function assertLeaseCreateResponse({
+  statusCode,
+  body,
+  requestId,
+  location,
+  expectedProfileId,
+  expectedTtlSeconds,
+  phase = "lease-create",
+} = {}) {
   assert(statusCode === 201, "Automation lease create did not return HTTP 201.", {
     phase,
     expectedStatusCode: 201,
@@ -343,13 +449,22 @@ export function assertLeaseCreateResponse({ statusCode, body, requestId, locatio
   assert(isPlainObject(body), "Automation lease create body was not an object.", { phase });
   assertExactKeys(body, ["handoff", "lease", "leaseApiVersion", "request", "runtime"], "Automation lease create body");
   assert(body.leaseApiVersion === LEASE_API_VERSION, "Automation lease API version changed unexpectedly.", { phase });
-  const lease = assertLeaseRecord(body.lease, { expectedProfileId, expectedStatus: "active", expectedTtlSeconds, phase });
+  const lease = assertLeaseRecord(body.lease, {
+    expectedProfileId,
+    expectedStatus: "active",
+    expectedTtlSeconds,
+    phase,
+  });
   const handoff = assertPlaywrightHandoffShape(body.handoff, { phase });
   const runtime = assertLeaseRuntimePayload(body.runtime, expectedProfileId, "running", phase);
   assert(isPlainObject(body.request), "Automation lease create request metadata was missing.", { phase });
   assertExactKeys(body.request, ["requestId"], "Automation lease create request metadata");
   assertResponseHeaderRequestId(requestId, body.request.requestId, phase);
-  assert(location === `/v1/leases/${lease.id}`, "Automation lease create Location header did not point to the lease status resource.", { phase, locationPresent: typeof location === "string" });
+  assert(
+    location === `/v1/leases/${lease.id}`,
+    "Automation lease create Location header did not point to the lease status resource.",
+    { phase, locationPresent: typeof location === "string" },
+  );
   return {
     private: {
       leaseId: lease.id,
@@ -373,14 +488,26 @@ export function assertLeaseCreateResponse({ statusCode, body, requestId, locatio
   };
 }
 
-export function assertLeaseStatusResponse({ statusCode, body, requestId, expectedProfileId, expectedStatus, expectedTtlSeconds, context = createS03RedactionContext(), phase = `lease-${expectedStatus}` } = {}) {
+export function assertLeaseStatusResponse({
+  statusCode,
+  body,
+  requestId,
+  expectedProfileId,
+  expectedStatus,
+  expectedTtlSeconds,
+  context = createS03RedactionContext(),
+  phase = `lease-${expectedStatus}`,
+} = {}) {
   assert(statusCode === 200, "Automation lease status request did not return HTTP 200.", {
     phase,
     expectedStatusCode: 200,
     actualStatusCode: statusCode,
   });
   assert(isPlainObject(body), "Automation lease status body was not an object.", { phase });
-  const expectedKeys = expectedStatus === "active" ? ["lease", "leaseApiVersion", "request"] : ["lease", "leaseApiVersion", "request", "runtime"];
+  const expectedKeys =
+    expectedStatus === "active"
+      ? ["lease", "leaseApiVersion", "request"]
+      : ["lease", "leaseApiVersion", "request", "runtime"];
   assertExactKeys(body, expectedKeys, "Automation lease status body");
   assert(body.leaseApiVersion === LEASE_API_VERSION, "Automation lease API version changed unexpectedly.", { phase });
   const lease = assertLeaseRecord(body.lease, { expectedProfileId, expectedStatus, expectedTtlSeconds, phase });
@@ -402,7 +529,15 @@ export function assertLeaseStatusResponse({ statusCode, body, requestId, expecte
   };
 }
 
-export function assertLeaseReleaseResponse({ statusCode, body, requestId, expectedProfileId, expectedTtlSeconds, context = createS03RedactionContext(), phase = "lease-release" } = {}) {
+export function assertLeaseReleaseResponse({
+  statusCode,
+  body,
+  requestId,
+  expectedProfileId,
+  expectedTtlSeconds,
+  context = createS03RedactionContext(),
+  phase = "lease-release",
+} = {}) {
   return assertLeaseStatusResponse({
     statusCode,
     body,
@@ -415,7 +550,12 @@ export function assertLeaseReleaseResponse({ statusCode, body, requestId, expect
   });
 }
 
-export function findS03ForbiddenPublicMarker(value, context = createS03RedactionContext(), path = "$", state = { count: 0 }) {
+export function findS03ForbiddenPublicMarker(
+  value,
+  context = createS03RedactionContext(),
+  path = "$",
+  state = { count: 0 },
+) {
   const s02Marker = findS02ForbiddenPublicMarker(value, context, path, { count: 0 });
   if (s02Marker) {
     return s02Marker;
@@ -453,7 +593,11 @@ export function findS03ForbiddenPublicMarker(value, context = createS03Redaction
 
   for (const [key, nested] of Object.entries(value)) {
     if (!isRedactedPlaceholderKey(key) && S03_FORBIDDEN_KEY_PATTERN.test(key)) {
-      return { markerClass: classifyS03ForbiddenKey(key), fieldPath: safeFieldPath(path, key), reason: "forbidden S03 key" };
+      return {
+        markerClass: classifyS03ForbiddenKey(key),
+        fieldPath: safeFieldPath(path, key),
+        reason: "forbidden S03 key",
+      };
     }
     const nestedMarker = findS03ForbiddenPublicMarker(nested, context, safeFieldPath(path, key), state);
     if (nestedMarker) return nestedMarker;
@@ -639,7 +783,11 @@ export function sidecarRequest(id, method, params = {}) {
   return { id, method, params };
 }
 
-export function runSidecarRequest(binaryPath, request, { timeoutMs = SIDECAR_TIMEOUT_MS, env = {}, context = createS03RedactionContext() } = {}) {
+export function runSidecarRequest(
+  binaryPath,
+  request,
+  { timeoutMs = SIDECAR_TIMEOUT_MS, env = {}, context = createS03RedactionContext() } = {},
+) {
   const result = spawnSync(binaryPath, {
     cwd: ROOT_DIR,
     input: `${JSON.stringify(request)}\n`,
@@ -694,22 +842,44 @@ export function runSidecarRequest(binaryPath, request, { timeoutMs = SIDECAR_TIM
 export function sidecarSuccess(binaryPath, id, method, params = {}, options = {}) {
   const transcript = runSidecarRequest(binaryPath, sidecarRequest(id, method, params), options);
   const { response, diagnostic } = transcript;
-  assert(response.id === id, "Sidecar success response id mismatch.", { phase: "profile-setup", action: method, requestId: id });
+  assert(response.id === id, "Sidecar success response id mismatch.", {
+    phase: "profile-setup",
+    action: method,
+    requestId: id,
+  });
   assert(response.ok === true, `Expected ${method} to succeed.`, {
     phase: "profile-setup",
     action: method,
     errorCode: response.error?.code,
     detailRef: response.error?.detailRef,
   });
-  assert(diagnostic.status === "ok", "Sidecar diagnostic did not report ok status.", { phase: "profile-setup", action: method });
-  assert(diagnostic.errorCode === null, "Successful sidecar diagnostic should not include errorCode.", { phase: "profile-setup", action: method });
-  assert(diagnostic.detailRef === null, "Successful sidecar diagnostic should not include detailRef.", { phase: "profile-setup", action: method });
-  assert(isPlainObject(response.result), "Sidecar success response result was not an object.", { phase: "profile-setup", action: method });
+  assert(diagnostic.status === "ok", "Sidecar diagnostic did not report ok status.", {
+    phase: "profile-setup",
+    action: method,
+  });
+  assert(diagnostic.errorCode === null, "Successful sidecar diagnostic should not include errorCode.", {
+    phase: "profile-setup",
+    action: method,
+  });
+  assert(diagnostic.detailRef === null, "Successful sidecar diagnostic should not include detailRef.", {
+    phase: "profile-setup",
+    action: method,
+  });
+  assert(isPlainObject(response.result), "Sidecar success response result was not an object.", {
+    phase: "profile-setup",
+    action: method,
+  });
   return { ...transcript, result: response.result };
 }
 
 function makeRequestId(label) {
-  return `verify-m004-s03-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 72) || "request"}`;
+  return `verify-m004-s03-${
+    String(label)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 72) || "request"
+  }`;
 }
 
 function createVerifierProfile({ binaryPath, storeRoot, context }) {
@@ -721,9 +891,14 @@ function createVerifierProfile({ binaryPath, storeRoot, context }) {
     { storeRoot, name: profileName },
     { context },
   ).result;
-  assert(isPlainObject(result.profile), "Profile setup response did not include a profile object.", { phase: "profile-setup" });
+  assert(isPlainObject(result.profile), "Profile setup response did not include a profile object.", {
+    phase: "profile-setup",
+  });
   assertProfileId(result.profile.id, "profile-setup", "$.profile.id");
-  assert(result.profile.name === profileName, "Profile setup response name did not match.", { phase: "profile-setup", expectedProfilePresent: true });
+  assert(result.profile.name === profileName, "Profile setup response name did not match.", {
+    phase: "profile-setup",
+    expectedProfilePresent: true,
+  });
   return {
     profileId: result.profile.id,
     profileName: "verifier-created-profile",
@@ -807,7 +982,10 @@ export function removeRuntimeRoot(storeRoot) {
   return !existsSync(storeRoot);
 }
 
-export async function requestJson(url, { method = "GET", token, body, timeoutMs = HTTP_TIMEOUT_MS, phase = "http" } = {}) {
+export async function requestJson(
+  url,
+  { method = "GET", token, body, timeoutMs = HTTP_TIMEOUT_MS, phase = "http" } = {},
+) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error(`${phase} timed out.`)), timeoutMs);
   try {
@@ -903,16 +1081,23 @@ export async function attachAndExercisePlaywright(endpoint) {
   try {
     browser = await playwrightChromium.connectOverCDP(endpoint, { timeout: PLAYWRIGHT_TIMEOUT_MS });
     const contexts = browser.contexts();
-    const browserContext = contexts[0] ?? await browser.newContext();
+    const browserContext = contexts[0] ?? (await browser.newContext());
     page = await browserContext.newPage();
-    await page.goto("data:text/html,%3C!doctype%20html%3E%3Ctitle%3EM004%20S03%20Lease%20Verifier%3C%2Ftitle%3E%3Cmain%20id%3Dproof%3Elease%20action%20ok%3C%2Fmain%3E", {
-      waitUntil: "load",
-      timeout: 5_000,
-    });
+    await page.goto(
+      "data:text/html,%3C!doctype%20html%3E%3Ctitle%3EM004%20S03%20Lease%20Verifier%3C%2Ftitle%3E%3Cmain%20id%3Dproof%3Elease%20action%20ok%3C%2Fmain%3E",
+      {
+        waitUntil: "load",
+        timeout: 5_000,
+      },
+    );
     const title = await page.title();
     const text = await page.locator("#proof").textContent({ timeout: 5_000 });
-    assert(title === "M004 S03 Lease Verifier", "Playwright CDP action did not observe the expected page title.", { phase: "playwright-action" });
-    assert(text === "lease action ok", "Playwright CDP action did not observe the expected page text.", { phase: "playwright-action" });
+    assert(title === "M004 S03 Lease Verifier", "Playwright CDP action did not observe the expected page title.", {
+      phase: "playwright-action",
+    });
+    assert(text === "lease action ok", "Playwright CDP action did not observe the expected page text.", {
+      phase: "playwright-action",
+    });
     return {
       attached: true,
       action: "data-url-title-and-text",
@@ -965,7 +1150,16 @@ function delay(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
-export async function waitForLeaseStatus({ baseUrl, token, profileId, leaseId, expectedStatus, expectedTtlSeconds, context, timeoutMs = EXPIRY_WAIT_TIMEOUT_MS }) {
+export async function waitForLeaseStatus({
+  baseUrl,
+  token,
+  profileId,
+  leaseId,
+  expectedStatus,
+  expectedTtlSeconds,
+  context,
+  timeoutMs = EXPIRY_WAIT_TIMEOUT_MS,
+}) {
   const deadline = Date.now() + timeoutMs;
   let attempts = 0;
   let lastStatus = null;
@@ -1019,7 +1213,18 @@ export async function assertListenerOpen({ host, port }) {
   return { open: true };
 }
 
-export function buildFinalSummary({ status, target, readiness, setup = {}, httpChecks = {}, leaseFlow = {}, cleanup = {}, redaction = {}, error = null, checks = STEP_RESULTS } = {}) {
+export function buildFinalSummary({
+  status,
+  target,
+  readiness,
+  setup = {},
+  httpChecks = {},
+  leaseFlow = {},
+  cleanup = {},
+  redaction = {},
+  error = null,
+  checks = STEP_RESULTS,
+} = {}) {
   const summary = {
     status,
     target: target
@@ -1111,7 +1316,11 @@ async function cleanupAfterFailure({ processState, readiness, baseUrl, token, ac
   }
 }
 
-export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s03-${randomUUID()}`, storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s03-")) } = {}) {
+export async function runVerification({
+  rootDir = ROOT_DIR,
+  token = `m004-s03-${randomUUID()}`,
+  storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s03-")),
+} = {}) {
   resetRunState();
   const leaseIds = [];
   const handoffEndpoints = [];
@@ -1130,191 +1339,288 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s03-${
   };
 
   try {
-    target = runStep("binary-discovery", () => {
-      const targetTriple = readTargetTriple(rootDir);
-      return assertS02TargetBinary({ rootDir, targetTriple, binaryPath: targetBinaryPath({ rootDir, targetTriple }) });
-    }, context);
+    target = runStep(
+      "binary-discovery",
+      () => {
+        const targetTriple = readTargetTriple(rootDir);
+        return assertS02TargetBinary({
+          rootDir,
+          targetTriple,
+          binaryPath: targetBinaryPath({ rootDir, targetTriple }),
+        });
+      },
+      context,
+    );
     const binaryPath = resolve(rootDir, target.binary);
 
     rebuildContext();
     runStep("runtime-root", () => ({ created: true, location: "temporary-app-data" }), context);
 
-    setup = runStep("profile-setup", () => {
-      const profile = createVerifierProfile({ binaryPath, storeRoot, context });
-      return { value: profile, log: { profileCreated: true, profileCount: 1 } };
-    }, context);
+    setup = runStep(
+      "profile-setup",
+      () => {
+        const profile = createVerifierProfile({ binaryPath, storeRoot, context });
+        return { value: profile, log: { profileCreated: true, profileCount: 1 } };
+      },
+      context,
+    );
 
-    processState = runStep("spawn", () => {
-      const state = startAutomationApi({ binaryPath, storeRoot, token });
-      return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
-    }, context);
+    processState = runStep(
+      "spawn",
+      () => {
+        const state = startAutomationApi({ binaryPath, storeRoot, token });
+        return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
+      },
+      context,
+    );
 
-    readiness = await runStepAsync("readiness", async () => waitForReadiness(processState, { timeoutMs: READINESS_TIMEOUT_MS, context }), context);
+    readiness = await runStepAsync(
+      "readiness",
+      async () => waitForReadiness(processState, { timeoutMs: READINESS_TIMEOUT_MS, context }),
+      context,
+    );
     baseUrl = `http://${readiness.host}:${readiness.port}`;
 
-    await runStepAsync("listener-open", async () => assertListenerOpen({ host: readiness.host, port: readiness.port }), context);
+    await runStepAsync(
+      "listener-open",
+      async () => assertListenerOpen({ host: readiness.host, port: readiness.port }),
+      context,
+    );
 
-    httpChecks.health = await runStepAsync("health", async () => {
-      const response = await requestJson(`${baseUrl}/health`, { phase: "health" });
-      return assertHealthWithHeader(response, context);
-    }, context);
+    httpChecks.health = await runStepAsync(
+      "health",
+      async () => {
+        const response = await requestJson(`${baseUrl}/health`, { phase: "health" });
+        return assertHealthWithHeader(response, context);
+      },
+      context,
+    );
 
-    httpChecks.auth = await runStepAsync("auth", async () => {
-      const checks = await verifyAuthFailures({ baseUrl, context });
-      return { value: checks, log: { checks } };
-    }, context);
+    httpChecks.auth = await runStepAsync(
+      "auth",
+      async () => {
+        const checks = await verifyAuthFailures({ baseUrl, context });
+        return { value: checks, log: { checks } };
+      },
+      context,
+    );
 
-    httpChecks.invalidTtl = await runStepAsync("lease-invalid-ttl", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(setup.profileId)}/leases`, {
-        method: "POST",
-        token,
-        body: { framework: "playwright", ttlSeconds: 0 },
-        phase: "lease-invalid-ttl",
-      });
-      return assertDomainErrorResponse({
-        ...response,
-        expectedCode: INVALID_REQUEST,
-        expectedStatusCode: 400,
-        expectedPhase: "lease",
-        context,
-        phase: "lease-invalid-ttl",
-      });
-    }, context);
+    httpChecks.invalidTtl = await runStepAsync(
+      "lease-invalid-ttl",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(setup.profileId)}/leases`, {
+          method: "POST",
+          token,
+          body: { framework: "playwright", ttlSeconds: 0 },
+          phase: "lease-invalid-ttl",
+        });
+        return assertDomainErrorResponse({
+          ...response,
+          expectedCode: INVALID_REQUEST,
+          expectedStatusCode: 400,
+          expectedPhase: "lease",
+          context,
+          phase: "lease-invalid-ttl",
+        });
+      },
+      context,
+    );
 
-    httpChecks.unknownProfile = await runStepAsync("lease-unknown-profile", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/missing-m004-s03-profile/leases`, {
-        method: "POST",
-        token,
-        body: { framework: "playwright", ttlSeconds: 1 },
-        phase: "lease-unknown-profile",
-      });
-      return assertDomainErrorResponse({
-        ...response,
-        expectedCode: PROFILE_NOT_FOUND,
-        expectedStatusCode: 404,
-        expectedPhase: "lease",
-        context,
-        phase: "lease-unknown-profile",
-      });
-    }, context);
+    httpChecks.unknownProfile = await runStepAsync(
+      "lease-unknown-profile",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/profiles/missing-m004-s03-profile/leases`, {
+          method: "POST",
+          token,
+          body: { framework: "playwright", ttlSeconds: 1 },
+          phase: "lease-unknown-profile",
+        });
+        return assertDomainErrorResponse({
+          ...response,
+          expectedCode: PROFILE_NOT_FOUND,
+          expectedStatusCode: 404,
+          expectedPhase: "lease",
+          context,
+          phase: "lease-unknown-profile",
+        });
+      },
+      context,
+    );
 
-    httpChecks.unknownLease = await runStepAsync("lease-unknown", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/lease_missing_m004_s03`, {
-        token,
-        phase: "lease-unknown",
-      });
-      return assertDomainErrorResponse({
-        ...response,
-        expectedCode: AUTOMATION_LEASE_NOT_FOUND,
-        expectedStatusCode: 404,
-        expectedPhase: "lease",
-        context,
-        phase: "lease-unknown",
-      });
-    }, context);
+    httpChecks.unknownLease = await runStepAsync(
+      "lease-unknown",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/leases/lease_missing_m004_s03`, {
+          token,
+          phase: "lease-unknown",
+        });
+        return assertDomainErrorResponse({
+          ...response,
+          expectedCode: AUTOMATION_LEASE_NOT_FOUND,
+          expectedStatusCode: 404,
+          expectedPhase: "lease",
+          context,
+          phase: "lease-unknown",
+        });
+      },
+      context,
+    );
 
-    const firstLease = await runStepAsync("lease-create", async () => {
-      const result = await createLease({ baseUrl, token, profileId: setup.profileId, ttlSeconds: 30, context });
-      return { value: result.private, log: result.public };
-    }, context);
+    const firstLease = await runStepAsync(
+      "lease-create",
+      async () => {
+        const result = await createLease({ baseUrl, token, profileId: setup.profileId, ttlSeconds: 30, context });
+        return { value: result.private, log: result.public };
+      },
+      context,
+    );
     leaseIds.push(firstLease.leaseId);
     handoffEndpoints.push(firstLease.handoffEndpoint);
     activeLeaseIds.add(firstLease.leaseId);
     rebuildContext();
-    leaseFlow.create = { leaseStatus: "active", ttlSeconds: 30, runtimeStatus: "running", attachAuthority: "private-on-create-only" };
+    leaseFlow.create = {
+      leaseStatus: "active",
+      ttlSeconds: 30,
+      runtimeStatus: "running",
+      attachAuthority: "private-on-create-only",
+    };
 
-    await runStepAsync("lease-status-active", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-        token,
-        phase: "lease-status-active",
-      });
-      return assertLeaseStatusResponse({
-        ...response,
-        expectedProfileId: setup.profileId,
-        expectedStatus: "active",
-        expectedTtlSeconds: 30,
-        context,
-        phase: "lease-status-active",
-      });
-    }, context);
+    await runStepAsync(
+      "lease-status-active",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+          token,
+          phase: "lease-status-active",
+        });
+        return assertLeaseStatusResponse({
+          ...response,
+          expectedProfileId: setup.profileId,
+          expectedStatus: "active",
+          expectedTtlSeconds: 30,
+          context,
+          phase: "lease-status-active",
+        });
+      },
+      context,
+    );
 
-    leaseFlow.playwright = await runStepAsync("playwright-attach-action", async () => attachAndExercisePlaywright(firstLease.handoffEndpoint), context);
+    leaseFlow.playwright = await runStepAsync(
+      "playwright-attach-action",
+      async () => attachAndExercisePlaywright(firstLease.handoffEndpoint),
+      context,
+    );
 
-    leaseFlow.release = await runStepAsync("lease-release", async () => {
-      const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
-        method: "DELETE",
-        token,
-        phase: "lease-release",
-      });
-      const released = assertLeaseReleaseResponse({
-        ...response,
-        expectedProfileId: setup.profileId,
-        expectedTtlSeconds: 30,
-        context,
-        phase: "lease-release",
-      });
-      activeLeaseIds.delete(firstLease.leaseId);
-      return released;
-    }, context);
+    leaseFlow.release = await runStepAsync(
+      "lease-release",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(firstLease.leaseId)}`, {
+          method: "DELETE",
+          token,
+          phase: "lease-release",
+        });
+        const released = assertLeaseReleaseResponse({
+          ...response,
+          expectedProfileId: setup.profileId,
+          expectedTtlSeconds: 30,
+          context,
+          phase: "lease-release",
+        });
+        activeLeaseIds.delete(firstLease.leaseId);
+        return released;
+      },
+      context,
+    );
 
-    httpChecks.runtimeAfterRelease = await runStepAsync("runtime-status-released", async () => {
-      const response = await requestJson(`${baseUrl}/v1/runtime/status`, {
-        token,
-        phase: "runtime-status-released",
-      });
-      return assertRuntimeStatusResponse({
-        ...response,
-        expectedRunningProfileIds: [],
-        context,
-        phase: "runtime-status-released",
-      });
-    }, context);
+    httpChecks.runtimeAfterRelease = await runStepAsync(
+      "runtime-status-released",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/runtime/status`, {
+          token,
+          phase: "runtime-status-released",
+        });
+        return assertRuntimeStatusResponse({
+          ...response,
+          expectedRunningProfileIds: [],
+          context,
+          phase: "runtime-status-released",
+        });
+      },
+      context,
+    );
 
-    httpChecks.selectedAfterRelease = await runStepAsync("selected-profile-status-released", async () => {
-      const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(setup.profileId)}/status`, {
-        token,
-        phase: "selected-profile-status-released",
-      });
-      return assertSelectedProfileStatusResponse({
-        ...response,
-        expectedProfileId: setup.profileId,
-        expectedRuntimeStatus: "stopped",
-        context,
-        phase: "selected-profile-status-released",
-      });
-    }, context);
+    httpChecks.selectedAfterRelease = await runStepAsync(
+      "selected-profile-status-released",
+      async () => {
+        const response = await requestJson(`${baseUrl}/v1/profiles/${encodeURIComponent(setup.profileId)}/status`, {
+          token,
+          phase: "selected-profile-status-released",
+        });
+        return assertSelectedProfileStatusResponse({
+          ...response,
+          expectedProfileId: setup.profileId,
+          expectedRuntimeStatus: "stopped",
+          context,
+          phase: "selected-profile-status-released",
+        });
+      },
+      context,
+    );
 
-    const expiringLease = await runStepAsync("lease-create-short", async () => {
-      const result = await createLease({ baseUrl, token, profileId: setup.profileId, ttlSeconds: 1, context });
-      return { value: result.private, log: { ...result.public, ttlSeconds: 1 } };
-    }, context);
+    const expiringLease = await runStepAsync(
+      "lease-create-short",
+      async () => {
+        const result = await createLease({ baseUrl, token, profileId: setup.profileId, ttlSeconds: 1, context });
+        return { value: result.private, log: { ...result.public, ttlSeconds: 1 } };
+      },
+      context,
+    );
     leaseIds.push(expiringLease.leaseId);
     handoffEndpoints.push(expiringLease.handoffEndpoint);
     activeLeaseIds.add(expiringLease.leaseId);
     rebuildContext();
 
-    leaseFlow.expiry = await runStepAsync("lease-expiry", async () => {
-      const expired = await waitForLeaseStatus({
-        baseUrl,
-        token,
-        profileId: setup.profileId,
-        leaseId: expiringLease.leaseId,
-        expectedStatus: "expired",
-        expectedTtlSeconds: 1,
-        context,
-      });
-      activeLeaseIds.delete(expiringLease.leaseId);
-      return expired;
-    }, context);
+    leaseFlow.expiry = await runStepAsync(
+      "lease-expiry",
+      async () => {
+        const expired = await waitForLeaseStatus({
+          baseUrl,
+          token,
+          profileId: setup.profileId,
+          leaseId: expiringLease.leaseId,
+          expectedStatus: "expired",
+          expectedTtlSeconds: 1,
+          context,
+        });
+        activeLeaseIds.delete(expiringLease.leaseId);
+        return expired;
+      },
+      context,
+    );
 
-    leaseFlow.endpointRevocation = await runStepAsync("endpoint-revocation", async () => assertEndpointRevoked(expiringLease.handoffEndpoint), context);
+    leaseFlow.endpointRevocation = await runStepAsync(
+      "endpoint-revocation",
+      async () => assertEndpointRevoked(expiringLease.handoffEndpoint),
+      context,
+    );
 
     cleanup.childExit = await runStepAsync("shutdown", async () => stopAutomationApi(processState), context);
-    const listener = await runStepAsync("listener-close", async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }), context);
+    const listener = await runStepAsync(
+      "listener-close",
+      async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }),
+      context,
+    );
     cleanup.listenerClosed = listener.closed;
-    cleanup.runtimeRootRemoved = runStep("cleanup", () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }), context).runtimeRootRemoved;
+    cleanup.runtimeRootRemoved = runStep(
+      "cleanup",
+      () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }),
+      context,
+    ).runtimeRootRemoved;
 
-    const redactionResult = runStep("redaction-scan", () => assertS03PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context), context);
+    const redactionResult = runStep(
+      "redaction-scan",
+      () => assertS03PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context),
+      context,
+    );
     const summary = buildFinalSummary({
       status: "pass",
       target,
@@ -1331,7 +1637,10 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s03-${
     return { summary, events: VERIFIER_EVENTS, checks: STEP_RESULTS };
   } catch (error) {
     await cleanupAfterFailure({ processState, readiness, baseUrl, token, activeLeaseIds, storeRoot, cleanup });
-    const safeError = error instanceof VerifyFailure ? error : new VerifyFailure(error instanceof Error ? error.message : String(error));
+    const safeError =
+      error instanceof VerifyFailure
+        ? error
+        : new VerifyFailure(error instanceof Error ? error.message : String(error));
     const summary = buildFinalSummary({
       status: "fail",
       target,
@@ -1348,7 +1657,17 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s03-${
     try {
       assertS03PublicEvidenceRedacted(redactedSummary, context);
     } catch (redactionError) {
-      emit({ status: "fail", summary: { status: "fail", redaction: { status: "failed", error: safeErrorForPublic(redactionError) }, cleanup } }, context);
+      emit(
+        {
+          status: "fail",
+          summary: {
+            status: "fail",
+            redaction: { status: "failed", error: safeErrorForPublic(redactionError) },
+            cleanup,
+          },
+        },
+        context,
+      );
       throw safeError;
     }
     emit({ status: "fail", summary: redactedSummary }, context);

@@ -21,7 +21,11 @@ const THEMES: Array<{ id: ThemeChoice; label: string; description: string }> = [
  * and vice versa.
  */
 const LANGUAGES: Array<{ id: LanguagePreference; label: string; description: string }> = [
-  { id: "system", label: "Follow the system", description: "Use the language this computer is set to, and follow it if it changes." },
+  {
+    id: "system",
+    label: "Follow the system",
+    description: "Use the language this computer is set to, and follow it if it changes.",
+  },
   { id: "en", label: "English", description: "Always English, whatever the system says." },
   { id: "zh", label: "中文", description: "始终显示简体中文，不受系统语言影响。" },
 ];
@@ -49,20 +53,24 @@ export function AppearanceSettings() {
   }, []);
 
   const selectTheme = useCallback(async (choice: ThemeChoice) => {
-    setSaving(true); setError("");
+    setSaving(true);
+    setError("");
     try {
       await savePreferences(choice);
-    if (choice === "system") {
-      // Removed, not set to "system": the token layer distinguishes "no
-      // attribute" (follow prefers-color-scheme) from an explicit choice, and a
-      // third value would match neither rule.
-      document.documentElement.removeAttribute("data-theme");
-    } else {
-      document.documentElement.setAttribute("data-theme", choice);
+      if (choice === "system") {
+        // Removed, not set to "system": the token layer distinguishes "no
+        // attribute" (follow prefers-color-scheme) from an explicit choice, and a
+        // third value would match neither rule.
+        document.documentElement.removeAttribute("data-theme");
+      } else {
+        document.documentElement.setAttribute("data-theme", choice);
+      }
+      setTheme(choice);
+    } catch (caught) {
+      setError(normalizeSidecarError(caught).message);
+    } finally {
+      setSaving(false);
     }
-    setTheme(choice);
-    } catch (caught) { setError(normalizeSidecarError(caught).message); }
-    finally { setSaving(false); }
   }, []);
 
   return (

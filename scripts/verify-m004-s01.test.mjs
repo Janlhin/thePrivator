@@ -44,9 +44,10 @@ function authError(code = AUTOMATION_AUTH_REQUIRED) {
   return {
     error: {
       code,
-      message: code === AUTOMATION_AUTH_REQUIRED
-        ? "Local automation API token is required."
-        : "Local automation API token is invalid.",
+      message:
+        code === AUTOMATION_AUTH_REQUIRED
+          ? "Local automation API token is required."
+          : "Local automation API token is invalid.",
       details: { phase: "auth" },
       detailRef: "sidecar-123456789abc",
       requestId: "automation-123456789abc",
@@ -86,16 +87,19 @@ describe("verify-m004-s01 helper guardrails", () => {
     const { context, token, root } = makeContext();
     const storeRoot = join(root, "app-data-root-should-not-leak");
 
-    const publicValue = redact({
-      message: `safe prefix ${token} ${storeRoot} sidecar-env-value-should-not-leak`,
-      nested: {
-        token,
-        Authorization: `Bearer ${token}`,
-        webSocketDebuggerUrl: "ws://127.0.0.1:9222/devtools/browser/secret",
-        storeRoot,
-        args: ["automation-api"],
+    const publicValue = redact(
+      {
+        message: `safe prefix ${token} ${storeRoot} sidecar-env-value-should-not-leak`,
+        nested: {
+          token,
+          Authorization: `Bearer ${token}`,
+          webSocketDebuggerUrl: "ws://127.0.0.1:9222/devtools/browser/secret",
+          storeRoot,
+          args: ["automation-api"],
+        },
       },
-    }, context);
+      context,
+    );
 
     const text = JSON.stringify(publicValue);
     expect(text).not.toContain(token);
@@ -134,40 +138,48 @@ describe("verify-m004-s01 helper guardrails", () => {
   it("validates typed 401 auth envelopes and rejects envelope mismatches", () => {
     const { context } = makeContext();
 
-    expect(assertAuthErrorResponse({
-      statusCode: 401,
-      body: authError(AUTOMATION_AUTH_REQUIRED),
-      expectedCode: AUTOMATION_AUTH_REQUIRED,
-      context,
-      phase: "auth-missing",
-    })).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_REQUIRED });
+    expect(
+      assertAuthErrorResponse({
+        statusCode: 401,
+        body: authError(AUTOMATION_AUTH_REQUIRED),
+        expectedCode: AUTOMATION_AUTH_REQUIRED,
+        context,
+        phase: "auth-missing",
+      }),
+    ).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_REQUIRED });
 
-    expect(assertAuthErrorResponse({
-      statusCode: 401,
-      body: authError(AUTOMATION_AUTH_INVALID),
-      expectedCode: AUTOMATION_AUTH_INVALID,
-      context,
-      phase: "auth-invalid",
-    })).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_INVALID });
+    expect(
+      assertAuthErrorResponse({
+        statusCode: 401,
+        body: authError(AUTOMATION_AUTH_INVALID),
+        expectedCode: AUTOMATION_AUTH_INVALID,
+        context,
+        phase: "auth-invalid",
+      }),
+    ).toMatchObject({ statusCode: 401, errorCode: AUTOMATION_AUTH_INVALID });
 
-    expect(() => assertAuthErrorResponse({
-      statusCode: 200,
-      body: authError(AUTOMATION_AUTH_REQUIRED),
-      expectedCode: AUTOMATION_AUTH_REQUIRED,
-      context,
-      phase: "auth-missing",
-    })).toThrow(/fail closed/);
+    expect(() =>
+      assertAuthErrorResponse({
+        statusCode: 200,
+        body: authError(AUTOMATION_AUTH_REQUIRED),
+        expectedCode: AUTOMATION_AUTH_REQUIRED,
+        context,
+        phase: "auth-missing",
+      }),
+    ).toThrow(/fail closed/);
   });
 
   it("rejects unsafe status fields and values before they enter the final summary", () => {
     const { context, token, root } = makeContext();
 
-    expect(assertStatusResponse({
-      statusCode: 200,
-      body: statusBody(),
-      readiness: { host: "127.0.0.1", port: 43123, version: "1.0.0" },
-      context,
-    })).toMatchObject({ statusCode: 200, storeConfigured: true });
+    expect(
+      assertStatusResponse({
+        statusCode: 200,
+        body: statusBody(),
+        readiness: { host: "127.0.0.1", port: 43123, version: "1.0.0" },
+        context,
+      }),
+    ).toMatchObject({ statusCode: 200, storeConfigured: true });
 
     for (const unsafeBody of [
       statusBody({ debugPort: 9222 }),
@@ -175,12 +187,14 @@ describe("verify-m004-s01 helper guardrails", () => {
       statusBody({ storeRoot: join(root, "app-data-root-should-not-leak") }),
       statusBody({ token }),
     ]) {
-      expect(() => assertStatusResponse({
-        statusCode: 200,
-        body: unsafeBody,
-        readiness: { host: "127.0.0.1", port: 43123, version: "1.0.0" },
-        context,
-      })).toThrow(VerifyFailure);
+      expect(() =>
+        assertStatusResponse({
+          statusCode: 200,
+          body: unsafeBody,
+          readiness: { host: "127.0.0.1", port: 43123, version: "1.0.0" },
+          context,
+        }),
+      ).toThrow(VerifyFailure);
     }
   });
 
@@ -218,7 +232,9 @@ describe("verify-m004-s01 helper guardrails", () => {
     const root = makeRoot();
     const binaryPath = targetBinaryPath({ rootDir: root, targetTriple: "x86_64-test-local" });
 
-    expect(() => assertTargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath })).toThrow(/Missing target-triple sidecar binary/);
+    expect(() => assertTargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath })).toThrow(
+      /Missing target-triple sidecar binary/,
+    );
     try {
       assertTargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath });
       throw new Error("expected missing binary to fail");
@@ -238,7 +254,10 @@ describe("verify-m004-s01 helper guardrails", () => {
     chmodSync(binaryPath, 0o755);
 
     const target = assertTargetBinary({ rootDir: root, targetTriple: "x86_64-test-local", binaryPath });
-    expect(target).toMatchObject({ targetTriple: "x86_64-test-local", executableChecked: process.platform !== "win32" });
+    expect(target).toMatchObject({
+      targetTriple: "x86_64-test-local",
+      executableChecked: process.platform !== "win32",
+    });
 
     const summary = buildFinalSummary({
       status: "pass",

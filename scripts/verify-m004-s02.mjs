@@ -1,13 +1,6 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
-import {
-  chmodSync,
-  existsSync,
-  mkdtempSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -53,14 +46,26 @@ const SHUTDOWN_TIMEOUT_MS = 5_000;
 const MAX_CAPTURE_CHARS = 128 * 1024;
 const REDACTED_VALUE = "<redacted>";
 const S02_FORBIDDEN_TEXT_PATTERNS = Object.freeze([
-  { markerClass: "profile_private_field", pattern: /\b(?:credentialState|userDataDir|profileDir|storeRoot|appDataRoot|storage|metadata|credentials?|username|password)\b/i },
+  {
+    markerClass: "profile_private_field",
+    pattern:
+      /\b(?:credentialState|userDataDir|profileDir|storeRoot|appDataRoot|storage|metadata|credentials?|username|password)\b/i,
+  },
   { markerClass: "profile_private_path", pattern: /\b(?:profile-store|profiles\.json)\b/i },
-  { markerClass: "runtime_private_field", pattern: /\b(?:pid|ownerToken|launchArgs|debugPort|debugEndpoint|webSocketDebuggerUrl|wsEndpoint|DevToolsActivePort)\b/i },
-  { markerClass: "runtime_private_arg", pattern: /--(?:user-data-dir|remote-debugging-port|proxy-server|load-extension|disable-extensions-except)\b/i },
+  {
+    markerClass: "runtime_private_field",
+    pattern:
+      /\b(?:pid|ownerToken|launchArgs|debugPort|debugEndpoint|webSocketDebuggerUrl|wsEndpoint|DevToolsActivePort)\b/i,
+  },
+  {
+    markerClass: "runtime_private_arg",
+    pattern: /--(?:user-data-dir|remote-debugging-port|proxy-server|load-extension|disable-extensions-except)\b/i,
+  },
   { markerClass: "runtime_private_authority", pattern: /\b(?:cdp:\/\/|wss?:\/\/[^\s"']+)\b/i },
   { markerClass: "raw_diag", pattern: /\b(?:stdout|stderr|rawDiagnostics?|rawBody|rawPayload|Traceback)\b/i },
 ]);
-const S02_FORBIDDEN_KEY_PATTERN = /(?:credentialState|userDataDir|profileDir|storeRoot|appDataRoot|storage|metadata|credentials?|username|password|pid|ownerToken|launchArgs|debugPort|debugEndpoint|webSocketDebuggerUrl|wsEndpoint|stdout|stderr|rawDiagnostics?|rawBody|rawPayload)/i;
+const S02_FORBIDDEN_KEY_PATTERN =
+  /(?:credentialState|userDataDir|profileDir|storeRoot|appDataRoot|storage|metadata|credentials?|username|password|pid|ownerToken|launchArgs|debugPort|debugEndpoint|webSocketDebuggerUrl|wsEndpoint|stdout|stderr|rawDiagnostics?|rawBody|rawPayload)/i;
 
 const STEP_RESULTS = [];
 const VERIFIER_EVENTS = [];
@@ -82,7 +87,8 @@ function isPlainObject(value) {
 function classifyS02ForbiddenKey(key) {
   if (/credential|password|username/i.test(key)) return "profile_private_field";
   if (/userDataDir|profileDir|storeRoot|appDataRoot|storage|metadata/i.test(key)) return "profile_private_field";
-  if (/pid|ownerToken|launchArgs|debugPort|debugEndpoint|webSocketDebuggerUrl|wsEndpoint/i.test(key)) return "runtime_private_field";
+  if (/pid|ownerToken|launchArgs|debugPort|debugEndpoint|webSocketDebuggerUrl|wsEndpoint/i.test(key))
+    return "runtime_private_field";
   if (/stdout|stderr|raw/i.test(key)) return "raw_diag";
   return "unsafe_field";
 }
@@ -110,18 +116,26 @@ function safeKeyForDetails(key) {
 function assertExactKeys(value, expectedKeys, label) {
   const expected = [...expectedKeys].sort();
   const actual = Object.keys(value ?? {}).sort();
-  assert(JSON.stringify(actual) === JSON.stringify(expected), `${label} keys did not match the expected public contract.`, {
-    phase: "contract-shape",
-    expectedKeys: expected,
-    actualKeys: actual.map(safeKeyForDetails),
-  });
+  assert(
+    JSON.stringify(actual) === JSON.stringify(expected),
+    `${label} keys did not match the expected public contract.`,
+    {
+      phase: "contract-shape",
+      expectedKeys: expected,
+      actualKeys: actual.map(safeKeyForDetails),
+    },
+  );
 }
 
 function assertRequestId(value, phase, fieldPath = "$.request.requestId") {
-  assert(typeof value === "string" && value.startsWith("automation-"), "Automation API response did not include a safe requestId.", {
-    phase,
-    fieldPath,
-  });
+  assert(
+    typeof value === "string" && value.startsWith("automation-"),
+    "Automation API response did not include a safe requestId.",
+    {
+      phase,
+      fieldPath,
+    },
+  );
 }
 
 function assertResponseHeaderRequestId(headerRequestId, bodyRequestId, phase) {
@@ -149,17 +163,31 @@ function assertProfileId(value, phase, fieldPath = "profileId") {
 function assertSafeProxySummary(proxy, phase) {
   assert(isPlainObject(proxy), "Automation API profile proxy summary was not an object.", { phase });
   assert(proxy.proxyVersion === 1, "Automation API profile proxy version was not 1.", { phase });
-  assert(typeof proxy.summary === "string" && proxy.summary.length > 0, "Automation API profile proxy summary was missing.", { phase });
+  assert(
+    typeof proxy.summary === "string" && proxy.summary.length > 0,
+    "Automation API profile proxy summary was missing.",
+    { phase },
+  );
   if (proxy.mode === "direct") {
     assertExactKeys(proxy, ["mode", "proxyVersion", "summary"], "Automation API direct proxy summary");
     assert(proxy.summary === "Direct connection", "Direct proxy summary text changed unexpectedly.", { phase });
     return "direct";
   }
   if (proxy.mode === "fixedServer") {
-    assertExactKeys(proxy, ["host", "mode", "port", "protocol", "proxyVersion", "summary"], "Automation API fixed proxy summary");
-    assert(["http", "https", "socks4", "socks5"].includes(proxy.protocol), "Fixed proxy protocol was not allowlisted.", { phase });
+    assertExactKeys(
+      proxy,
+      ["host", "mode", "port", "protocol", "proxyVersion", "summary"],
+      "Automation API fixed proxy summary",
+    );
+    assert(
+      ["http", "https", "socks4", "socks5"].includes(proxy.protocol),
+      "Fixed proxy protocol was not allowlisted.",
+      { phase },
+    );
     assert(typeof proxy.host === "string" && proxy.host.length > 0, "Fixed proxy host was missing.", { phase });
-    assert(Number.isInteger(proxy.port) && proxy.port > 0 && proxy.port <= 65535, "Fixed proxy port was invalid.", { phase });
+    assert(Number.isInteger(proxy.port) && proxy.port > 0 && proxy.port <= 65535, "Fixed proxy port was invalid.", {
+      phase,
+    });
     return "fixedServer";
   }
   fail("Automation API profile proxy mode was not recognized.", { phase, mode: proxy.mode });
@@ -167,13 +195,23 @@ function assertSafeProxySummary(proxy, phase) {
 
 function assertProfileSummary(profile, phase) {
   assert(isPlainObject(profile), "Automation API profile summary was not an object.", { phase });
-  assertExactKeys(profile, ["createdAt", "defaults", "id", "identity", "name", "proxy", "updatedAt"], "Automation API profile summary");
+  assertExactKeys(
+    profile,
+    ["createdAt", "defaults", "id", "identity", "name", "proxy", "updatedAt"],
+    "Automation API profile summary",
+  );
   assertProfileId(profile.id, phase, "$.profile.id");
-  assert(typeof profile.name === "string" && profile.name.length > 0, "Automation API profile name was missing.", { phase });
+  assert(typeof profile.name === "string" && profile.name.length > 0, "Automation API profile name was missing.", {
+    phase,
+  });
   assertIsoTimestamp(profile.createdAt, phase, "$.profile.createdAt");
   assertIsoTimestamp(profile.updatedAt, phase, "$.profile.updatedAt");
   assert(isPlainObject(profile.defaults), "Automation API profile defaults were not an object.", { phase });
-  assertExactKeys(profile.defaults, ["browser", "fingerprintMode", "proxyMode", "startUrl"], "Automation API profile defaults");
+  assertExactKeys(
+    profile.defaults,
+    ["browser", "fingerprintMode", "proxyMode", "startUrl"],
+    "Automation API profile defaults",
+  );
   assert(isPlainObject(profile.identity), "Automation API profile identity summary was not an object.", { phase });
   const proxyMode = assertSafeProxySummary(profile.proxy, phase);
   return { profileId: profile.id, proxyMode };
@@ -192,12 +230,20 @@ function assertRuntimeEntry(entry, expectedStatus, phase, fieldPath) {
     assertExactKeys(entry, ["profileId", "startedAt", "status"], "Automation API running runtime entry");
     assertIsoTimestamp(entry.startedAt, phase, `${fieldPath}.startedAt`);
   } else {
-    assertExactKeys(entry, ["profileId", "status", "stoppedAt", "termination"], "Automation API reconciled runtime entry");
+    assertExactKeys(
+      entry,
+      ["profileId", "status", "stoppedAt", "termination"],
+      "Automation API reconciled runtime entry",
+    );
     assertIsoTimestamp(entry.stoppedAt, phase, `${fieldPath}.stoppedAt`);
-    assert(typeof entry.termination === "string" && entry.termination.length > 0, "Automation API stopped runtime termination was missing.", {
-      phase,
-      fieldPath: `${fieldPath}.termination`,
-    });
+    assert(
+      typeof entry.termination === "string" && entry.termination.length > 0,
+      "Automation API stopped runtime termination was missing.",
+      {
+        phase,
+        fieldPath: `${fieldPath}.termination`,
+      },
+    );
   }
   return { profileId: entry.profileId, status: entry.status };
 }
@@ -209,17 +255,25 @@ function assertSelectedRuntimeState(entry, expectedStatus, phase) {
     assertRuntimeEntry(entry, "running", phase, "$.runtime");
     return { profileId: entry.profileId, status: "running" };
   }
-  assert(entry.status === "stopped", "Automation API selected-profile runtime state did not report stopped.", { phase, actualStatus: entry.status });
+  assert(entry.status === "stopped", "Automation API selected-profile runtime state did not report stopped.", {
+    phase,
+    actualStatus: entry.status,
+  });
   const keys = Object.keys(entry).sort();
   const allowedMinimal = JSON.stringify(keys) === JSON.stringify(["profileId", "status"]);
-  const allowedReconciled = JSON.stringify(keys) === JSON.stringify(["profileId", "status", "stoppedAt", "termination"]);
+  const allowedReconciled =
+    JSON.stringify(keys) === JSON.stringify(["profileId", "status", "stoppedAt", "termination"]);
   assert(allowedMinimal || allowedReconciled, "Automation API selected-profile stopped runtime shape was unsafe.", {
     phase,
     actualKeys: keys.map(safeKeyForDetails),
   });
   if (allowedReconciled) {
     assertIsoTimestamp(entry.stoppedAt, phase, "$.runtime.stoppedAt");
-    assert(typeof entry.termination === "string" && entry.termination.length > 0, "Automation API selected-profile stopped termination was missing.", { phase });
+    assert(
+      typeof entry.termination === "string" && entry.termination.length > 0,
+      "Automation API selected-profile stopped termination was missing.",
+      { phase },
+    );
   }
   return { profileId: entry.profileId, status: "stopped" };
 }
@@ -228,14 +282,16 @@ export function createS02RedactionContext({ rootDir = ROOT_DIR, token, storeRoot
   const context = createRedactionContext({ rootDir, token, storeRoot, extraSensitiveValues });
   return {
     ...context,
-    forbiddenPatterns: [
-      ...(context.forbiddenPatterns ?? []),
-      ...S02_FORBIDDEN_TEXT_PATTERNS,
-    ],
+    forbiddenPatterns: [...(context.forbiddenPatterns ?? []), ...S02_FORBIDDEN_TEXT_PATTERNS],
   };
 }
 
-export function findS02ForbiddenPublicMarker(value, context = createS02RedactionContext(), path = "$", state = { count: 0 }) {
+export function findS02ForbiddenPublicMarker(
+  value,
+  context = createS02RedactionContext(),
+  path = "$",
+  state = { count: 0 },
+) {
   const s01Marker = findForbiddenPublicMarker(value, context, path, { count: 0 });
   if (s01Marker) {
     return s01Marker;
@@ -272,7 +328,11 @@ export function findS02ForbiddenPublicMarker(value, context = createS02Redaction
 
   for (const [key, nested] of Object.entries(value)) {
     if (!isRedactedPlaceholderKey(key) && S02_FORBIDDEN_KEY_PATTERN.test(key)) {
-      return { markerClass: classifyS02ForbiddenKey(key), fieldPath: safeFieldPath(path, key), reason: "forbidden S02 key" };
+      return {
+        markerClass: classifyS02ForbiddenKey(key),
+        fieldPath: safeFieldPath(path, key),
+        reason: "forbidden S02 key",
+      };
     }
     const nestedMarker = findS02ForbiddenPublicMarker(nested, context, safeFieldPath(path, key), state);
     if (nestedMarker) return nestedMarker;
@@ -422,7 +482,11 @@ function resetRunState() {
   VERIFIER_EVENTS.length = 0;
 }
 
-export function assertS02TargetBinary({ rootDir = ROOT_DIR, targetTriple = readTargetTriple(rootDir), binaryPath = targetBinaryPath({ rootDir, targetTriple }) } = {}) {
+export function assertS02TargetBinary({
+  rootDir = ROOT_DIR,
+  targetTriple = readTargetTriple(rootDir),
+  binaryPath = targetBinaryPath({ rootDir, targetTriple }),
+} = {}) {
   const relativeBinary = relative(rootDir, binaryPath);
   assert(existsSync(binaryPath), `Missing target-triple sidecar binary ${relativeBinary}.`, {
     phase: "binary-discovery",
@@ -488,7 +552,11 @@ function sidecarRequest(id, method, params = {}) {
   return { id, method, params };
 }
 
-function runSidecarRequest(binaryPath, request, { timeoutMs = SIDECAR_TIMEOUT_MS, env = {}, context = createS02RedactionContext() } = {}) {
+function runSidecarRequest(
+  binaryPath,
+  request,
+  { timeoutMs = SIDECAR_TIMEOUT_MS, env = {}, context = createS02RedactionContext() } = {},
+) {
   const result = spawnSync(binaryPath, {
     cwd: ROOT_DIR,
     input: `${JSON.stringify(request)}\n`,
@@ -545,33 +613,68 @@ function runSidecarRequest(binaryPath, request, { timeoutMs = SIDECAR_TIMEOUT_MS
 function sidecarSuccess(binaryPath, id, method, params = {}, options = {}) {
   const transcript = runSidecarRequest(binaryPath, sidecarRequest(id, method, params), options);
   const { response, diagnostic } = transcript;
-  assert(response.id === id, "Sidecar success response id mismatch.", { phase: "setup", action: method, requestId: id });
+  assert(response.id === id, "Sidecar success response id mismatch.", {
+    phase: "setup",
+    action: method,
+    requestId: id,
+  });
   assert(response.ok === true, `Expected ${method} to succeed.`, {
     phase: "setup",
     action: method,
     errorCode: response.error?.code,
     detailRef: response.error?.detailRef,
   });
-  assert(diagnostic.status === "ok", "Sidecar diagnostic did not report ok status.", { phase: "setup", action: method });
-  assert(diagnostic.errorCode === null, "Successful sidecar diagnostic should not include errorCode.", { phase: "setup", action: method });
-  assert(diagnostic.detailRef === null, "Successful sidecar diagnostic should not include detailRef.", { phase: "setup", action: method });
-  assert(isPlainObject(response.result), "Sidecar success response result was not an object.", { phase: "setup", action: method });
+  assert(diagnostic.status === "ok", "Sidecar diagnostic did not report ok status.", {
+    phase: "setup",
+    action: method,
+  });
+  assert(diagnostic.errorCode === null, "Successful sidecar diagnostic should not include errorCode.", {
+    phase: "setup",
+    action: method,
+  });
+  assert(diagnostic.detailRef === null, "Successful sidecar diagnostic should not include detailRef.", {
+    phase: "setup",
+    action: method,
+  });
+  assert(isPlainObject(response.result), "Sidecar success response result was not an object.", {
+    phase: "setup",
+    action: method,
+  });
   return { ...transcript, result: response.result };
 }
 
 function makeRequestId(label) {
-  return `verify-m004-s02-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 72) || "request"}`;
+  return `verify-m004-s02-${
+    String(label)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 72) || "request"
+  }`;
 }
 
 function assertSetupProfile(profile, expectedName) {
-  assert(isPlainObject(profile), "Profile setup response did not include a profile object.", { phase: "profile-setup" });
+  assert(isPlainObject(profile), "Profile setup response did not include a profile object.", {
+    phase: "profile-setup",
+  });
   assertProfileId(profile.id, "profile-setup", "$.profile.id");
-  assert(profile.name === expectedName, "Profile setup response name did not match.", { phase: "profile-setup", profileId: profile.id });
-  assert(isPlainObject(profile.storage), "Profile setup response did not include storage metadata.", { phase: "profile-setup", profileId: profile.id });
-  assert(typeof profile.storage.userDataDir === "string" && profile.storage.userDataDir.startsWith("profile-store/profiles/"), "Profile setup storage path was not the expected safe relative shape.", {
+  assert(profile.name === expectedName, "Profile setup response name did not match.", {
     phase: "profile-setup",
     profileId: profile.id,
   });
+  assert(isPlainObject(profile.storage), "Profile setup response did not include storage metadata.", {
+    phase: "profile-setup",
+    profileId: profile.id,
+  });
+  assert(
+    typeof profile.storage.userDataDir === "string" &&
+      profile.storage.userDataDir.startsWith("profile-store/profiles/"),
+    "Profile setup storage path was not the expected safe relative shape.",
+    {
+      phase: "profile-setup",
+      profileId: profile.id,
+    },
+  );
   return profile;
 }
 
@@ -638,9 +741,19 @@ function createProfilesAndLaunchRuntime({ binaryPath, storeRoot, fakeChromiumPat
       env: { THEPRIVATOR_CHROMIUM_PATH: fakeChromiumPath },
     },
   ).result;
-  assert(launch.profileId === fixedProfile.id, "Runtime launch profile id mismatch.", { phase: "runtime-setup", profileId: fixedProfile.id });
-  assert(launch.status === "running", "Runtime launch did not report running.", { phase: "runtime-setup", profileId: fixedProfile.id });
-  assert(Number.isInteger(launch.runningCount) && launch.runningCount >= 1, "Runtime launch did not report a running count.", { phase: "runtime-setup", profileId: fixedProfile.id });
+  assert(launch.profileId === fixedProfile.id, "Runtime launch profile id mismatch.", {
+    phase: "runtime-setup",
+    profileId: fixedProfile.id,
+  });
+  assert(launch.status === "running", "Runtime launch did not report running.", {
+    phase: "runtime-setup",
+    profileId: fixedProfile.id,
+  });
+  assert(
+    Number.isInteger(launch.runningCount) && launch.runningCount >= 1,
+    "Runtime launch did not report a running count.",
+    { phase: "runtime-setup", profileId: fixedProfile.id },
+  );
 
   return {
     profileIds: [directProfile.id, fixedProfile.id],
@@ -663,7 +776,10 @@ function stopLaunchedProfile({ binaryPath, storeRoot, profileId, context }) {
   ).result;
   assert(stop.profileId === profileId, "Runtime stop profile id mismatch.", { phase: "runtime-stop", profileId });
   assert(stop.status === "stopped", "Runtime stop did not report stopped.", { phase: "runtime-stop", profileId });
-  assert(Number.isInteger(stop.runningCount), "Runtime stop did not return a running count.", { phase: "runtime-stop", profileId });
+  assert(Number.isInteger(stop.runningCount), "Runtime stop did not return a running count.", {
+    phase: "runtime-stop",
+    profileId,
+  });
   return { requested: true, stopped: true, profileIds: [profileId], runningCount: stop.runningCount };
 }
 
@@ -744,7 +860,12 @@ function removeRuntimeRoot(storeRoot) {
   return !existsSync(storeRoot);
 }
 
-export function parseHttpJsonBody({ text, statusCode = 0, phase = "http", context = createS02RedactionContext() } = {}) {
+export function parseHttpJsonBody({
+  text,
+  statusCode = 0,
+  phase = "http",
+  context = createS02RedactionContext(),
+} = {}) {
   let body;
   try {
     body = JSON.parse(String(text ?? ""));
@@ -759,7 +880,10 @@ export function parseHttpJsonBody({ text, statusCode = 0, phase = "http", contex
   return body;
 }
 
-async function fetchJson(url, { headerValue, timeoutMs = HTTP_TIMEOUT_MS, phase, context = createS02RedactionContext() } = {}) {
+async function fetchJson(
+  url,
+  { headerValue, timeoutMs = HTTP_TIMEOUT_MS, phase, context = createS02RedactionContext() } = {},
+) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error(`${phase} timed out.`)), timeoutMs);
   try {
@@ -793,13 +917,29 @@ async function fetchJson(url, { headerValue, timeoutMs = HTTP_TIMEOUT_MS, phase,
   }
 }
 
-export function assertProtectedAuthErrorResponse({ statusCode, body, requestId, expectedCode, context = createS02RedactionContext(), phase = "auth" } = {}) {
+export function assertProtectedAuthErrorResponse({
+  statusCode,
+  body,
+  requestId,
+  expectedCode,
+  context = createS02RedactionContext(),
+  phase = "auth",
+} = {}) {
   const result = assertAuthErrorResponse({ statusCode, body, expectedCode, context, phase });
   assertResponseHeaderRequestId(requestId, body?.error?.requestId, phase);
   return result;
 }
 
-export function assertDomainErrorResponse({ statusCode, body, requestId, expectedCode, expectedStatusCode, expectedPhase, context = createS02RedactionContext(), phase = expectedPhase } = {}) {
+export function assertDomainErrorResponse({
+  statusCode,
+  body,
+  requestId,
+  expectedCode,
+  expectedStatusCode,
+  expectedPhase,
+  context = createS02RedactionContext(),
+  phase = expectedPhase,
+} = {}) {
   assert(statusCode === expectedStatusCode, "Automation API domain error returned the wrong HTTP status.", {
     phase,
     expectedStatusCode,
@@ -816,13 +956,21 @@ export function assertDomainErrorResponse({ statusCode, body, requestId, expecte
     expectedCode,
     actualCode: error.code,
   });
-  assert(typeof error.message === "string" && error.message.length > 0, "Automation API domain error message was missing.", { phase });
+  assert(
+    typeof error.message === "string" && error.message.length > 0,
+    "Automation API domain error message was missing.",
+    { phase },
+  );
   assert(error.details?.phase === expectedPhase, "Automation API domain error phase was wrong.", {
     phase,
     expectedPhase,
     actualPhase: error.details?.phase,
   });
-  assert(typeof error.detailRef === "string" && error.detailRef.startsWith("sidecar-"), "Automation API domain error detailRef was missing.", { phase });
+  assert(
+    typeof error.detailRef === "string" && error.detailRef.startsWith("sidecar-"),
+    "Automation API domain error detailRef was missing.",
+    { phase },
+  );
   assertResponseHeaderRequestId(requestId, error.requestId, phase);
   return {
     statusCode,
@@ -833,7 +981,14 @@ export function assertDomainErrorResponse({ statusCode, body, requestId, expecte
   };
 }
 
-export function assertProfilesResponse({ statusCode, body, requestId, expectedProfileIds = null, context = createS02RedactionContext(), phase = "profiles" } = {}) {
+export function assertProfilesResponse({
+  statusCode,
+  body,
+  requestId,
+  expectedProfileIds = null,
+  context = createS02RedactionContext(),
+  phase = "profiles",
+} = {}) {
   assert(statusCode === 200, "Automation API profiles request did not return HTTP 200.", {
     phase,
     expectedStatusCode: 200,
@@ -841,12 +996,31 @@ export function assertProfilesResponse({ statusCode, body, requestId, expectedPr
   });
   assertS02PublicEvidenceRedacted(body, context);
   assert(isPlainObject(body), "Automation API profiles body was not an object.", { phase });
-  assertExactKeys(body, ["count", "limit", "nextCursor", "profileApiVersion", "profiles", "request"], "Automation API profiles body");
-  assert(body.profileApiVersion === PROFILE_API_VERSION, "Automation API profile version changed unexpectedly.", { phase, profileApiVersion: body.profileApiVersion });
+  assertExactKeys(
+    body,
+    ["count", "limit", "nextCursor", "profileApiVersion", "profiles", "request"],
+    "Automation API profiles body",
+  );
+  assert(body.profileApiVersion === PROFILE_API_VERSION, "Automation API profile version changed unexpectedly.", {
+    phase,
+    profileApiVersion: body.profileApiVersion,
+  });
   assert(Array.isArray(body.profiles), "Automation API profiles field was not an array.", { phase });
-  assert(body.count === body.profiles.length, "Automation API profiles count did not match the array length.", { phase, count: body.count, arrayLength: body.profiles.length });
-  assert(Number.isInteger(body.limit) && body.limit >= 1 && body.limit <= MAX_PROFILE_LIST_LIMIT, "Automation API profile list limit was outside bounds.", { phase, limit: body.limit });
-  assert(body.nextCursor === null || (typeof body.nextCursor === "string" && body.nextCursor.length > 0), "Automation API nextCursor was not null or an opaque string.", { phase });
+  assert(body.count === body.profiles.length, "Automation API profiles count did not match the array length.", {
+    phase,
+    count: body.count,
+    arrayLength: body.profiles.length,
+  });
+  assert(
+    Number.isInteger(body.limit) && body.limit >= 1 && body.limit <= MAX_PROFILE_LIST_LIMIT,
+    "Automation API profile list limit was outside bounds.",
+    { phase, limit: body.limit },
+  );
+  assert(
+    body.nextCursor === null || (typeof body.nextCursor === "string" && body.nextCursor.length > 0),
+    "Automation API nextCursor was not null or an opaque string.",
+    { phase },
+  );
   assert(isPlainObject(body.request), "Automation API profiles request metadata was missing.", { phase });
   assertExactKeys(body.request, ["requestId"], "Automation API profiles request metadata");
   assertResponseHeaderRequestId(requestId, body.request.requestId, phase);
@@ -855,10 +1029,14 @@ export function assertProfilesResponse({ statusCode, body, requestId, expectedPr
   const profileIds = summaries.map((summary) => summary.profileId);
   if (expectedProfileIds) {
     for (const expectedProfileId of expectedProfileIds) {
-      assert(profileIds.includes(expectedProfileId), "Automation API profiles page did not include an expected profile.", {
-        phase,
-        expectedProfilePresent: true,
-      });
+      assert(
+        profileIds.includes(expectedProfileId),
+        "Automation API profiles page did not include an expected profile.",
+        {
+          phase,
+          expectedProfilePresent: true,
+        },
+      );
     }
   }
   return {
@@ -872,7 +1050,14 @@ export function assertProfilesResponse({ statusCode, body, requestId, expectedPr
   };
 }
 
-export function assertRuntimeStatusResponse({ statusCode, body, requestId, expectedRunningProfileIds = null, context = createS02RedactionContext(), phase = "runtime-status" } = {}) {
+export function assertRuntimeStatusResponse({
+  statusCode,
+  body,
+  requestId,
+  expectedRunningProfileIds = null,
+  context = createS02RedactionContext(),
+  phase = "runtime-status",
+} = {}) {
   assert(statusCode === 200, "Automation API runtime status request did not return HTTP 200.", {
     phase,
     expectedStatusCode: 200,
@@ -880,24 +1065,43 @@ export function assertRuntimeStatusResponse({ statusCode, body, requestId, expec
   });
   assertS02PublicEvidenceRedacted(body, context);
   assert(isPlainObject(body), "Automation API runtime status body was not an object.", { phase });
-  assertExactKeys(body, ["profiles", "reconciled", "request", "runningCount", "runtimeApiVersion"], "Automation API runtime status body");
-  assert(body.runtimeApiVersion === RUNTIME_API_VERSION, "Automation API runtime version changed unexpectedly.", { phase, runtimeApiVersion: body.runtimeApiVersion });
+  assertExactKeys(
+    body,
+    ["profiles", "reconciled", "request", "runningCount", "runtimeApiVersion"],
+    "Automation API runtime status body",
+  );
+  assert(body.runtimeApiVersion === RUNTIME_API_VERSION, "Automation API runtime version changed unexpectedly.", {
+    phase,
+    runtimeApiVersion: body.runtimeApiVersion,
+  });
   assert(Array.isArray(body.profiles), "Automation API runtime profiles field was not an array.", { phase });
   assert(Array.isArray(body.reconciled), "Automation API runtime reconciled field was not an array.", { phase });
-  assert(body.runningCount === body.profiles.length, "Automation API runningCount did not match running profiles length.", { phase, runningCount: body.runningCount, profileCount: body.profiles.length });
+  assert(
+    body.runningCount === body.profiles.length,
+    "Automation API runningCount did not match running profiles length.",
+    { phase, runningCount: body.runningCount, profileCount: body.profiles.length },
+  );
   assert(isPlainObject(body.request), "Automation API runtime request metadata was missing.", { phase });
   assertExactKeys(body.request, ["requestId"], "Automation API runtime request metadata");
   assertResponseHeaderRequestId(requestId, body.request.requestId, phase);
 
-  const running = body.profiles.map((entry, index) => assertRuntimeEntry(entry, "running", phase, `$.profiles[${index}]`));
-  const reconciled = body.reconciled.map((entry, index) => assertRuntimeEntry(entry, "stopped", phase, `$.reconciled[${index}]`));
+  const running = body.profiles.map((entry, index) =>
+    assertRuntimeEntry(entry, "running", phase, `$.profiles[${index}]`),
+  );
+  const reconciled = body.reconciled.map((entry, index) =>
+    assertRuntimeEntry(entry, "stopped", phase, `$.reconciled[${index}]`),
+  );
   const runningProfileIds = running.map((entry) => entry.profileId);
   if (expectedRunningProfileIds) {
     for (const expectedProfileId of expectedRunningProfileIds) {
-      assert(runningProfileIds.includes(expectedProfileId), "Automation API runtime status did not include an expected running profile.", {
-        phase,
-        expectedProfilePresent: true,
-      });
+      assert(
+        runningProfileIds.includes(expectedProfileId),
+        "Automation API runtime status did not include an expected running profile.",
+        {
+          phase,
+          expectedProfilePresent: true,
+        },
+      );
     }
   }
   return {
@@ -910,7 +1114,15 @@ export function assertRuntimeStatusResponse({ statusCode, body, requestId, expec
   };
 }
 
-export function assertSelectedProfileStatusResponse({ statusCode, body, requestId, expectedProfileId, expectedRuntimeStatus = "running", context = createS02RedactionContext(), phase = "selected-profile-status" } = {}) {
+export function assertSelectedProfileStatusResponse({
+  statusCode,
+  body,
+  requestId,
+  expectedProfileId,
+  expectedRuntimeStatus = "running",
+  context = createS02RedactionContext(),
+  phase = "selected-profile-status",
+} = {}) {
   assert(statusCode === 200, "Automation API selected-profile status request did not return HTTP 200.", {
     phase,
     expectedStatusCode: 200,
@@ -918,15 +1130,33 @@ export function assertSelectedProfileStatusResponse({ statusCode, body, requestI
   });
   assertS02PublicEvidenceRedacted(body, context);
   assert(isPlainObject(body), "Automation API selected-profile status body was not an object.", { phase });
-  assertExactKeys(body, ["profile", "profileApiVersion", "request", "runtime", "runtimeApiVersion"], "Automation API selected-profile status body");
-  assert(body.profileApiVersion === PROFILE_API_VERSION, "Automation API selected-profile profile version changed unexpectedly.", { phase });
-  assert(body.runtimeApiVersion === RUNTIME_API_VERSION, "Automation API selected-profile runtime version changed unexpectedly.", { phase });
+  assertExactKeys(
+    body,
+    ["profile", "profileApiVersion", "request", "runtime", "runtimeApiVersion"],
+    "Automation API selected-profile status body",
+  );
+  assert(
+    body.profileApiVersion === PROFILE_API_VERSION,
+    "Automation API selected-profile profile version changed unexpectedly.",
+    { phase },
+  );
+  assert(
+    body.runtimeApiVersion === RUNTIME_API_VERSION,
+    "Automation API selected-profile runtime version changed unexpectedly.",
+    { phase },
+  );
   const profile = assertProfileSummary(body.profile, phase);
   if (expectedProfileId) {
-    assert(profile.profileId === expectedProfileId, "Automation API selected-profile response returned the wrong profile.", { phase, expectedProfilePresent: true });
+    assert(
+      profile.profileId === expectedProfileId,
+      "Automation API selected-profile response returned the wrong profile.",
+      { phase, expectedProfilePresent: true },
+    );
   }
   const runtime = assertSelectedRuntimeState(body.runtime, expectedRuntimeStatus, phase);
-  assert(runtime.profileId === profile.profileId, "Automation API selected-profile runtime profile id mismatch.", { phase });
+  assert(runtime.profileId === profile.profileId, "Automation API selected-profile runtime profile id mismatch.", {
+    phase,
+  });
   assert(isPlainObject(body.request), "Automation API selected-profile request metadata was missing.", { phase });
   assertExactKeys(body.request, ["requestId"], "Automation API selected-profile request metadata");
   assertResponseHeaderRequestId(requestId, body.request.requestId, phase);
@@ -953,28 +1183,59 @@ async function verifyNewEndpointAuth({ baseUrl, token, profileId, context }) {
   ];
   const checks = [];
   for (const endpoint of endpoints) {
-    const missing = await runStepAsync(`auth-${endpoint.label}-missing`, async () => {
-      const response = await fetchJson(`${baseUrl}${endpoint.path}`, { phase: `auth-${endpoint.label}-missing`, context });
-      const result = assertProtectedAuthErrorResponse({ ...response, expectedCode: AUTOMATION_AUTH_REQUIRED, context, phase: `auth-${endpoint.label}-missing` });
-      return { ...result, endpoint: endpoint.label };
-    }, context);
+    const missing = await runStepAsync(
+      `auth-${endpoint.label}-missing`,
+      async () => {
+        const response = await fetchJson(`${baseUrl}${endpoint.path}`, {
+          phase: `auth-${endpoint.label}-missing`,
+          context,
+        });
+        const result = assertProtectedAuthErrorResponse({
+          ...response,
+          expectedCode: AUTOMATION_AUTH_REQUIRED,
+          context,
+          phase: `auth-${endpoint.label}-missing`,
+        });
+        return { ...result, endpoint: endpoint.label };
+      },
+      context,
+    );
     checks.push({ endpoint: endpoint.label, mode: "missing", ...missing });
 
-    const invalid = await runStepAsync(`auth-${endpoint.label}-invalid`, async () => {
-      const response = await fetchJson(`${baseUrl}${endpoint.path}`, {
-        headerValue: `Bearer not-${token.slice(0, 8)}`,
-        phase: `auth-${endpoint.label}-invalid`,
-        context,
-      });
-      const result = assertProtectedAuthErrorResponse({ ...response, expectedCode: AUTOMATION_AUTH_INVALID, context, phase: `auth-${endpoint.label}-invalid` });
-      return { ...result, endpoint: endpoint.label };
-    }, context);
+    const invalid = await runStepAsync(
+      `auth-${endpoint.label}-invalid`,
+      async () => {
+        const response = await fetchJson(`${baseUrl}${endpoint.path}`, {
+          headerValue: `Bearer not-${token.slice(0, 8)}`,
+          phase: `auth-${endpoint.label}-invalid`,
+          context,
+        });
+        const result = assertProtectedAuthErrorResponse({
+          ...response,
+          expectedCode: AUTOMATION_AUTH_INVALID,
+          context,
+          phase: `auth-${endpoint.label}-invalid`,
+        });
+        return { ...result, endpoint: endpoint.label };
+      },
+      context,
+    );
     checks.push({ endpoint: endpoint.label, mode: "invalid", ...invalid });
   }
   return checks;
 }
 
-export function buildFinalSummary({ status, target, readiness, setup = {}, httpChecks = {}, cleanup = {}, redaction = {}, error = null, checks = STEP_RESULTS } = {}) {
+export function buildFinalSummary({
+  status,
+  target,
+  readiness,
+  setup = {},
+  httpChecks = {},
+  cleanup = {},
+  redaction = {},
+  error = null,
+  checks = STEP_RESULTS,
+} = {}) {
   const summary = {
     status,
     target: target
@@ -1025,7 +1286,15 @@ export function buildFinalSummary({ status, target, readiness, setup = {}, httpC
   return Object.fromEntries(Object.entries(summary).filter(([, value]) => value !== undefined));
 }
 
-async function cleanupAfterFailure({ processState, readiness, launchedProfileId, binaryPath, storeRoot, context, cleanup }) {
+async function cleanupAfterFailure({
+  processState,
+  readiness,
+  launchedProfileId,
+  binaryPath,
+  storeRoot,
+  context,
+  cleanup,
+}) {
   if (launchedProfileId && binaryPath && storeRoot) {
     try {
       cleanup.runtimeStop = stopLaunchedProfile({ binaryPath, storeRoot, profileId: launchedProfileId, context });
@@ -1055,7 +1324,11 @@ async function cleanupAfterFailure({ processState, readiness, launchedProfileId,
   }
 }
 
-export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s02-${randomUUID()}`, storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s02-")) } = {}) {
+export async function runVerification({
+  rootDir = ROOT_DIR,
+  token = `m004-s02-${randomUUID()}`,
+  storeRoot = mkdtempSync(join(tmpdir(), "theprivator-m004-s02-")),
+} = {}) {
   resetRunState();
   let context = createS02RedactionContext({ rootDir });
   let processState = null;
@@ -1068,144 +1341,214 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s02-${
   const cleanup = { runtimeStop: null, childExit: null, listenerClosed: false, runtimeRootRemoved: false };
 
   try {
-    target = runStep("binary-discovery", () => {
-      const targetTriple = readTargetTriple(rootDir);
-      return assertS02TargetBinary({ rootDir, targetTriple });
-    }, context);
+    target = runStep(
+      "binary-discovery",
+      () => {
+        const targetTriple = readTargetTriple(rootDir);
+        return assertS02TargetBinary({ rootDir, targetTriple });
+      },
+      context,
+    );
     const binaryPath = resolve(rootDir, target.binary);
 
     context = createS02RedactionContext({
       rootDir,
       token,
       storeRoot,
-      extraSensitiveValues: [
-        "m004-s02-proxy-user-sentinel",
-        "m004-s02-proxy-password-sentinel",
-      ],
+      extraSensitiveValues: ["m004-s02-proxy-user-sentinel", "m004-s02-proxy-password-sentinel"],
     });
 
     runStep("runtime-root", () => ({ created: true, location: "temporary-app-data" }), context);
-    fakeChromium = runStep("fake-chromium", () => {
-      const created = createFakeChromiumExecutable(storeRoot);
-      return { value: created, log: { created: created.created, kind: "long-lived" } };
-    }, context);
+    fakeChromium = runStep(
+      "fake-chromium",
+      () => {
+        const created = createFakeChromiumExecutable(storeRoot);
+        return { value: created, log: { created: created.created, kind: "long-lived" } };
+      },
+      context,
+    );
 
-    setup = runStep("profile-setup", () => {
-      const result = createProfilesAndLaunchRuntime({ binaryPath, storeRoot, fakeChromiumPath: fakeChromium.path, context });
-      launchedProfileId = result.launchedProfileId;
-      return {
-        value: result,
-        log: {
-          profileCount: result.profileIds.length,
-          profileIds: result.profileIds,
-          proxyProfileId: result.proxyProfileId,
-          runtimeLaunchProven: true,
-          runningCount: result.runningCount,
-        },
-      };
-    }, context);
+    setup = runStep(
+      "profile-setup",
+      () => {
+        const result = createProfilesAndLaunchRuntime({
+          binaryPath,
+          storeRoot,
+          fakeChromiumPath: fakeChromium.path,
+          context,
+        });
+        launchedProfileId = result.launchedProfileId;
+        return {
+          value: result,
+          log: {
+            profileCount: result.profileIds.length,
+            profileIds: result.profileIds,
+            proxyProfileId: result.proxyProfileId,
+            runtimeLaunchProven: true,
+            runningCount: result.runningCount,
+          },
+        };
+      },
+      context,
+    );
 
-    processState = runStep("spawn", () => {
-      const state = startAutomationApi({ binaryPath, storeRoot, token });
-      return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
-    }, context);
+    processState = runStep(
+      "spawn",
+      () => {
+        const state = startAutomationApi({ binaryPath, storeRoot, token });
+        return { value: state, log: { child: state.child.pid ? "started" : "pending" } };
+      },
+      context,
+    );
 
-    readiness = await runStepAsync("readiness", async () => {
-      const ready = await waitForReadiness(processState, { timeoutMs: READINESS_TIMEOUT_MS, context });
-      parseReadinessLine(JSON.stringify(ready), context);
-      return ready;
-    }, context);
+    readiness = await runStepAsync(
+      "readiness",
+      async () => {
+        const ready = await waitForReadiness(processState, { timeoutMs: READINESS_TIMEOUT_MS, context });
+        parseReadinessLine(JSON.stringify(ready), context);
+        return ready;
+      },
+      context,
+    );
     const baseUrl = `http://${readiness.host}:${readiness.port}`;
 
-    httpChecks.health = await runStepAsync("health", async () => {
-      const response = await fetchJson(`${baseUrl}/health`, { phase: "health", context });
-      return assertHealthWithHeader(response, context);
-    }, context);
+    httpChecks.health = await runStepAsync(
+      "health",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/health`, { phase: "health", context });
+        return assertHealthWithHeader(response, context);
+      },
+      context,
+    );
 
     httpChecks.auth = await verifyNewEndpointAuth({ baseUrl, token, profileId: setup.launchedProfileId, context });
 
-    httpChecks.invalidPagination = await runStepAsync("profiles-invalid-pagination", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/profiles?limit=0`, {
-        headerValue: `Bearer ${token}`,
-        phase: "profiles-invalid-pagination",
-        context,
-      });
-      return assertDomainErrorResponse({
-        ...response,
-        expectedCode: INVALID_REQUEST,
-        expectedStatusCode: 400,
-        expectedPhase: "profile",
-        context,
-        phase: "profiles-invalid-pagination",
-      });
-    }, context);
+    httpChecks.invalidPagination = await runStepAsync(
+      "profiles-invalid-pagination",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/profiles?limit=0`, {
+          headerValue: `Bearer ${token}`,
+          phase: "profiles-invalid-pagination",
+          context,
+        });
+        return assertDomainErrorResponse({
+          ...response,
+          expectedCode: INVALID_REQUEST,
+          expectedStatusCode: 400,
+          expectedPhase: "profile",
+          context,
+          phase: "profiles-invalid-pagination",
+        });
+      },
+      context,
+    );
 
-    httpChecks.unknownProfile = await runStepAsync("selected-profile-unknown", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/profiles/missing-m004-s02-profile/status`, {
-        headerValue: `Bearer ${token}`,
-        phase: "selected-profile-unknown",
-        context,
-      });
-      return assertDomainErrorResponse({
-        ...response,
-        expectedCode: PROFILE_NOT_FOUND,
-        expectedStatusCode: 404,
-        expectedPhase: "profile",
-        context,
-        phase: "selected-profile-unknown",
-      });
-    }, context);
+    httpChecks.unknownProfile = await runStepAsync(
+      "selected-profile-unknown",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/profiles/missing-m004-s02-profile/status`, {
+          headerValue: `Bearer ${token}`,
+          phase: "selected-profile-unknown",
+          context,
+        });
+        return assertDomainErrorResponse({
+          ...response,
+          expectedCode: PROFILE_NOT_FOUND,
+          expectedStatusCode: 404,
+          expectedPhase: "profile",
+          context,
+          phase: "selected-profile-unknown",
+        });
+      },
+      context,
+    );
 
-    httpChecks.profiles = await runStepAsync("profiles-list", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/profiles?limit=10`, {
-        headerValue: `Bearer ${token}`,
-        phase: "profiles-list",
-        context,
-      });
-      return assertProfilesResponse({ ...response, expectedProfileIds: setup.profileIds, context, phase: "profiles-list" });
-    }, context);
+    httpChecks.profiles = await runStepAsync(
+      "profiles-list",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/profiles?limit=10`, {
+          headerValue: `Bearer ${token}`,
+          phase: "profiles-list",
+          context,
+        });
+        return assertProfilesResponse({
+          ...response,
+          expectedProfileIds: setup.profileIds,
+          context,
+          phase: "profiles-list",
+        });
+      },
+      context,
+    );
 
-    httpChecks.selectedProfileStatus = await runStepAsync("selected-profile-status", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/profiles/${encodeURIComponent(setup.launchedProfileId)}/status`, {
-        headerValue: `Bearer ${token}`,
-        phase: "selected-profile-status",
-        context,
-      });
-      return assertSelectedProfileStatusResponse({
-        ...response,
-        expectedProfileId: setup.launchedProfileId,
-        expectedRuntimeStatus: "running",
-        context,
-        phase: "selected-profile-status",
-      });
-    }, context);
+    httpChecks.selectedProfileStatus = await runStepAsync(
+      "selected-profile-status",
+      async () => {
+        const response = await fetchJson(
+          `${baseUrl}/v1/profiles/${encodeURIComponent(setup.launchedProfileId)}/status`,
+          {
+            headerValue: `Bearer ${token}`,
+            phase: "selected-profile-status",
+            context,
+          },
+        );
+        return assertSelectedProfileStatusResponse({
+          ...response,
+          expectedProfileId: setup.launchedProfileId,
+          expectedRuntimeStatus: "running",
+          context,
+          phase: "selected-profile-status",
+        });
+      },
+      context,
+    );
 
-    httpChecks.runtimeStatus = await runStepAsync("runtime-status", async () => {
-      const response = await fetchJson(`${baseUrl}/v1/runtime/status`, {
-        headerValue: `Bearer ${token}`,
-        phase: "runtime-status",
-        context,
-      });
-      return assertRuntimeStatusResponse({
-        ...response,
-        expectedRunningProfileIds: [setup.launchedProfileId],
-        context,
-        phase: "runtime-status",
-      });
-    }, context);
+    httpChecks.runtimeStatus = await runStepAsync(
+      "runtime-status",
+      async () => {
+        const response = await fetchJson(`${baseUrl}/v1/runtime/status`, {
+          headerValue: `Bearer ${token}`,
+          phase: "runtime-status",
+          context,
+        });
+        return assertRuntimeStatusResponse({
+          ...response,
+          expectedRunningProfileIds: [setup.launchedProfileId],
+          context,
+          phase: "runtime-status",
+        });
+      },
+      context,
+    );
 
-    cleanup.runtimeStop = runStep("runtime-stop", () => {
-      const stopped = stopLaunchedProfile({ binaryPath, storeRoot, profileId: launchedProfileId, context });
-      launchedProfileId = null;
-      return stopped;
-    }, context);
+    cleanup.runtimeStop = runStep(
+      "runtime-stop",
+      () => {
+        const stopped = stopLaunchedProfile({ binaryPath, storeRoot, profileId: launchedProfileId, context });
+        launchedProfileId = null;
+        return stopped;
+      },
+      context,
+    );
 
     cleanup.childExit = await runStepAsync("shutdown", async () => stopAutomationApi(processState), context);
-    const listener = await runStepAsync("listener-close", async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }), context);
+    const listener = await runStepAsync(
+      "listener-close",
+      async () => waitForListenerClosed({ host: readiness.host, port: readiness.port }),
+      context,
+    );
     cleanup.listenerClosed = listener.closed;
-    cleanup.runtimeRootRemoved = runStep("cleanup", () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }), context).runtimeRootRemoved;
+    cleanup.runtimeRootRemoved = runStep(
+      "cleanup",
+      () => ({ runtimeRootRemoved: removeRuntimeRoot(storeRoot) }),
+      context,
+    ).runtimeRootRemoved;
 
-    const redactionResult = runStep("redaction-scan", () => assertS02PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context), context);
+    const redactionResult = runStep(
+      "redaction-scan",
+      () => assertS02PublicEvidenceRedacted({ events: VERIFIER_EVENTS, checks: STEP_RESULTS }, context),
+      context,
+    );
     const summary = buildFinalSummary({
       status: "pass",
       target,
@@ -1222,7 +1565,10 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s02-${
   } catch (error) {
     const binaryPath = target ? resolve(rootDir, target.binary) : null;
     await cleanupAfterFailure({ processState, readiness, launchedProfileId, binaryPath, storeRoot, context, cleanup });
-    const safeError = error instanceof VerifyFailure ? error : new VerifyFailure(error instanceof Error ? error.message : String(error));
+    const safeError =
+      error instanceof VerifyFailure
+        ? error
+        : new VerifyFailure(error instanceof Error ? error.message : String(error));
     const summary = buildFinalSummary({
       status: "fail",
       target,
@@ -1238,7 +1584,17 @@ export async function runVerification({ rootDir = ROOT_DIR, token = `m004-s02-${
     try {
       assertS02PublicEvidenceRedacted(redactedSummary, context);
     } catch (redactionError) {
-      emit({ status: "fail", summary: { status: "fail", redaction: { status: "failed", error: safeErrorForPublic(redactionError) }, cleanup } }, context);
+      emit(
+        {
+          status: "fail",
+          summary: {
+            status: "fail",
+            redaction: { status: "failed", error: safeErrorForPublic(redactionError) },
+            cleanup,
+          },
+        },
+        context,
+      );
       throw safeError;
     }
     emit({ status: "fail", summary: redactedSummary }, context);

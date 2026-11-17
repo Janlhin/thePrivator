@@ -31,12 +31,7 @@ interface FingerprintFormProps {
  * edits in six places, and forgetting any of them shipped a surface the user
  * could not see or set.
  */
-export function FingerprintForm({
-  draft,
-  warnings,
-  presets,
-  onChange,
-}: FingerprintFormProps) {
+export function FingerprintForm({ draft, warnings, presets, onChange }: FingerprintFormProps) {
   const controls = getIdentitySurfaceControls(draft.identity);
   const labelId = useId();
 
@@ -118,17 +113,19 @@ export function FingerprintForm({
 
             {control.fields.length === 0 ? null : (
               <div className={styles.fields}>
-                {control.fields.map((field) => field.path === "browser.userAgent" && control.mode === "custom" ? (
-                  <UserAgentField key={field.path} field={field} draft={draft} onChange={onChange} />
-                ) : (
-                  <Field
-                    key={field.path}
-                    field={field}
-                    value={draft.values[field.path] ?? ""}
-                    error={draft.errors[field.path]}
-                    onChange={(value) => onChange(updateIdentityDraftField(draft, field.path, value))}
-                  />
-                ))}
+                {control.fields.map((field) =>
+                  field.path === "browser.userAgent" && control.mode === "custom" ? (
+                    <UserAgentField key={field.path} field={field} draft={draft} onChange={onChange} />
+                  ) : (
+                    <Field
+                      key={field.path}
+                      field={field}
+                      value={draft.values[field.path] ?? ""}
+                      error={draft.errors[field.path]}
+                      onChange={(value) => onChange(updateIdentityDraftField(draft, field.path, value))}
+                    />
+                  ),
+                )}
               </div>
             )}
           </section>
@@ -138,7 +135,11 @@ export function FingerprintForm({
   );
 }
 
-function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "draft" | "onChange"> & { field: IdentityDraftFieldDescriptor }) {
+function UserAgentField({
+  field,
+  draft,
+  onChange,
+}: Pick<FingerprintFormProps, "draft" | "onChange"> & { field: IdentityDraftFieldDescriptor }) {
   const hintId = useId();
   const request = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
@@ -149,7 +150,7 @@ function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "
   // the window before a queued network completion can overwrite that edit.
   useLayoutEffect(() => {
     setBusy(false);
-    setMessage((current) => current === t("Fetching from randomapi.dev…") ? "" : current);
+    setMessage((current) => (current === t("Fetching from randomapi.dev…") ? "" : current));
     return () => {
       request.current?.abort();
       request.current = null;
@@ -185,7 +186,11 @@ function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "
       if (request.current !== controller || controller.signal.aborted) return;
       // Never render network errors or provider response text (possibly hostile).
       setFailed(true);
-      setMessage(t("Could not fetch a valid user agent from randomapi.dev. Draft unchanged. Check your connection or try again."));
+      setMessage(
+        t(
+          "Could not fetch a valid user agent from randomapi.dev. Draft unchanged. Check your connection or try again.",
+        ),
+      );
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -194,20 +199,43 @@ function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "
     }
   }
 
-  return <Field
-    field={field}
-    value={draft.values["browser.userAgent"] ?? ""}
-    error={draft.errors["browser.userAgent"]}
-    onChange={(value) => onChange(updateIdentityDraftField(draft, "browser.userAgent", value))}
-    action={<button type="button" className={styles.refreshButton} disabled={busy} aria-describedby={hintId} onClick={() => void refresh()}>
-      <span aria-hidden="true">↻</span> {t("Refresh")}
-    </button>}
-    footer={<>
-      <p className={styles.hint} id={hintId}>{t("randomapi.dev: direct app connection, not the profile proxy. Sends the OS filter ({os}), no profile cookies or configuration; the provider sees your connection IP. Chrome desktop only; explicit navigator.platform takes priority over the existing UA; unknown OS defaults to Linux.", { os })}</p>
-      <p className={styles.hint}>{t("Only the UA changes. It may mismatch the Chromium version and other UA-CH fields; review consistency warnings before saving.")}</p>
-      <p className={failed ? styles.error : styles.hint} role={failed ? "alert" : "status"}>{message}</p>
-    </>}
-  />;
+  return (
+    <Field
+      field={field}
+      value={draft.values["browser.userAgent"] ?? ""}
+      error={draft.errors["browser.userAgent"]}
+      onChange={(value) => onChange(updateIdentityDraftField(draft, "browser.userAgent", value))}
+      action={
+        <button
+          type="button"
+          className={styles.refreshButton}
+          disabled={busy}
+          aria-describedby={hintId}
+          onClick={() => void refresh()}
+        >
+          <span aria-hidden="true">↻</span> {t("Refresh")}
+        </button>
+      }
+      footer={
+        <>
+          <p className={styles.hint} id={hintId}>
+            {t(
+              "randomapi.dev: direct app connection, not the profile proxy. Sends the OS filter ({os}), no profile cookies or configuration; the provider sees your connection IP. Chrome desktop only; explicit navigator.platform takes priority over the existing UA; unknown OS defaults to Linux.",
+              { os },
+            )}
+          </p>
+          <p className={styles.hint}>
+            {t(
+              "Only the UA changes. It may mismatch the Chromium version and other UA-CH fields; review consistency warnings before saving.",
+            )}
+          </p>
+          <p className={failed ? styles.error : styles.hint} role={failed ? "alert" : "status"}>
+            {message}
+          </p>
+        </>
+      }
+    />
+  );
 }
 
 interface FieldProps {
@@ -257,19 +285,21 @@ function Field({ field, value, error, onChange, action, footer }: FieldProps) {
           onChange={(event) => onChange(event.target.checked ? "true" : "false")}
         />
       ) : field.kind === "textarea" || field.kind === "language-list" || field.kind === "port-list" ? (
-        action ? <div className={styles.inputAction}>
+        action ? (
+          <div className={styles.inputAction}>
+            <textarea {...shared} rows={2} value={value} onChange={(event) => onChange(event.target.value)} />
+            {action}
+          </div>
+        ) : (
           <textarea {...shared} rows={2} value={value} onChange={(event) => onChange(event.target.value)} />
-          {action}
-        </div> : <textarea {...shared} rows={2} value={value} onChange={(event) => onChange(event.target.value)} />
+        )
       ) : field.kind === "webrtc-policy" || field.kind === "geolocation-permission" ? (
         <select {...shared} value={value} onChange={(event) => onChange(event.target.value)}>
-          {(field.kind === "webrtc-policy" ? WEBRTC_POLICY_OPTIONS : GEOLOCATION_PERMISSION_OPTIONS).map(
-            (option) => (
-              <option key={option.value} value={option.value}>
-                {t(option.label)}
-              </option>
-            ),
-          )}
+          {(field.kind === "webrtc-policy" ? WEBRTC_POLICY_OPTIONS : GEOLOCATION_PERMISSION_OPTIONS).map((option) => (
+            <option key={option.value} value={option.value}>
+              {t(option.label)}
+            </option>
+          ))}
         </select>
       ) : (
         <input

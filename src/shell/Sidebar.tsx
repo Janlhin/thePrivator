@@ -69,7 +69,8 @@ export function Sidebar({ route, folders, counts, collapsed, onToggleCollapsed }
               <span className={styles.glyph} aria-hidden="true">
                 {item.glyph}
               </span>
-              <span className={styles.label}>{t(item.label)}</span>              <span className={styles.count}>{counts[item.view]}</span>
+              <span className={styles.label}>{t(item.label)}</span>{" "}
+              <span className={styles.count}>{counts[item.view]}</span>
             </a>
           </li>
         ))}
