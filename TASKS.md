@@ -28,6 +28,9 @@
 | T-019 | 根目录白名单比对脚本 | 新增 `scripts/check-root-whitelist.ps1`，用 `git ls-files` 与 README 顶层目录表逐条比对 | T-010 | 高 | 脚本退出 0；根级未登记项数为 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-020 | 脚本基线检查 | 新增 `scripts/check-script-baseline.ps1`：仓库内 `.cmd`/`.bat` 数为 0、项目自写代码中 `cmd.exe`/`powershell.exe` 调用数为 0、入口一律 `pwsh -File` | T-010 | 高 | 脚本退出 0；三项计数均为 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-021 | 双入口收敛 | `deno.json` 的 `deno task` 与 `package.json` 的 `npm run` 目前并存；选定一套为主、另一套降级为别名 | T-010 | 中 | 只保留一套执行 `node node_modules/vite-plus/dist/bin.js` 的定义；另一套为 `pwsh -File` 转发 | TASK_BACKLOG | 2026-11-17 | — |
+| T-022 | cookie 健康检查 | 档案表增一列：身份 cookie 距过期天数、上次探活时间与结果；判定抽成纯函数（401、重定向到登录页、登录页特征视为失效），默认只提示不自动重登。**账号数量不设上限**：列与筛选都必须支持任意行数，不得按固定账号清单设计 | T-010 | 中 | `npm run verify` 退出 0；新增判定函数有单测覆盖；组件测试断言该列在 0、1、多行三种数据下都渲染 | TASK_BACKLOG | 2026-11-17 | — |
+| T-023 | CI 工作流未被索引 | 三路排查：索引缓存、`ci.yml` 被判定无效、仓库设置；以 `gh api repos/Janlhin/thePrivator/actions/workflows` 的 `total_count` 为判据 | T-010 | 高 | `total_count` 大于 0，且新建 PR 上出现检查项 | TASK_READY | 2026-11-17 | — |
+| T-024 | 开源入口文档 | README 增「从零跑起来」（工具链版本、`npm ci`、`npm run verify`）与「提 PR」（提交规范、提交前必过 verify）两节 | T-023 | 高 | README 含这两节；按文档从干净环境能走到 `verify passed` | TASK_BACKLOG | 2026-11-17 | — |
 
 ## 待裁决清单
 
