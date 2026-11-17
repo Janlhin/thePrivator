@@ -1,0 +1,1 @@
+exec pwsh -NoLogo -NoProfile -File scripts/hooks/commit-msg.ps1 "$@"
