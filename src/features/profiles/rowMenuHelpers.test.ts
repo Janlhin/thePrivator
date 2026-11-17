@@ -164,7 +164,7 @@ describe("menu shape", () => {
 
   it("never opens a menu with a separator", () => {
     for (const each of cases) {
-      expect(buildRowMenu(each)[0].separatorBefore).not.toBe(true);
+      expect(buildRowMenu(each)[0]!.separatorBefore).not.toBe(true);
     }
   });
 

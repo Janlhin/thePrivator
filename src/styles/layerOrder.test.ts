@@ -25,7 +25,7 @@ const styleSheets: Record<string, string> = import.meta.glob("./*.css", {
 
 /** Import specifiers, in the order the module system will evaluate them. */
 function importOrder(source: string): string[] {
-  return [...source.matchAll(/^import\s+(?:[^"']*?from\s+)?["']([^"']+)["'];?$/gm)].map((match) => match[1]);
+  return [...source.matchAll(/^import\s+(?:[^"']*?from\s+)?["']([^"']+)["'];?$/gm)].map((match) => match[1] ?? "");
 }
 
 const documentShell: string = Object.values(
@@ -60,7 +60,7 @@ describe("cascade layer order", () => {
   });
 
   it("declares the whole order in one statement, before importing the sheets it orders", () => {
-    const index = styleSheets["./index.css"];
+    const index = styleSheets["./index.css"] ?? "";
     expect(index, "src/styles/index.css is gone").toBeDefined();
 
     const declaration = index.indexOf("@layer tokens, base, components, utilities;");
@@ -74,7 +74,7 @@ describe("cascade layer order", () => {
 
   it("keeps the reset in the base layer, where component rules outrank it", () => {
     // An unlayered reset would beat every layered rule regardless of order.
-    const reset = styleSheets["./reset.css"];
+    const reset = styleSheets["./reset.css"] ?? "";
 
     expect(reset).toContain("@layer base {");
     expect(reset.slice(0, reset.indexOf("@layer base {")).trim().replace(/\/\*[\s\S]*?\*\//g, "")).toBe("");

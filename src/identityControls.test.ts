@@ -42,8 +42,8 @@ function readSidecarSurfaceContract(): { identityVersion: number; modesBySurface
   }
 
   const modesBySurface = new Map<string, string[]>();
-  for (const [, surface, modes] of table.matchAll(/^ {4}"([A-Za-z]+)": \{([^}]*)\},$/gm)) {
-    modesBySurface.set(surface, [...modes.matchAll(/"([a-z]+)"/g)].map(([, mode]) => mode).sort());
+  for (const [, surface = "", modes = ""] of table.matchAll(/^ {4}"([A-Za-z]+)": \{([^}]*)\},$/gm)) {
+    modesBySurface.set(surface, [...modes.matchAll(/"([a-z]+)"/g)].map(([, mode = ""]) => mode).sort());
   }
   return { identityVersion: Number(version), modesBySurface };
 }
@@ -59,11 +59,11 @@ function readSidecarTextFieldBounds(): Map<string, number> {
     throw new Error("The sidecar identity module could not be read.");
   }
   const constants = new Map<string, number>();
-  for (const [, name, value] of source.matchAll(/^(MAX_[A-Z_]*LENGTH) = ([\d_]+)$/gm)) {
+  for (const [, name = "", value = ""] of source.matchAll(/^(MAX_[A-Z_]*LENGTH) = ([\d_]+)$/gm)) {
     constants.set(name, Number(value.replace(/_/g, "")));
   }
   const bounds = new Map<string, number>();
-  for (const [, path, constant] of source.matchAll(/_require_string\([^,]+,\s*"([^"]+)"[^)]*max_length=(MAX_[A-Z_]+)/g)) {
+  for (const [, path = "", constant = ""] of source.matchAll(/_require_string\([^,]+,\s*"([^"]+)"[^)]*max_length=(MAX_[A-Z_]+)/g)) {
     const value = constants.get(constant);
     if (value !== undefined) {
       bounds.set(path, value);
@@ -472,10 +472,14 @@ describe("descriptor and parser bounds", () => {
    * whole suite pass while checking nothing.
    */
   function draftWithField(field: (typeof numericFields)[number], value: string) {
+    const [firstMode] = field.modes;
+    if (firstMode === undefined) {
+      throw new Error(`Numeric field ${field.path} declares no modes to switch to.`);
+    }
     const withMode = updateIdentityDraftSurfaceMode(
       createIdentityDraftState(identity()),
       field.surface,
-      field.modes[0],
+      firstMode,
     );
     return updateIdentityDraftField(withMode, field.path, value);
   }

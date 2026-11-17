@@ -44,7 +44,7 @@ describe("ColumnManager", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(props.onApply).toHaveBeenCalledTimes(1);
-    const applied = props.onApply.mock.calls[0][0];
+    const applied = props.onApply.mock.calls[0]![0];
     expect(applied.find((entry) => entry.key === "tags")?.visible).toBe(false);
     expect(applied.find((entry) => entry.key === "notes")?.visible).toBe(false);
   });
@@ -106,7 +106,7 @@ describe("ColumnManager", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move Proxy up" }));
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
-    const keys = props.onApply.mock.calls[0][0].map((entry) => entry.key);
+    const keys = props.onApply.mock.calls[0]![0]!.map((entry) => entry.key);
     expect(keys.indexOf("proxy")).toBeLessThan(keys.indexOf("tags"));
     expect(new Set(keys)).toEqual(new Set(defaultLayout().map((entry) => entry.key)));
   });
@@ -115,8 +115,8 @@ describe("ColumnManager", () => {
     renderManager();
 
     const movable = defaultLayout().filter((entry) => columnByKey(entry.key).locked !== true);
-    const first = columnByKey(movable[0].key).label;
-    const last = columnByKey(movable[movable.length - 1].key).label;
+    const first = columnByKey(movable[0]!.key).label;
+    const last = columnByKey(movable[movable.length - 1]!.key).label;
 
     expect(screen.getByRole("button", { name: `Move ${first} up` })).toBeDisabled();
     expect(screen.getByRole("button", { name: `Move ${last} down` })).toBeDisabled();
