@@ -28,23 +28,23 @@ describe("column descriptors", () => {
 
   it("keeps the columns a row cannot work without unhideable", () => {
     for (const key of ["select", "status", "name", "actions"] as const) {
-      expect(columnByKey(key).locked, key).toBe(true);
+      expect(columnByKey(key).locked).toBe(true);
     }
   });
 
   it("never marks a locked column as hidden by default", () => {
     for (const column of COLUMNS) {
       if (column.locked === true) {
-        expect(column.hiddenByDefault, column.key).not.toBe(true);
+        expect(column.hiddenByDefault).not.toBe(true);
       }
     }
   });
 
   it("gives every column a minimum width it can actually render in", () => {
     for (const column of COLUMNS) {
-      expect(column.minWidth, column.key).toBeGreaterThan(0);
-      expect(column.defaultWidth, column.key).toBeGreaterThanOrEqual(column.minWidth);
-      expect(column.defaultWidth, column.key).toBeLessThanOrEqual(MAX_COLUMN_WIDTH);
+      expect(column.minWidth).toBeGreaterThan(0);
+      expect(column.defaultWidth).toBeGreaterThanOrEqual(column.minWidth);
+      expect(column.defaultWidth).toBeLessThanOrEqual(MAX_COLUMN_WIDTH);
     }
   });
 

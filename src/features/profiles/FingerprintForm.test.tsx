@@ -376,7 +376,7 @@ describe("FingerprintForm", () => {
 
     expect(IDENTITY_SURFACE_ORDER).toHaveLength(11);
     for (const surface of IDENTITY_SURFACE_ORDER) {
-      expect(screen.getByRole("heading", { name: IDENTITY_SURFACE_LABELS[surface] }), surface).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: IDENTITY_SURFACE_LABELS[surface] })).toBeInTheDocument();
     }
   });
 

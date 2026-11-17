@@ -14,14 +14,12 @@ it("refreshes complete templates without mutating originals or retaining a curat
   const before = structuredClone(base);
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          data: [{ userAgent: ua, browser: "chrome", browserVersion: "142.0.0.0", os: "linux", device: "desktop" }],
-        }),
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ userAgent: ua, browser: "chrome", browserVersion: "142.0.0.0", os: "linux", device: "desktop" }],
       }),
+    }),
   );
   const result = await refreshIdentityPresets([base], new AbortController().signal);
   expect(result).toEqual([

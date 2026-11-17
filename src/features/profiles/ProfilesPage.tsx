@@ -165,12 +165,10 @@ export function ProfilesPage({
 
   // A selection that outlives its rows would let a bulk action reach a profile
   // the user filtered away and can no longer see.
-  const shownRef = useRef(shown);
   const firstVisible = shown[0];
-  shownRef.current = shown;
   useEffect(() => {
     setSelection((current) => {
-      const pruned = pruneSelection(current.ids, shownRef.current);
+      const pruned = pruneSelection(current.ids, shown);
       return pruned.size === current.ids.size ? current : { ids: pruned, anchorId: current.anchorId };
     });
   }, [shown]);
@@ -200,8 +198,8 @@ export function ProfilesPage({
   const onLaunch = useCallback((id: string) => void runFor([id], () => launchChromiumProfile(id)), [runFor]);
   const onStop = useCallback((id: string) => void runFor([id], () => stopChromiumProfile(id)), [runFor]);
   const onSelect = useCallback(
-    (intent: SelectionIntent) => setSelection((current) => applySelection(current, intent, shownRef.current)),
-    [],
+    (intent: SelectionIntent) => setSelection((current) => applySelection(current, intent, shown)),
+    [shown],
   );
   const onSort = useCallback((key: ColumnKey) => setSort((current) => nextSort(current, key)), []);
   const onResize = useCallback(
@@ -310,7 +308,7 @@ export function ProfilesPage({
           return Promise.resolve();
       }
     },
-    [onCheckProxy, onOpenProfile, runFor, rows],
+    [onCheckProxy, onOpenProfile, runFor, rows, t],
   );
 
   const describeConfirmation = useCallback(

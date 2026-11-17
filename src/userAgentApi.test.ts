@@ -70,9 +70,12 @@ describe("random Chrome desktop user agents", () => {
           }),
       ),
     );
-    const result = expect(fetchRandomUserAgent("linux", new AbortController().signal)).rejects.toThrow("timed out");
+    const request = fetchRandomUserAgent("linux", new AbortController().signal);
+    // Mark the rejection as handled before time advances, so the timer that
+    // fires it cannot surface as an unhandled rejection in the meantime.
+    void request.catch(() => {});
     await vi.advanceTimersByTimeAsync(10_000);
-    await result;
+    await expect(request).rejects.toThrow("timed out");
     expect(requestSignal!.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -86,11 +89,11 @@ describe("random Chrome desktop user agents", () => {
         }),
     );
     vi.stubGlobal("fetch", fetch);
-    const result = expect(fetchRandomUserAgent("linux", controller.signal)).rejects.toMatchObject({
+    const request = fetchRandomUserAgent("linux", controller.signal);
+    controller.abort();
+    await expect(request).rejects.toMatchObject({
       name: "AbortError",
     });
-    controller.abort();
-    await result;
     await expect(fetchRandomUserAgent("linux", controller.signal)).rejects.toMatchObject({ name: "AbortError" });
     expect(fetch).toHaveBeenCalledTimes(1);
   });

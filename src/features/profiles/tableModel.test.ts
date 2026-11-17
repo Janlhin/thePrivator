@@ -47,7 +47,7 @@ describe("matchesSearch", () => {
 
   it("matches on name, tag, note and proxy alike", () => {
     for (const term of ["banking", "finance", "berlin", "10.0.0.9", "1080"]) {
-      expect(matchesSearch(profile, [term]), term).toBe(true);
+      expect(matchesSearch(profile, [term])).toBe(true);
     }
   });
 

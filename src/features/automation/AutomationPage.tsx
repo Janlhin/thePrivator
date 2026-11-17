@@ -68,7 +68,7 @@ export function AutomationPage() {
             ? t("The access token is on the clipboard. Paste it into your script now.")
             : t("The clipboard is unavailable in this window."),
         );
-      } catch (caught) {
+      } catch {
         // The message is replaced rather than forwarded: a clipboard failure can
         // quote the value it was asked to write, and that value is the token.
         setError(t("The access token could not be copied."));
