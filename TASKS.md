@@ -11,7 +11,7 @@
 | T-001 | 修复套件唯一失败项 | 统一 4 个 m005 脚本的 Python 解释器解析，探测名按目标平台而非宿主平台 | 无 | 高 | `vp test` 退出 0 且 47/47 文件通过 | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-002 | 建立治理文档 | 新建 `AGENTS.md`、`DECISIONS.md`、`TASKS.md`、`MANIFEST.md` | T-001 | 高 | 四文件存在；`AGENTS.md` 行数 ≤150；`DECISIONS.md` 每条含六个字段 | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-003 | README 补齐工程字段 | 追加技术栈与版本、顶层目录职责、验收命令与期望退出码、已知限制、顶端提交验证声明 | T-002 | 高 | `README.md` 含 7 个必填小节标题；`npm run verify` 命令串与 `package.json` 一致 | TASK_DONE | 2026-11-17 | 2026-11-17 |
-| T-004 | 根目录白名单对齐 | 散文移 `docs/`、截图移 `img/`，更新引用 | T-003 | 中 | `git ls-files` 根级条目与 `README.md` 目录表逐条比对为零差异 | TASK_BACKLOG | 2026-11-17 | — |
+| T-004 | 根目录白名单对齐 | 散文移 `docs/`、截图移 `img/`，更新引用 | T-003 | 中 | `git ls-files` 根级不再含 `FINGERPRINTING_V3.md` 与 `browserleaks-*.png`；两文件位于 `docs/`、`img/`；引用数为 0 | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-005 | 严格类型选项全开 | `tsconfig.json` 开 `noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`noUnusedLocals`、`noUnusedParameters`、`verbatimModuleSyntax`、`noImplicitOverride`、`noFallthroughCasesInSwitch`，并修完实测的 118 处连锁错误 | T-003 | 中 | `tsc --noEmit` 退出 0；`tsconfig.json` 七项均为 `true` | TASK_BACKLOG | 2026-11-17 | — |
 | T-006 | Lint 与格式门禁 | 以 `vp lint`、`vp fmt --check` 作为通道，接入 `npm run lint` / `format:check` | T-003 | 高 | 两条命令均退出 0，且 `vp lint` 零警告 | TASK_BACKLOG | 2026-11-17 | — |
 | T-007 | 样式门禁 | 装 `stylelint` 与 `stylelint-config-standard`，`color-no-hex` 仅对 `tokens.css` 放行 | T-006 | 高 | `stylelint "src/**/*.css"` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
