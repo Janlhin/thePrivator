@@ -54,8 +54,8 @@ export interface SidecarHealthPayload {
   };
   request?: {
     durationMs: number;
-  };
-  degradedFields?: string[];
+  } | undefined;
+  degradedFields?: string[] | undefined;
 }
 
 export interface SidecarHealthSnapshot {
@@ -88,7 +88,7 @@ export interface DiagnosticEntryBase {
   logPath: DiagnosticLogPath;
   requestId?: JsonScalar;
   method?: string;
-  durationMs?: number;
+  durationMs?: number | undefined;
   errorCode: string;
   detailRef: string;
 }
@@ -430,7 +430,7 @@ export interface BrowserClientHints {
 export interface BrowserMaskedSurface {
   mode: Exclude<IdentityMaskingMode, "real">;
   userAgent: string;
-  clientHints?: BrowserClientHints;
+  clientHints?: BrowserClientHints | undefined;
 }
 
 export type BrowserIdentitySurface = IdentityRealSurface | BrowserMaskedSurface;
@@ -481,7 +481,7 @@ export interface WebGlMaskedSurface {
   mode: Exclude<IdentityMaskingMode, "real">;
   vendor: string;
   renderer: string;
-  noiseSeed?: number;
+  noiseSeed?: number | undefined;
 }
 
 export type WebGlIdentitySurface = IdentityRealSurface | WebGlMaskedSurface;
@@ -687,11 +687,11 @@ export interface IdentitySurfaceFieldDescriptor {
   name: string;
   type: IdentitySurfaceFieldType;
   required: boolean;
-  maxLength?: number;
-  min?: number;
-  max?: number;
-  maxItems?: number;
-  options?: string[];
+  maxLength?: number | undefined;
+  min?: number | undefined;
+  max?: number | undefined;
+  maxItems?: number | undefined;
+  options?: string[] | undefined;
 }
 
 export interface IdentitySurfaceDescriptor {
@@ -780,8 +780,8 @@ export interface ProfileListResult {
 }
 
 export interface ProfileMutationResult extends ProfileListResult {
-  profile?: ProfileRecord;
-  warnings?: IdentityWarning[];
+  profile?: ProfileRecord | undefined;
+  warnings?: IdentityWarning[] | undefined;
 }
 
 export interface ProfileProxyMutationResult extends ProfileMutationResult {
@@ -1039,8 +1039,8 @@ export interface LegacyImportOutcomeError extends SidecarCommandErrorEnvelope {}
 export interface LegacyImportOutcomeBase {
   legacyId: string;
   targetName: string;
-  folderName?: string;
-  legacyName?: string;
+  folderName?: string | undefined;
+  legacyName?: string | undefined;
   status: LegacyImportOutcomeStatus;
   copyStatus: LegacyImportCopyStatus;
 }
@@ -1107,12 +1107,12 @@ export interface AutomationApiErrorSnapshot {
   phase: string;
   detailRef: string;
   at: string;
-  durationMs?: number;
+  durationMs?: number | undefined;
 }
 
 export interface AutomationApiTimingSnapshot {
-  readinessDurationMs?: number;
-  stopDurationMs?: number;
+  readinessDurationMs?: number | undefined;
+  stopDurationMs?: number | undefined;
 }
 
 export interface AutomationApiStatusResult {
