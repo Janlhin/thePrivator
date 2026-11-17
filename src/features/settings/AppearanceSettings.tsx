@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { t, useLanguagePreference } from "../../i18n";
+import type { LanguagePreference } from "../../i18n/language";
 import { savePreferences, normalizeSidecarError } from "../../sidecar/client";
 import styles from "./SettingsPage.module.css";
 
@@ -9,6 +11,19 @@ const THEMES: Array<{ id: ThemeChoice; label: string; description: string }> = [
   { id: "system", label: "Match the system", description: "Follow whatever this computer is set to." },
   { id: "light", label: "Light", description: "Always light, whatever the system says." },
   { id: "dark", label: "Dark", description: "Always dark, whatever the system says." },
+];
+
+/**
+ * The language choices.
+ *
+ * Each label is written in the language it selects, not translated: someone who
+ * reads no Chinese still has to be able to find "中文" in a Chinese interface,
+ * and vice versa.
+ */
+const LANGUAGES: Array<{ id: LanguagePreference; label: string; description: string }> = [
+  { id: "system", label: "Follow the system", description: "Use the language this computer is set to, and follow it if it changes." },
+  { id: "en", label: "English", description: "Always English, whatever the system says." },
+  { id: "zh", label: "中文", description: "始终显示简体中文，不受系统语言影响。" },
 ];
 
 /**
@@ -27,12 +42,13 @@ export function AppearanceSettings() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [theme, setTheme] = useState<ThemeChoice>(currentTheme);
+  const { preference, choose } = useLanguagePreference();
 
   useEffect(() => {
     setTheme(currentTheme());
   }, []);
 
-  const choose = useCallback(async (choice: ThemeChoice) => {
+  const selectTheme = useCallback(async (choice: ThemeChoice) => {
     setSaving(true); setError("");
     try {
       await savePreferences(choice);
@@ -52,13 +68,13 @@ export function AppearanceSettings() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Appearance</h1>
-        <p className={styles.lede}>How ThePrivator looks on this device.</p>
+        <h1>{t("Appearance")}</h1>
+        <p className={styles.lede}>{t("How ThePrivator looks on this device.")}</p>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}
       <section className={styles.card} aria-labelledby="theme-heading">
-        <h2 id="theme-heading">Theme</h2>
+        <h2 id="theme-heading">{t("Theme")}</h2>
 
         <div className={styles.choices} role="radiogroup" aria-labelledby="theme-heading">
           {THEMES.map((entry) => (
@@ -69,11 +85,33 @@ export function AppearanceSettings() {
                 value={entry.id}
                 checked={theme === entry.id}
                 disabled={saving}
+                onChange={() => selectTheme(entry.id)}
+              />
+              <span>
+                <strong>{t(entry.label)}</strong>
+                <span className={styles.hint}>{t(entry.description)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.card} aria-labelledby="language-heading">
+        <h2 id="language-heading">{t("Language")}</h2>
+
+        <div className={styles.choices} role="radiogroup" aria-labelledby="language-heading">
+          {LANGUAGES.map((entry) => (
+            <label key={entry.id} className={styles.choice}>
+              <input
+                type="radio"
+                name="language"
+                value={entry.id}
+                checked={preference === entry.id}
                 onChange={() => choose(entry.id)}
               />
               <span>
-                <strong>{entry.label}</strong>
-                <span className={styles.hint}>{entry.description}</span>
+                <strong>{entry.id === "system" ? t(entry.label) : entry.label}</strong>
+                <span className={styles.hint}>{t(entry.description)}</span>
               </span>
             </label>
           ))}
