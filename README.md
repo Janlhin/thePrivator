@@ -198,6 +198,63 @@ builds and tests succeed. Version tags publish stable releases. The workflow als
 builds Arch packages and versioned PKGBUILDs; optional AUR publishing and platform
 signing are described in [the release setup guide](docs/releases.md).
 
+## Engineering baseline
+
+### Stack and versions
+
+| Layer | Stack | Version |
+| --- | --- | --- |
+| Frontend | React + TypeScript | React 19.3.1, TypeScript 7.0.2 |
+| Build and test | Vite+ (`vp`, backed by oxlint/oxfmt) | 1.7.x; `vite` exists only as Vite+'s alias |
+| Desktop shell | Tauri | CLI `3.0.0-alpha.6`, API `3.0.0-alpha.3` (alpha channel) |
+| Rust bridge | `tauri` + `tauri-runtime-wry` | pinned by `src-tauri/Cargo.lock` |
+| Python sidecar | FastAPI + uvicorn | Python 3.11+ (development host: 3.12) |
+| Unit tests | Vitest | 5.1.0 |
+| Task runner | Deno | 2.9.8 |
+| Node runtime | — | `engines.node`: `^22.18 \|\| ^24.11 \|\| >=26` |
+| Automation shell | PowerShell | 7.4+ (`pwsh` only, no `.cmd`/`.bat`) |
+
+### Top-level layout
+
+| Path | Responsibility |
+| --- | --- |
+| `src/` | React frontend: profile table, settings, i18n, sidecar client and its typed wrappers |
+| `src-tauri/` | Rust bridge: transport, timeouts, diagnostics — it owns no domain state |
+| `theprivator_sidecar/` | Python sidecar: profile store, proxy runtime, fingerprint engine, browser lifecycle |
+| `src/styles/` | CSS layers plus `tokens.css`; business styles read tokens, never raw colours |
+| `tests/` | Python sidecar suite and release-tooling tests |
+| `docs/` | Product notes, release records, verification write-ups |
+| `scripts/` | Sidecar build, release verification, platform probes |
+| `packaging/`, `public/`, `img/` | Packaging templates, static UI assets, images |
+| `.github/` | CI and release workflows |
+| `AGENTS.md`, `DECISIONS.md`, `TASKS.md`, `MANIFEST.md` | Rules carrier, decision log, task queue, provenance |
+
+### Acceptance (machine-decidable)
+
+Run from the repository root; each command must exit `0`.
+
+```bash
+npm ci               # lockfile is the only source of truth
+npm run verify       # format:check, lint, stylelint, typecheck, test with coverage, deadcode, dupes
+npm run build        # production frontend build
+npm run test:e2e     # packaged UI path
+```
+
+A change is not "done" until `npm run verify` exits `0`. A failing check is fixed, never bypassed.
+
+### Known limits
+
+- Tauri 3 is still on the alpha channel; a break in an alpha API is fixed forward, not pinned away.
+- One build produces one platform: PyInstaller bundles the host interpreter and has no cross-compilation mode.
+- Coverage is a necessary condition, not a proof of quality — it measures what executed, not what was asserted.
+- The local `pwsh` is the 7.7 preview channel while CI runs the stable channel; scripts must not rely on preview-only syntax.
+- Chromium is supplied by your environment; the app launches what you already have.
+- With vault protection off, proxy credentials are stored as plaintext with restricted file permissions.
+
+### Verification scope
+
+CI runs on every push and on the latest commit of each pull request. It does **not** verify every commit individually. Per-commit buildability is maintained by the atomic-commit rule and checked with `git bisect` when needed — it is not claimed as a CI guarantee.
+
 ## How it fits together
 
 ```
