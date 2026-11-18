@@ -35,6 +35,7 @@
 | T-026 | Chromium 系多品牌 | `discover_executable` 按优先级探测 Edge、Chrome、Brave 等同一引擎的浏览器，运行记录里写明实际使用的品牌；指纹与自动化通道保持不变 | T-025 | 高 | 用 Edge 启动一个档案退出码 0，且运行记录的品牌字段为 `edge`；`npm run verify` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-027 | Firefox 受限模式 | 接入 `-profile` 与 `-no-remote` 启动、原生带认证 SOCKS5（去掉中转依赖）、`cookies.sqlite` 的读写；指纹面与 CDP 自动化端点标为不可用，UI 上禁用并写明原因，而不是让用户填了不生效 | T-025 | 中 | Firefox 档案启动退出码 0；该档案下指纹面板全部控件为禁用态；README 能力差异表与代码能力矩阵一致 | TASK_BACKLOG | 2026-11-17 | — |
 | T-028 | Safari 不做 | 仅在 macOS 提供，且没有等价于 `-profile` 的独立启动方式，无法被本项目驱动；结论即本条，不再另立实现 | T-025 | 高 | 决策日志存在对应条目，且 `engine` 枚举中不含 `safari` | TASK_CANCELLED | 2026-11-17 | 2026-11-17 |
+| T-029 | 移除 Deno，回归 npm 单入口 | 上游已宣布运行时退出（2026-10，一年维护后停止独立开发），故删除 `deno.json` 与 `deno.lock`；依赖锁定统一为 `package-lock.json`，必要时先刷新以纳入近期新增的 devDependencies；`node_modules` 用 `npm ci` 重建；README、MANIFEST、DECISIONS 三处提及 Deno 的段落改为 npm。本条完成即关闭 T-021 | T-010 | 高 | `npm ci` 退出 0；`npm run verify` 退出 0；`git ls-files` 中 `deno.json` 与 `deno.lock` 计数为 0；跟踪文件中 `deno` 字样计数为 0 | TASK_READY | 2026-11-18 | — |
 
 ## 待裁决清单
 
