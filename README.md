@@ -187,7 +187,7 @@ needs Windows, whatever the Rust side could otherwise manage. The
 [release workflow](.github/workflows/release.yml) runs one runner per platform
 for exactly that reason.
 
-Pushes to `master` and `3.*` branches publish development prereleases after all
+Pushes to `main` and `3.*` branches publish development prereleases after all
 builds and tests succeed. Version tags publish stable releases. The workflow also
 builds Arch packages and versioned PKGBUILDs; optional AUR publishing and platform
 signing are described in [the release setup guide](docs/releases.md).
