@@ -1,13 +1,13 @@
 name: CI
 
 # The previous workflow triggered only on main/develop -- neither of which is
-# this repository's default branch (master) or its active branch (3.0) -- and
+# this repository's default branch (main) or its active branch (3.0) -- and
 # ran `pytest tests/`, a path that does not exist. As a result nothing was
 # checked on any branch. Two consecutive commits shipped a UI that failed 87 of
 # its 88 tests.
 on:
   push:
-    branches: [master, "3.*"]
+    branches: [main, "3.*"]
   pull_request:
   workflow_dispatch:
 
