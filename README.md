@@ -170,7 +170,6 @@ them with checksums to `src-tauri/target/release/bundle/linux/`. The container t
 and newer. A native build on a rolling-release distribution is only suitable for
 that host unless tested against the intended older runtime.
 
-
 On macOS, build with `npm run tauri build -- --bundles app,dmg`. The sidecar
 uses a directory-based Python runtime in `Contents/Frameworks`, avoiding
 temporary library extraction on every launch. To verify the shipped runtime:
@@ -260,7 +259,6 @@ single `exec pwsh` lines — no gate logic lives in shell or in `package.json`.
 | Dead code | `npm run deadcode` | knip finds an unused file, export, type or dependency |
 | Duplication | `npm run dupes` | jscpd finds more than 3% duplicated lines |
 
-
 ### Known limits
 
 - Tauri 3 is still on the alpha channel; a break in an alpha API is fixed forward, not pinned away.
@@ -278,7 +276,7 @@ CI runs on every push and on the latest commit of each pull request. It does **n
 
 ## How it fits together
 
-```
+```text
 React frontend  ──invoke──▶  Rust bridge  ──NDJSON over stdio──▶  Python sidecar  ──▶  Chromium
    src/                       src-tauri/                           theprivator_sidecar/
 ```

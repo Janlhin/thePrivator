@@ -81,7 +81,7 @@ Each preset includes:
 ## Technical Implementation
 
 ### New Files Created
-```
+```text
 theprivator/
 ├── core/
 │   ├── fingerprint_presets.py       # 15 realistic presets
@@ -97,7 +97,7 @@ theprivator/
 ```
 
 ### Modified Files
-```
+```text
 theprivator/
 ├── core/
 │   ├── profile_manager.py           # Added FingerprintConfig dataclass
@@ -216,11 +216,11 @@ When you launch a profile with fingerprinting enabled:
 ## Testing Fingerprint Protection
 
 ### Recommended Testing Sites
-- **Canvas**: https://browserleaks.com/canvas
-- **WebGL**: https://browserleaks.com/webgl
-- **WebRTC**: https://browserleaks.com/webrtc
-- **Full test**: https://amiunique.org
-- **Comprehensive**: https://pixelscan.net
+- **Canvas**: <https://browserleaks.com/canvas>
+- **WebGL**: <https://browserleaks.com/webgl>
+- **WebRTC**: <https://browserleaks.com/webrtc>
+- **Full test**: <https://amiunique.org>
+- **Comprehensive**: <https://pixelscan.net>
 
 ### What to Verify
 1. **Canvas fingerprint differs** between profiles
