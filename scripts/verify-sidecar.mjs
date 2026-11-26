@@ -116,7 +116,7 @@ function redactText(value, sensitiveValues = []) {
   }
   return redacted
     .replace(/--remote-debugging-port(?:=|\s+)\d+/gi, "--remote-debugging-port=<redacted>")
-    .replace(/debugPort[\"':\s=]+\d+/gi, "debugPort=<redacted>")
+    .replace(/debugPort["':\s=]+\d+/gi, "debugPort=<redacted>")
     .replace(/9222/g, "<redacted-port>");
 }
 
@@ -326,9 +326,9 @@ function assertNoProxyCredentialSentinels(value, label) {
 
 function assertNoCredentialObjectKeys(value, label) {
   const text = typeof value === "string" ? value : JSON.stringify(value);
-  assert(!/\"credentials\"\s*:/.test(text), `${label} leaked a proxy credentials object.`, { label });
-  assert(!/\"username\"\s*:/.test(text), `${label} leaked a proxy username field.`, { label });
-  assert(!/\"password\"\s*:/.test(text), `${label} leaked a proxy password field.`, { label });
+  assert(!/"credentials"\s*:/.test(text), `${label} leaked a proxy credentials object.`, { label });
+  assert(!/"username"\s*:/.test(text), `${label} leaked a proxy username field.`, { label });
+  assert(!/"password"\s*:/.test(text), `${label} leaked a proxy password field.`, { label });
 }
 
 function assertHealthEnvelope(health, healthLog) {

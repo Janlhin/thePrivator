@@ -36,7 +36,6 @@ import {
   assertLeaseReleaseResponse,
   assertLeaseStatusResponse,
   assertNoForbiddenLeaseSurface,
-  assertS03PublicEvidenceRedacted,
   createS03RedactionContext,
   findS03ForbiddenPublicMarker,
   redactS03,
@@ -1065,7 +1064,7 @@ async function cleanupAfterFailure({
   cleanup,
 }) {
   if (baseUrl && token && activeLeaseIds?.size) {
-    for (const leaseId of [...activeLeaseIds]) {
+    for (const leaseId of activeLeaseIds) {
       try {
         await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(leaseId)}`, {
           method: "DELETE",

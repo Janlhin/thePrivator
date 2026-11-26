@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
 import { ROOT_DIR, VerifyFailure, executable } from "./verify-m004-s01.mjs";
 import { readGuardedUiSources } from "./ui-sources.mjs";
 
@@ -88,7 +87,7 @@ const M005_SOURCE_GUARD_FILES = Object.freeze([
   "src-tauri/src/lib.rs",
   "src-tauri/src/sidecar.rs",
 ]);
-const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[\/"'`\s)]|$)/;
+const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[/"'`\s)]|$)/;
 const FRONTEND_FILESYSTEM_AUTHORITY_PATTERN =
   /@tauri-apps\/plugin-fs|\b(?:readTextFile|writeTextFile|readFile|writeFile)\s*\(/;
 
@@ -1234,7 +1233,7 @@ export function runSidecarOnlySmoke({
       context.redactionContext,
     );
 
-    const jsonExport = runStep(
+    runStep(
       "sidecar.export-json",
       () => {
         const result = remember(

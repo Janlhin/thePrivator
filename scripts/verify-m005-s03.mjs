@@ -84,7 +84,7 @@ const S03_SOURCE_GUARD_FILES = Object.freeze([
   "src/App.test.tsx",
 ]);
 
-const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[\/"'`\s)]|$)/;
+const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[/"'`\s)]|$)/;
 const S03_README_COMMAND_PATTERN = /npm run verify:m005:s03/;
 const S03_README_BOUNDARY_PATTERN =
   /S03[\s\S]{0,900}source-level[\s\S]{0,900}(unsafe|malformed|rejection|rollback|cleanup)/i;

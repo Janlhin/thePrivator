@@ -226,7 +226,7 @@ describe("verify-m004-s05 packaged harness contract", () => {
     expect(VERIFY_EVENT).toBe("verify.m004.s05");
     expect(S05_PROFILE_PREFIX).toBe("M004 Packaged Automation Smoke");
     for (const helperName of S05_REQUIRED_PACKAGED_HELPERS) {
-      expect(packagedHarness[helperName], helperName).toBeTypeOf("function");
+      expect(packagedHarness[helperName]).toBeTypeOf("function");
     }
     expect(Object.keys(packagedHarness)).not.toEqual(
       expect.arrayContaining([
@@ -310,7 +310,7 @@ describe("verify-m004-s05 public evidence redaction", () => {
 
     for (const [artifact, rawMarker] of cases) {
       const marker = findS05ForbiddenPublicMarker(artifact, context);
-      expect(marker, JSON.stringify(artifact)).toBeTruthy();
+      expect(marker).toBeTruthy();
       const error = expectSafeFailure(
         () => assertS05PublicEvidenceRedacted(artifact, context),
         [

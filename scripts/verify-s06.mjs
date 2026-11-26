@@ -15,17 +15,7 @@ import {
 import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline";
-import {
-  basename,
-  delimiter as hostPathDelimiter,
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-  sep,
-} from "node:path";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import webdriver from "selenium-webdriver";
 
@@ -256,14 +246,14 @@ const FORBIDDEN_FINAL_EVIDENCE_FIELDS = new Set([
 ]);
 const UNSAFE_TEXT_PATTERNS = [
   { code: "S06_REDACTION_USER_DATA_DIR", pattern: /--user-data-dir(?:=|\s+)/i },
-  { code: "S06_REDACTION_CHROMIUM_ENV", pattern: /THEPRIVATOR_CHROMIUM_PATH(?:=|[\"'\s:])/i },
+  { code: "S06_REDACTION_CHROMIUM_ENV", pattern: /THEPRIVATOR_CHROMIUM_PATH(?:=|["'\s:])/i },
   { code: "S06_REDACTION_TRACEBACK", pattern: /Traceback/i },
   { code: "S06_REDACTION_PROXY", pattern: /proxy[_-]?(?:user|pass)(?:word)?/i },
-  { code: "S06_REDACTION_PARAMS", pattern: /[\"']params[\"']\s*:/i },
-  { code: "S06_REDACTION_COMMAND", pattern: /[\"']command[\"']\s*:/i },
-  { code: "S06_REDACTION_ENV", pattern: /[\"']env[\"']\s*:/i },
-  { code: "S06_REDACTION_STDOUT", pattern: /[\"']stdout[\"']\s*:/i },
-  { code: "S06_REDACTION_STDERR", pattern: /[\"']stderr[\"']\s*:/i },
+  { code: "S06_REDACTION_PARAMS", pattern: /["']params["']\s*:/i },
+  { code: "S06_REDACTION_COMMAND", pattern: /["']command["']\s*:/i },
+  { code: "S06_REDACTION_ENV", pattern: /["']env["']\s*:/i },
+  { code: "S06_REDACTION_STDOUT", pattern: /["']stdout["']\s*:/i },
+  { code: "S06_REDACTION_STDERR", pattern: /["']stderr["']\s*:/i },
   {
     code: "S06_REDACTION_DEBUG_RUNTIME",
     pattern: /\b(?:debugPort|devtoolsPort|remoteDebuggingPort|remoteControlPort|cdpPort|--remote-debugging-port)\b/i,
@@ -282,7 +272,7 @@ const UNSAFE_TEXT_PATTERNS = [
 const PUBLIC_EVIDENCE_UNSAFE_TEXT_PATTERNS = [
   { code: "S06_REDACTION_PROXY_AUTH_HEADER", pattern: /Proxy-Authorization/i },
   { code: "S06_REDACTION_PROXY_SERVER_ARG", pattern: /--proxy-server(?:=|\s+)/i },
-  { code: "S06_REDACTION_CREDENTIAL_PROXY_URI", pattern: /(?:https?|socks4|socks5):\/\/[^\s\"'/:@]+:[^\s\"'/:@]+@/i },
+  { code: "S06_REDACTION_CREDENTIAL_PROXY_URI", pattern: /(?:https?|socks4|socks5):\/\/[^\s"'/:@]+:[^\s"'/:@]+@/i },
   {
     code: "S06_REDACTION_GENERATED_PROXY_AUTH_EXTENSION",
     pattern:
@@ -293,14 +283,14 @@ const PUBLIC_EVIDENCE_UNSAFE_TEXT_PATTERNS = [
     pattern: /(?:generated-)?identity(?:-[A-Za-z0-9_.-]+)*-extension|identityRuntimeRegistry/i,
   },
   { code: "S06_REDACTION_PROFILE_STORAGE_ROOT", pattern: /profile-store\/profiles\//i },
-  { code: "S06_REDACTION_PROFILE_USER_DATA_ROOT", pattern: /(?:^|[\/\\])user-data(?:[\/\\]|$)|--user-data-dir/i },
+  { code: "S06_REDACTION_PROFILE_USER_DATA_ROOT", pattern: /(?:^|[/\\])user-data(?:[/\\]|$)|--user-data-dir/i },
   {
     code: "S06_REDACTION_APP_DATA_ROOT",
     pattern: /(?:XDG_DATA_HOME|APPDATA|LOCALAPPDATA|Application Support|app-data-root)/i,
   },
   {
     code: "S06_REDACTION_PUBLIC_CHECKER_URL",
-    pattern: /https?:\/\/[^\s\"']*(?:browserleaks\.com|cloudflare|checkip|webbrowsertools)/i,
+    pattern: /https?:\/\/[^\s"']*(?:browserleaks\.com|cloudflare|checkip|webbrowsertools)/i,
   },
   {
     code: "S06_REDACTION_PUBLIC_CHECKER_BODY",
@@ -2505,129 +2495,6 @@ export async function applySmokeIdentityPreset(driver, runtime) {
     presetCount: controls.presetCount,
     successCopy: "visible",
     ...summary,
-    smokeRoot: runtime.smokeContext.smokeRootRelative,
-  };
-}
-
-async function openSmokeAuditGuide(driver, runtime) {
-  const profileName = runtime.smokeContext.smokeProfileName;
-  const openButton = await waitForProfileButton(driver, profileName, "Open audit guide", runtime, {
-    step: "packaged-audit-plan",
-  });
-  try {
-    await openButton.click();
-  } catch (error) {
-    await failUi(driver, runtime, "Failed to click the visible Open audit guide button.", {
-      code: "S06_UI_CLICK_FAILED",
-      step: "packaged-audit-plan",
-      message: error instanceof Error ? error.message : String(error),
-    });
-  }
-
-  await waitForVisibleElement(
-    driver,
-    profileSectionByAriaLabel(profileName, `Audit guide for ${profileName}`),
-    runtime,
-    `Audit guide for ${profileName}`,
-    {
-      step: "packaged-audit-plan",
-    },
-  );
-  await waitForProfileSectionTexts(
-    driver,
-    profileName,
-    `Audit guide for ${profileName}`,
-    [
-      `${PACKAGED_SMOKE_AUDIT_PAGE_COUNT} curated checker pages`,
-      "Compare manually; do not treat one public checker as authoritative.",
-      "Public checker pages can change",
-      "Checker, page, or network issues are external instability",
-      PACKAGED_SMOKE_AUDIT_PAGE_LABEL,
-      PACKAGED_SMOKE_AUDIT_PAGE_ID,
-      "The app sends only the fixed pageId to the typed audit-open wrapper",
-    ],
-    runtime,
-    { step: "packaged-audit-plan" },
-  );
-
-  return {
-    smokeProfileName: profileName,
-    pageCount: PACKAGED_SMOKE_AUDIT_PAGE_COUNT,
-    pageId: PACKAGED_SMOKE_AUDIT_PAGE_ID,
-    pageLabel: PACKAGED_SMOKE_AUDIT_PAGE_LABEL,
-    checkerContent: "not-inspected",
-    authority: "page-id-only",
-    smokeRoot: runtime.smokeContext.smokeRootRelative,
-  };
-}
-
-async function waitForAuditPageOpenButton(driver, runtime, options = {}) {
-  const profileName = runtime.smokeContext.smokeProfileName;
-  const selector = By.xpath(
-    `${profileCardXPath(profileName)}//article[contains(concat(' ', normalize-space(@class), ' '), ' identity-audit-page-card ')][.//h5[normalize-space()=${xpathLiteral(PACKAGED_SMOKE_AUDIT_PAGE_LABEL)}] and .//dt[normalize-space()='Page ID']/following-sibling::dd[1][normalize-space()=${xpathLiteral(PACKAGED_SMOKE_AUDIT_PAGE_ID)}]]//button[normalize-space()='Open in profile']`,
-  );
-  return pollForValue(
-    driver,
-    runtime,
-    `${PACKAGED_SMOKE_AUDIT_PAGE_LABEL} Open in profile button`,
-    async () => {
-      const buttons = await driver.findElements(selector);
-      for (const button of buttons) {
-        if ((await button.isDisplayed()) && (await button.isEnabled())) {
-          return button;
-        }
-      }
-      return null;
-    },
-    { ...options, step: options.step ?? "packaged-audit-open" },
-  );
-}
-
-async function openSmokeAuditPage(driver, runtime) {
-  const profileName = runtime.smokeContext.smokeProfileName;
-  const openButton = await waitForAuditPageOpenButton(driver, runtime, { step: "packaged-audit-open" });
-  try {
-    await openButton.click();
-  } catch (error) {
-    await failUi(
-      driver,
-      runtime,
-      "Failed to click BrowserLeaks WebGL Open in profile through the visible audit guide.",
-      {
-        code: "S06_UI_CLICK_FAILED",
-        step: "packaged-audit-open",
-        pageId: PACKAGED_SMOKE_AUDIT_PAGE_ID,
-        message: error instanceof Error ? error.message : String(error),
-      },
-    );
-  }
-
-  await waitForProfileSectionTexts(
-    driver,
-    profileName,
-    `Audit guide for ${profileName}`,
-    [
-      `${PACKAGED_SMOKE_AUDIT_PAGE_LABEL} opened in the configured profile.`,
-      "The sidecar launched an audit-capable Chromium session before opening the curated page.",
-      "The app does not read public page content or checker scores.",
-      "Page ID",
-      PACKAGED_SMOKE_AUDIT_PAGE_ID,
-      "Launched by audit-open",
-      "launched · 1 running",
-    ],
-    runtime,
-    { step: "packaged-audit-open" },
-  );
-
-  return {
-    smokeProfileName: profileName,
-    pageId: PACKAGED_SMOKE_AUDIT_PAGE_ID,
-    pageLabel: PACKAGED_SMOKE_AUDIT_PAGE_LABEL,
-    openSuccess: "visible",
-    launchMetadata: "launched",
-    runningCount: 1,
-    checkerContent: "not-inspected",
-    authority: "page-id-only",
     smokeRoot: runtime.smokeContext.smokeRootRelative,
   };
 }
