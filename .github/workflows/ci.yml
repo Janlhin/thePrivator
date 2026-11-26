@@ -1,5 +1,12 @@
 name: CI
 
+# Default every run step to PowerShell 7 (pwsh); the GitHub runners ship pwsh
+# on Linux, Windows and macOS. Steps still invoke native tools (npm, python,
+# cargo, bash) directly from the pwsh session.
+defaults:
+  run:
+    shell: pwsh
+
 # The previous workflow triggered only on main/develop -- neither of which is
 # this repository's default branch (main) or its active branch (3.0) -- and
 # ran `pytest tests/`, a path that does not exist. As a result nothing was
@@ -30,13 +37,18 @@ jobs:
           node-version: "24"
           cache: npm
 
-      - run: npm ci
-      - run: npm run verify:release
+      - shell: pwsh
+        run: npm ci
+
+      - shell: pwsh
+        run: npm run verify:release
 
       - name: Release publication regression tests
+        shell: pwsh
         run: node --test tests/release/publish.node.cjs
 
       - name: Workflow validation
+        shell: pwsh
         run: bash scripts/release/check-workflows.sh
 
       # Verification-script tests exercise the source Python sidecar too.
@@ -44,17 +56,21 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: python -m pip install -r requirements.txt
+      - shell: pwsh
+        run: python -m pip install -r requirements.txt
 
       - name: Release planning and packaging tests
+        shell: pwsh
         run: python -m unittest discover -s tests/release -p 'test_*.py'
 
       # Type errors alone do not fail the render tree, so both gates matter:
       # tsc caught nothing when the redesign broke, vitest caught everything.
       - name: Type check
+        shell: pwsh
         run: npx tsc --noEmit
 
       - name: Unit and component tests
+        shell: pwsh
         run: npx vitest run --testTimeout=15000
 
   sidecar:
@@ -75,6 +91,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -84,6 +101,7 @@ jobs:
       # contract in test_sidecar_contract.py. There is nothing to exclude any
       # more: the customtkinter GUI package those exclusions covered is gone.
       - name: Sidecar tests
+        shell: pwsh
         run: python -m pytest tests/ -q --timeout=120
 
   tauri:
@@ -113,16 +131,19 @@ jobs:
       # Tauri's Linux build needs the WebKitGTK stack even to compile the crate.
       - name: Install system dependencies
         if: runner.os == 'Linux'
+        shell: pwsh
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Build the sidecar required by the Rust tests
+        shell: pwsh
         run: |
           npm ci
           python -m pip install -r requirements.txt -r requirements-dev.txt
           npm run sidecar:build
 
       - name: Cargo test
+        shell: pwsh
         working-directory: src-tauri
         run: cargo test --locked
