@@ -23,6 +23,8 @@ export const ZH: Readonly<Record<string, string>> = {
   "Default sites: {sites}": "默认网站：{sites}",
   Run: "运行",
   "Identity label": "身份标签",
+  "Firefox does not expose a channel for ThePrivator's fingerprint injection; identity surfaces stay on the real host values.":
+    "Firefox 不提供 ThePrivator 的指纹注入通道；身份表面保留主机真实值。",
   "{label} mode": "{label} 模式",
   "Fetching from randomapi.dev…": "正在从 randomapi.dev 获取…",
   "User agent updated in draft. Review it, then Save to apply.": "用户代理已在草稿中更新。请审核后点击“保存”以应用。",

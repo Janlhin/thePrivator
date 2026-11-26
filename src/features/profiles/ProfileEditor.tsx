@@ -378,6 +378,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
             draft={draft.identity}
             warnings={warnings}
             presets={presets ?? undefined}
+            engine={profile?.engine}
             onChange={(identity) => setDraft((current) => ({ ...current, identity }))}
             onApplyPreset={applyPreset}
           />

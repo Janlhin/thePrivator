@@ -43,6 +43,21 @@ a folder your own sync client already keeps up to date.
   listens on loopback and needs an access token, which is never displayed —
   copying puts it on the clipboard and nowhere else.
 
+## Engine capability differences
+
+The rows below mirror the sidecar capability matrix in `theprivator_sidecar/engines.py`;
+the two must stay in lock-step.
+
+| Surface | Chromium | Firefox |
+| --- | --- | --- |
+| Executable discovery | Env override `THEPRIVATOR_CHROMIUM_PATH`, then PATH name probe | Env override `THEPRIVATOR_FIREFOX_PATH`, then PATH name probe |
+| Profile directory launch | `--user-data-dir=<dir>` | `-profile <dir> -no-remote` |
+| Remote debugging / extensions | DevTools port and extension switches available | Not exposed |
+| Cookie store | Chromium schema: `Default/Network/Cookies`, `Default/Cookies` | Mozilla schema: `cookies.sqlite` |
+| Fingerprint injection | Available | Unavailable; identity surfaces stay on the real host values |
+| Automation / CDP endpoint | Available | Unavailable; internal automation and the identity audit are unavailable |
+| Authenticated proxy | Local no-auth SOCKS5 relay bridges upstream credentials | Native authenticated SOCKS5 through profile preferences; no local relay |
+
 ## Profile tools and saved preferences
 
 Use **Import packages**, **Export selected**, or **Export all** above the table

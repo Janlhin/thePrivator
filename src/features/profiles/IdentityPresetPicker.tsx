@@ -8,6 +8,7 @@ import styles from "./FingerprintForm.module.css";
 interface Props {
   draft: IdentityDraftState;
   presets: readonly ProfileIdentity[];
+  disabled?: boolean;
   onChange: (draft: IdentityDraftState) => void;
 }
 
@@ -29,7 +30,7 @@ const REAL_PRESET: ProfileIdentity = {
   ports: { mode: "real" },
 };
 
-export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
+export function IdentityPresetPicker({ draft, presets, disabled, onChange }: Props) {
   const id = useId();
   const request = useRef<AbortController | null>(null);
   const [generated, setGenerated] = useState<ProfileIdentity[]>([]);
@@ -78,6 +79,7 @@ export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
       <div className={styles.inputAction}>
         <select
           id={id}
+          disabled={disabled}
           value={isRealPreset ? "real" : selected >= 0 ? `api:${selected}` : ""}
           onChange={(event) => {
             const value = event.target.value;
@@ -104,7 +106,7 @@ export function IdentityPresetPicker({ draft, presets, onChange }: Props) {
         <button
           type="button"
           className={styles.refreshButton}
-          disabled={busy || presets.length === 0}
+          disabled={busy || disabled || presets.length === 0}
           aria-label={t("Refresh presets")}
           aria-describedby={`${id}-hint`}
           onClick={() => void refresh()}
