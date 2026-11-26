@@ -137,3 +137,12 @@
 - 被否决的替代方案与理由：脚本里直接写 `npx` 命令链 —— 否决，Windows 上 `npx` 经 `cmd.exe` 启动，与「禁 cmd」冲突且不可控；把逻辑写在 `.husky` 的 sh 里 —— 否决，sh 无法调用 pwsh 之外的判定，且跨平台行为不一致。
 - 影响面：`package.json`、`.husky/`、`scripts/hooks/`、CI。
 - 复核标准与复核时间：`grep -c "pwsh -NoLogo -NoProfile -File" package.json` 等于校验脚本条数；`.husky/pre-commit` 与 `.husky/commit-msg` 各自只有一行 `exec pwsh`；2027-01-17 复核。
+
+## D-017 重建 npm 锁文件，并将 vitest 与 coverage-v8 钉到 5.1.1
+
+- 日期：2026-11-27
+- 决策：`vitest` 与 `@vitest/coverage-v8` 在 `package.json` 中精确钉到 `5.1.1`（不使用 `^` 范围）；删除旧锁文件，由 npm 11.21.3 重新生成 `package-lock.json`，依赖安装只走 `npm ci`。
+- 背景：旧 `package-lock.json` 由另一套任务运行器写出，连 `@vitest/coverage-v8` 条目都缺失，不是可用的 npm 锁文件。`@vitest/coverage-v8: ^5.1.0` 会解析到 5.1.2，其 peer 要求 `vitest@5.1.2`；而 `vite-plus@1.7.0` 内置的 runner 是 `vitest@5.1.1`，其 `define-config` 里的 `assertCoverageProviderVersionMatch` 又要求 coverage provider 必须等于这个内置版本。这个依赖集在 npm 里既解析不了（arborist 崩 `Cannot read properties of null (reading 'children')`）也跑不了（`vp test` 直接抛 provider 版本不匹配）。5.1.1 与 vite-plus 内置 runner 一致，peer 集闭合。
+- 被否决的替代方案与理由：保留 `^5.1.0` 范围让 npm 自行解析 —— 否决，会解析到 5.1.2，触发上述 peer 冲突与版本守卫；`--legacy-peer-deps` 强行安装 —— 否决，实测会缺 `vite`，`vp fmt` 报 `Cannot find package 'vite'`；在旧锁文件上手工补条目 —— 否决，旧锁文件缺条目且不是 npm 生成，补条目等于手工伪造锁文件。
+- 影响面：`package.json`、`package-lock.json`、`npm ci` 与 `npm run verify` 的安装和测试步骤；README 技术栈表的 Vitest 版本。
+- 复核标准与复核时间：`npm ci` 退出 0；`npm run verify` 退出 0；锁文件中 `node_modules/vitest` 与 `node_modules/@vitest/coverage-v8` 版本均为 5.1.1；2027-02-27 复核。

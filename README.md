@@ -181,9 +181,8 @@ THEPRIVATOR_VERIFY_SIDECAR_BINARY="src-tauri/target/release/bundle/macos/ThePriv
 For development, `npm run tauri dev` rebuilds the frontend on save.
 
 Frontend tooling runs through Vite+ 1.7 (`vp`): `vp dev`, `vp build` and
-`vp test`, forwarded by the npm scripts and by the matching `deno task`
-entries. `vite` itself is only present as Vite+'s own alias, so run builds
-through `vp`, not `vite`.
+`vp test`, forwarded by the npm scripts. `vite` itself is only present as
+Vite+'s own alias, so run builds through `vp`, not `vite`.
 
 **One build produces one platform.** The Python sidecar is packed with
 PyInstaller, which bundles the host's interpreter and native libraries and has
@@ -208,7 +207,6 @@ Prerequisites match the CI matrix and `engines.node`:
 | Rust | 1.77+ | only needed to build the Tauri bridge or run `cargo test` |
 | PowerShell | 7.4+ (`pwsh`) | every verify and hook entrypoint; no `.cmd` / `.bat` |
 | Chromium or Chrome | installed by you | the app launches your existing browser |
-| Deno | 2.9.8 | task runner, and the local fallback installer below |
 
 Then, from the repository root:
 
@@ -230,11 +228,10 @@ Local host caveats (not CI conditions):
 - The sidecar probes in the test suite find their interpreter through the
   `PYTHON` environment variable, falling back to `python3`. On Windows, point
   it at the venv before verifying: `$env:PYTHON = ".venv\Scripts\python.exe"`.
-- On the development host used for this lane, the bundled npm 12.2.2 crashes in
-  arborist against this lockfile, so `npm ci` cannot populate `node_modules`
-  there. The working local fallback is `deno install`, which reads
-  `package.json` and `deno.lock` and installs the same dependency set. CI and
-  other working npm installs use `npm ci`.
+- On the development host used for this lane, the bundled npm 12.2.2 crashes
+  at startup and cannot populate `node_modules`; use npm 11.x instead (this
+  lane vendors npm 11.21.3 under `tools/`). The lockfile is an npm-generated
+  `package-lock.json`, and `npm ci` is the only installer on this path.
 
 ## Opening a pull request（提 PR）
 
@@ -263,10 +260,10 @@ Local host caveats (not CI conditions):
 | Desktop shell | Tauri | CLI `3.0.0-alpha.6`, API `3.0.0-alpha.3` (alpha channel) |
 | Rust bridge | `tauri` + `tauri-runtime-wry` | pinned by `src-tauri/Cargo.lock` |
 | Python sidecar | FastAPI + uvicorn | Python 3.11+ (development host: 3.12) |
-| Unit tests | Vitest | 5.1.0, v8 coverage provider |
+| Unit tests | Vitest | 5.1.1, v8 coverage provider |
 | Gates | oxlint, oxfmt, stylelint, knip, jscpd | oxlint 1.94, oxfmt 0.79, stylelint 18 (standard config), knip 6, jscpd 5 |
 | Git hooks | husky + lint-staged + commitlint | husky 9, lint-staged 17, commitlint 21 (conventional) |
-| Task runner | Deno | 2.9.8 |
+| Script runner | npm (`npm run`) | one-line forwards to `scripts/verify.ps1` and the Vite+ binaries (D-015) |
 | Node runtime | — | `engines.node`: `^22.18 \|\| ^24.11 \|\| >=26` |
 | Automation shell | PowerShell | 7.4+ (`pwsh` only, no `.cmd`/`.bat`) |
 

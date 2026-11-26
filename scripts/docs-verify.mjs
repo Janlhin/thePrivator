@@ -154,7 +154,6 @@ const RUNNABLE_PATTERNS = [
   /^node --test\s+\S+/,
   /^python --version\b/,
   /^pwsh --version\b/,
-  /^deno --version\b/,
   /^cargo --version\b/,
 ];
 
