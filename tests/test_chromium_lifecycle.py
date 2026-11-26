@@ -1478,6 +1478,10 @@ def test_missing_standard_chromium_names_return_typed_error(tmp_path, monkeypatc
     profile = create_profile(tmp_path)
     monkeypatch.delenv("THEPRIVATOR_CHROMIUM_PATH", raising=False)
     monkeypatch.setenv("PATH", str(tmp_path / "empty-path"))
+    # Simulate a host with no Chromium-family browser installed, independent of
+    # whatever fixed install paths exist on the machine running the suite.
+    monkeypatch.setattr(chromium.shutil, "which", lambda _name: None)
+    monkeypatch.setattr(chromium, "_is_executable_file", lambda _path: False)
 
     with pytest.raises(SidecarError) as exc_info:
         chromium.launch(tmp_path, profile["id"])

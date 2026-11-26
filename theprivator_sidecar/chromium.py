@@ -97,6 +97,9 @@ PROXY_BRIDGE_READY_TIMEOUT_SECONDS = 5.0
 GRACEFUL_STOP_TIMEOUT_SECONDS = 3.0
 FORCE_STOP_TIMEOUT_SECONDS = 2.0
 LAUNCH_LIVENESS_SETTLE_SECONDS = 0.05
+# Some brands exit their launcher stub right after handing off to the browser
+# main process; give that surviving main process a short window to appear.
+LAUNCH_DESCENDANT_MATCH_SECONDS = 1.5
 PROXY_PROOF_TRUST_ENABLED_ENV = "THEPRIVATOR_ENABLE_PROXY_PROOF_TRUST"
 PROXY_PROOF_SPKI_SHA256_ENV = "THEPRIVATOR_PROXY_PROOF_SPKI_SHA256"
 
@@ -147,6 +150,8 @@ class RuntimeRecord:
     # exclusive lock on it for its lifetime, so it doubles as proof that the
     # recorded pid is still that bridge and not a process that reused it.
     proxy_bridge_ready_file: Optional[str] = None
+    # Chromium-family brand actually launched (edge/chrome/brave/chromium).
+    brand: Optional[str] = None
 
     @classmethod
     def from_dict(cls, payload: Any) -> Optional["RuntimeRecord"]:
@@ -176,6 +181,9 @@ class RuntimeRecord:
             or not _is_safe_relative_posix_path(proxy_bridge_ready_file)
         ):
             return None
+        brand = payload.get("brand")
+        if brand is not None and not isinstance(brand, str):
+            return None
         return cls(
             profile_id=profile_id,
             pid=pid,
@@ -184,6 +192,7 @@ class RuntimeRecord:
             owner_token=owner_token,
             proxy_bridge_pid=proxy_bridge_pid,
             proxy_bridge_ready_file=proxy_bridge_ready_file,
+            brand=brand,
         )
 
     def to_dict(self) -> JsonObject:
@@ -198,6 +207,8 @@ class RuntimeRecord:
             payload["proxyBridgePid"] = self.proxy_bridge_pid
         if self.proxy_bridge_ready_file is not None:
             payload["proxyBridgeReadyFile"] = self.proxy_bridge_ready_file
+        if self.brand is not None:
+            payload["brand"] = self.brand
         return payload
 
 @dataclass(frozen=True)
@@ -584,14 +595,77 @@ def stop(store_root: Union[str, Path], profile_id: str) -> JsonObject:
 
 
 
-def discover_executable() -> Path:
-    """Find the configured Chromium-family browser without accepting frontend-provided command strings."""
+BRAND_EDGE = "edge"
+BRAND_CHROME = "chrome"
+BRAND_BRAVE = "brave"
+BRAND_CHROMIUM = "chromium"
+
+
+@dataclass(frozen=True)
+class _BrandProbe:
+    brand: str
+    names: tuple[str, ...]
+    fixed_paths: tuple[str, ...]
+
+
+# Probe order within the Chromium engine: Edge first, then Chrome, Brave, and a
+# generic Chromium build. Each probe checks its fixed install paths before PATH.
+_BRAND_PROBES: tuple[_BrandProbe, ...] = (
+    _BrandProbe(
+        brand=BRAND_EDGE,
+        names=("microsoft-edge", "microsoft-edge-stable", "msedge"),
+        fixed_paths=(
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        ),
+    ),
+    _BrandProbe(
+        brand=BRAND_CHROME,
+        names=("google-chrome", "google-chrome-stable", "chrome"),
+        fixed_paths=(
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        ),
+    ),
+    _BrandProbe(
+        brand=BRAND_BRAVE,
+        names=("brave-browser", "brave"),
+        fixed_paths=(
+            r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+            r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        ),
+    ),
+    _BrandProbe(
+        brand=BRAND_CHROMIUM,
+        names=("chromium-browser", "chromium"),
+        fixed_paths=(),
+    ),
+)
+
+
+def _brand_for_executable(executable: Path) -> str:
+    """Best-effort brand label for an explicitly configured executable path."""
+    stem = executable.name.lower()
+    if "msedge" in stem:
+        return BRAND_EDGE
+    if "brave" in stem:
+        return BRAND_BRAVE
+    if "chrome" in stem:
+        return BRAND_CHROME
+    return BRAND_CHROMIUM
+
+
+def discover_executable_with_brand() -> tuple[Path, str]:
+    """Find a Chromium-family browser and report the brand that was selected."""
     description = describe_engine(DEFAULT_ENGINE)
     configured_path = os.environ.get(description.executable_env, "").strip()
     if configured_path:
         candidate = Path(configured_path).expanduser()
         if _is_executable_file(candidate):
-            return candidate
+            return candidate, _brand_for_executable(candidate)
         raise SidecarError(
             code=CHROMIUM_EXECUTABLE_NOT_FOUND,
             message=(
@@ -600,15 +674,26 @@ def discover_executable() -> Path:
             ),
         )
 
-    for executable_name in description.executable_names:
-        found = shutil.which(executable_name)
-        if found:
-            return Path(found)
+    for probe in _BRAND_PROBES:
+        for fixed_path in probe.fixed_paths:
+            candidate = Path(fixed_path)
+            if _is_executable_file(candidate):
+                return candidate, probe.brand
+        for executable_name in probe.names:
+            found = shutil.which(executable_name)
+            if found:
+                return Path(found), probe.brand
 
     raise SidecarError(
         code=CHROMIUM_EXECUTABLE_NOT_FOUND,
         message="Chromium executable was not found. Install Chromium/Chrome or set THEPRIVATOR_CHROMIUM_PATH.",
     )
+
+
+def discover_executable() -> Path:
+    """Find the configured Chromium-family browser without accepting frontend-provided command strings."""
+    executable, _brand = discover_executable_with_brand()
+    return executable
 
 
 
@@ -1179,7 +1264,7 @@ def _launch_registered(
     labels a failure, whether DevTools is forced on, how long endpoint discovery
     may take, and what to do with the endpoint once it exists.
     """
-    executable = discover_executable()
+    executable, brand = discover_executable_with_brand()
     # Port zero is Chromium's automation-launch convention. Human-operated
     # managed profiles need DevTools for identity emulation, but are not an
     # automation session. Explicit automation/audit launches retain port zero.
@@ -1236,12 +1321,22 @@ def _launch_registered(
     try:
         process = _spawn_chromium(args, owner_token=owner_token)
         time.sleep(LAUNCH_LIVENESS_SETTLE_SECONDS)
+        tracked_pid = process.pid
         if process.poll() is not None or not is_process_alive(process.pid):
-            _reap_if_child(process.pid)
-            raise SidecarError(
-                code=CHROMIUM_LAUNCH_FAILED,
-                message="Chromium exited before it could be registered as running.",
-            )
+            surviving_pid: Optional[int] = None
+            descendant_deadline = time.monotonic() + LAUNCH_DESCENDANT_MATCH_SECONDS
+            while time.monotonic() < descendant_deadline:
+                surviving_pid = _find_launched_browser_pid(user_data_path)
+                if surviving_pid is not None:
+                    break
+                time.sleep(0.1)
+            if surviving_pid is None:
+                _reap_if_child(process.pid)
+                raise SidecarError(
+                    code=CHROMIUM_LAUNCH_FAILED,
+                    message="Chromium exited before it could be registered as running.",
+                )
+            tracked_pid = surviving_pid
 
         endpoint_result: Any = None
         if needs_endpoint:
@@ -1256,12 +1351,13 @@ def _launch_registered(
 
         record = RuntimeRecord(
             profile_id=profile.id,
-            pid=process.pid,
+            pid=tracked_pid,
             started_at=utc_now_iso(),
             user_data_dir=profile.storage.userDataDir,
             owner_token=owner_token,
             proxy_bridge_pid=proxy_runtime.proxy_bridge_pid,
             proxy_bridge_ready_file=proxy_runtime.proxy_bridge_ready_file,
+            brand=brand,
         )
         updated = dict(active)
         updated[profile.id] = record
@@ -2111,13 +2207,16 @@ def _status_payload(records: Mapping[str, RuntimeRecord], reconciled: list[JsonO
 
 
 def _running_payload(record: RuntimeRecord) -> JsonObject:
-    return {
+    payload: JsonObject = {
         "profileId": record.profile_id,
         "status": "running",
         "pid": record.pid,
         "startedAt": record.started_at,
         "userDataDir": record.user_data_dir,
     }
+    if record.brand is not None:
+        payload["brand"] = record.brand
+    return payload
 
 
 
@@ -2180,6 +2279,30 @@ def _psutil_process_alive(process: Any) -> bool:
     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):  # type: ignore[union-attr]
         return False
 
+
+def _find_launched_browser_pid(user_data_dir: Path) -> Optional[int]:
+    """Locate the main browser process for a just-launched profile.
+
+    On Windows some Chromium-family builds (notably Edge) exit their launcher
+    stub almost immediately after handing off to the browser main process, so
+    the stub pid is gone before the liveness check runs. The surviving browser
+    still carries this profile's user-data-dir on its command line; match that
+    instead of walking a process tree whose root already exited.
+    """
+    if not HAS_PSUTIL:
+        return None
+    needle = os.path.normcase(str(user_data_dir))
+    for process in psutil.process_iter(["cmdline"]):
+        try:
+            cmdline = process.cmdline()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        if not any(needle in os.path.normcase(argument) for argument in cmdline):
+            continue
+        # The main browser process is the one without a --type= helper flag.
+        if not any(argument.startswith("--type=") for argument in cmdline):
+            return process.pid
+    return None
 
 
 def _wait_until_dead(pid: int, timeout_seconds: float) -> bool:

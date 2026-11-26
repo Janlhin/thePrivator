@@ -1168,6 +1168,8 @@ export interface ChromiumRunningProfileState {
   pid: number;
   startedAt: string;
   userDataDir: string;
+  /** Chromium-family brand actually launched: edge/chrome/brave/chromium. */
+  brand?: string | undefined;
 }
 
 export interface ChromiumStoppedProfileState {
