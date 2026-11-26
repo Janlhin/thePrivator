@@ -110,6 +110,7 @@ import type {
   LegacyScanSnapshot,
   LegacyUserDataStatus,
   FingerprintMode,
+  EngineId,
   ProfileDefaults,
   ProfileListResult,
   ProfileListSnapshot,
@@ -3885,6 +3886,7 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
       "metadata",
       "cookieHealth",
       "proxyRevision",
+      "engine",
     ],
     [
       "id",
@@ -3912,6 +3914,7 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
 
   const metadata =
     record.metadata === undefined ? undefined : parseSafePublicMetadata(record.metadata, `${field}.metadata`);
+  const engine = parseProfileEngine(record.engine, `${field}.engine`);
 
   const cookieHealth = record.cookieHealth === undefined ? undefined : parseProfileCookieHealth(record.cookieHealth);
 
@@ -3937,7 +3940,16 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
     ...(record.proxyRevision === undefined
       ? {}
       : { proxyRevision: requireNonBlankString(record.proxyRevision, `${field}.proxyRevision`) }),
+    ...(engine === undefined ? {} : { engine }),
   };
+}
+
+function parseProfileEngine(value: unknown, field: string): EngineId | undefined {
+  if (value === undefined) return undefined;
+  if (value !== "chromium" && value !== "firefox") {
+    throw makeProtocolError(`The sidecar response field ${field} must be "chromium" or "firefox".`);
+  }
+  return value;
 }
 
 function parseProfileDefaults(
@@ -3952,7 +3964,10 @@ function parseProfileDefaults(
     ["browser", "startUrl", "proxyMode", "fingerprintMode"],
     field,
   );
-  requireLiteral(defaults.browser, `${field}.browser`, "chromium");
+  const browser = parseProfileEngine(defaults.browser, `${field}.browser`);
+  if (browser === undefined) {
+    throw makeProtocolError(`The sidecar response field ${field}.browser must be "chromium" or "firefox".`);
+  }
   const startUrl = requireProfileStartUrl(defaults.startUrl, `${field}.startUrl`);
   const proxyMode = requireProfileProxyMode(defaults.proxyMode, `${field}.proxyMode`);
   const fingerprintMode = requireFingerprintMode(defaults.fingerprintMode, `${field}.fingerprintMode`);
@@ -3972,7 +3987,7 @@ function parseProfileDefaults(
   }
 
   return {
-    browser: "chromium",
+    browser,
     startUrl,
     proxyMode,
     fingerprintMode,

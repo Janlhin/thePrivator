@@ -71,6 +71,15 @@ from .proxy_runtime import (
     is_rejected_launch_switch,
     validate_proxy_server_launch_arg,
 )
+from .engines import (
+    CHROMIUM_DISABLE_EXTENSIONS_EXCEPT_PREFIX,
+    CHROMIUM_EXECUTABLE_ENV,
+    CHROMIUM_LOAD_EXTENSION_PREFIX,
+    CHROMIUM_REMOTE_ALLOW_ORIGINS_ARG,
+    CHROMIUM_REMOTE_DEBUGGING_SWITCH,
+    DEFAULT_ENGINE,
+    describe_engine,
+)
 
 try:  # pragma: no cover - exercised through the available dependency in CI/dev.
     import psutil  # type: ignore
@@ -88,16 +97,8 @@ PROXY_BRIDGE_READY_TIMEOUT_SECONDS = 5.0
 GRACEFUL_STOP_TIMEOUT_SECONDS = 3.0
 FORCE_STOP_TIMEOUT_SECONDS = 2.0
 LAUNCH_LIVENESS_SETTLE_SECONDS = 0.05
-CHROMIUM_EXECUTABLE_ENV = "THEPRIVATOR_CHROMIUM_PATH"
 PROXY_PROOF_TRUST_ENABLED_ENV = "THEPRIVATOR_ENABLE_PROXY_PROOF_TRUST"
 PROXY_PROOF_SPKI_SHA256_ENV = "THEPRIVATOR_PROXY_PROOF_SPKI_SHA256"
-CHROMIUM_EXECUTABLE_NAMES = (
-    "chromium-browser",
-    "chromium",
-    "google-chrome",
-    "google-chrome-stable",
-    "chrome",
-)
 
 _SAFE_CHROMIUM_ARGS = (
     "--profile-directory=Default",
@@ -109,11 +110,8 @@ _SAFE_CHROMIUM_ARGS = (
     "--disable-translate",
     "--disable-features=TranslateUI",
 )
-_REMOTE_DEBUGGING_ARG = "--remote-debugging-port=0"
-_REMOTE_ALLOW_ORIGINS_ARG = "--remote-allow-origins=*"
+_REMOTE_DEBUGGING_ZERO_ARG = f"{CHROMIUM_REMOTE_DEBUGGING_SWITCH}0"
 _PROXY_PROOF_SPKI_ARG_PREFIX = "--ignore-certificate-errors-spki-list="
-_LOAD_EXTENSION_PREFIX = "--load-extension="
-_DISABLE_EXTENSIONS_EXCEPT_PREFIX = "--disable-extensions-except="
 _ALLOWED_IDENTITY_LAUNCH_FLAGS = {WEBRTC_DISABLE_NON_PROXIED_UDP_FLAG}
 _ALLOWED_IDENTITY_VALUE_ARG_PREFIXES = (
     "--user-agent=",
@@ -587,8 +585,9 @@ def stop(store_root: Union[str, Path], profile_id: str) -> JsonObject:
 
 
 def discover_executable() -> Path:
-    """Find Chromium without accepting frontend-provided command strings."""
-    configured_path = os.environ.get(CHROMIUM_EXECUTABLE_ENV, "").strip()
+    """Find the configured Chromium-family browser without accepting frontend-provided command strings."""
+    description = describe_engine(DEFAULT_ENGINE)
+    configured_path = os.environ.get(description.executable_env, "").strip()
     if configured_path:
         candidate = Path(configured_path).expanduser()
         if _is_executable_file(candidate):
@@ -601,7 +600,7 @@ def discover_executable() -> Path:
             ),
         )
 
-    for executable_name in CHROMIUM_EXECUTABLE_NAMES:
+    for executable_name in description.executable_names:
         found = shutil.which(executable_name)
         if found:
             return Path(found)
@@ -618,16 +617,22 @@ def build_launch_args(
     user_data_dir: Path,
     start_urls: Union[str, Sequence[str]],
     *,
+    engine: str = DEFAULT_ENGINE,
     extra_args: Sequence[str] = (),
     restore_session: bool = False,
 ) -> list[str]:
-    """Build safe Chromium arguments from sidecar-owned values only.
+    """Build safe launch arguments from sidecar-owned values only.
 
     Start URLs are trailing positionals. They are safe there only because the
     store already refused anything that does not begin with an http(s) scheme --
     a value starting with a dash would be read as a switch, so the validation
     that makes that impossible lives at the point of persistence, not here.
+
+    The profile-directory switch and its value come from the engine description's
+    launch template; this function does not spell any engine-specific switch
+    itself.
     """
+    description = describe_engine(engine)
     if isinstance(start_urls, str):
         positional = [start_urls or "about:blank"]
     else:
@@ -636,7 +641,7 @@ def build_launch_args(
     session_args = ["--restore-last-session"] if restore_session else []
     return [
         str(executable),
-        f"--user-data-dir={user_data_dir}",
+        *description.profile_dir_arguments(user_data_dir),
         *_SAFE_CHROMIUM_ARGS,
         *session_args,
         *_validate_extra_launch_args(extra_args),
@@ -893,7 +898,7 @@ def _runtime_launch_args(
         )
     )
     if force_remote_debugging or identity_plan.requires_cdp:
-        args.extend([f"--remote-debugging-port={debugging_port}", _REMOTE_ALLOW_ORIGINS_ARG])
+        args.extend([f"{CHROMIUM_REMOTE_DEBUGGING_SWITCH}{debugging_port}", CHROMIUM_REMOTE_ALLOW_ORIGINS_ARG])
     args.extend(identity_plan.launch_flags)
     return _validate_extra_launch_args(args)
 
@@ -908,8 +913,8 @@ def _extension_launch_args(extension_dirs: Sequence[Union[str, Path]]) -> list[s
         return []
     value = ",".join(safe_paths)
     return [
-        f"{_LOAD_EXTENSION_PREFIX}{value}",
-        f"{_DISABLE_EXTENSIONS_EXCEPT_PREFIX}{value}",
+        f"{CHROMIUM_LOAD_EXTENSION_PREFIX}{value}",
+        f"{CHROMIUM_DISABLE_EXTENSIONS_EXCEPT_PREFIX}{value}",
     ]
 
 
@@ -932,10 +937,10 @@ def _validate_extra_launch_args(args: Sequence[str]) -> list[str]:
                 code=CHROMIUM_LAUNCH_FAILED,
                 message="Chromium launch arguments could not be prepared.",
             )
-        if arg in {_REMOTE_DEBUGGING_ARG, _REMOTE_ALLOW_ORIGINS_ARG} or arg in _ALLOWED_IDENTITY_LAUNCH_FLAGS:
+        if arg in {_REMOTE_DEBUGGING_ZERO_ARG, CHROMIUM_REMOTE_ALLOW_ORIGINS_ARG} or arg in _ALLOWED_IDENTITY_LAUNCH_FLAGS:
             safe_args.append(arg)
             continue
-        if re.fullmatch(r"--remote-debugging-port=[1-9][0-9]{0,4}", arg):
+        if re.fullmatch(rf"{CHROMIUM_REMOTE_DEBUGGING_SWITCH}[1-9][0-9]{{0,4}}", arg):
             if int(arg.split("=", 1)[1]) <= 65535:
                 safe_args.append(arg)
                 continue
@@ -960,7 +965,7 @@ def _validate_extra_launch_args(args: Sequence[str]) -> list[str]:
             # append a switch without passing both layers.
             safe_args.append(arg)
             continue
-        if arg.startswith(_LOAD_EXTENSION_PREFIX) or arg.startswith(_DISABLE_EXTENSIONS_EXCEPT_PREFIX):
+        if arg.startswith(CHROMIUM_LOAD_EXTENSION_PREFIX) or arg.startswith(CHROMIUM_DISABLE_EXTENSIONS_EXCEPT_PREFIX):
             _validate_extension_arg_paths(arg.split("=", 1)[1])
             safe_args.append(arg)
             continue
@@ -2202,7 +2207,6 @@ def _reap_if_child(pid: int) -> bool:
 
 
 __all__ = [
-    "CHROMIUM_EXECUTABLE_NAMES",
     "PROXY_PROOF_SPKI_SHA256_ENV",
     "PROXY_PROOF_TRUST_ENABLED_ENV",
     "GRACEFUL_STOP_TIMEOUT_SECONDS",
