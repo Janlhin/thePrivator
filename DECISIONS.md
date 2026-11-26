@@ -111,14 +111,14 @@
 - 影响面：`vite.config.ts` 的 `test.coverage`、`npm test`、CI。
 - 复核标准与复核时间：`npm test` 在语句覆盖率低于 80% 或分支低于 70% 时退出非零；2027-02-17 复核。
 
-## D-013 四条 oxlint 规则长期关闭并写明理由
+## D-013 三条 oxlint 规则长期关闭并写明理由
 
-- 日期：2026-11-17
-- 决策：关闭 `vitest/require-mock-type-parameters`、`vitest/no-conditional-expect`、`react/set-state-in-effect`、`no-control-regex` 四条规则，理由写在 `.oxlintrc.json` 与提交正文里。
-- 背景：四条规则在本仓库的告警分别是 174、39、10、1 条。前两条要求的是测试写法与类型标注，而类型已由 tsc 强制、断言在参数化循环里本就写在循环内；set-state-in-effect 指向一次用户可见的交互重构，硬改会把行为变更混进格式提交；no-control-regex 的命中是剪贴板清洗正则，匹配控制字符是它的目的。
-- 被否决的替代方案与理由：为清零而重写 174 处测试类型标注 —— 否决，收益是消除噪声而非发现缺陷，且会与 tsc 重复；把 set-state-in-effect 的 10 处硬改 —— 否决，属于功能变更，需单独提交与评审（见 T-016）。
+- 日期：2026-11-17（2026-11-27 复核：移出 `react/set-state-in-effect`）
+- 决策：关闭 `vitest/require-mock-type-parameters`、`vitest/no-conditional-expect`、`no-control-regex` 三条规则，理由写在 `.oxlintrc.json` 与提交正文里。`react/set-state-in-effect` 已于 2026-11-27 随 T-016 恢复为 `error`，不再列入长期关闭清单。
+- 背景：这三条规则在本仓库的告警分别是 174、39、1 条。前两条要求的是测试写法与类型标注，而类型已由 tsc 强制、断言在参数化循环里本就写在循环内；no-control-regex 的命中是剪贴板清洗正则，匹配控制字符是它的目的。`react/set-state-in-effect` 关闭时记为 10 处；T-016 实测为 11 处：5 处改为渲染期派生状态或删除冗余 effect（`ColumnManager` 草稿对齐、`useProxyChecks` 缓存裁剪、`AppearanceSettings` 挂载重读、`FingerprintForm` 抓取状态复位、`ProfilesPage` 选择裁剪），其余 6 处是 sidecar 初始加载或窗口/sidecar 事件订阅，属外部系统同步，保留带理由的单行豁免。
+- 被否决的替代方案与理由：为清零而重写 174 处测试类型标注 —— 否决，收益是消除噪声而非发现缺陷，且会与 tsc 重复；把 set-state-in-effect 的命中硬改 —— 已在 T-016 逐条处置，外部加载/订阅处不强行事件化。
 - 影响面：`.oxlintrc.json`、`npm run lint` 的告警预算。
-- 复核标准与复核时间：`npm run lint` 输出 `Found 0 warnings and 0 errors.`；T-016 完成后重新评估该条；2027-01-17 复核。
+- 复核标准与复核时间：`npm run lint` 输出 `Found 0 warnings and 0 errors.`；剩余三条 2027-01-17 复核。
 
 ## D-014 knip 与 jscpd 的排除项写进配置文件
 

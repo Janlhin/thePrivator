@@ -31,6 +31,9 @@ export function DiagnosticsSettings() {
   }, []);
 
   useEffect(() => {
+    // Mount loads sidecar health; the only other trigger is the refresh button,
+    // which calls refresh directly. The effect is the external-system read.
+    // oxlint-disable-next-line react/set-state-in-effect
     void refresh();
   }, [refresh]);
 

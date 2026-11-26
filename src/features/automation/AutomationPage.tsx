@@ -37,6 +37,9 @@ export function AutomationPage() {
   }, []);
 
   useEffect(() => {
+    // Mount loads the automation endpoint status from the sidecar; later
+    // refreshes come from user actions. The effect is the initial external read.
+    // oxlint-disable-next-line react/set-state-in-effect
     void refresh();
   }, [refresh]);
 

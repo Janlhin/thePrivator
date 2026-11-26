@@ -49,6 +49,11 @@ export function DesktopSession({ children }: { children: ReactNode }) {
     }
   }, []);
   useEffect(() => {
+    // Session bootstrap: the effect loads preferences/vault state and machine
+    // info, then subscribes to the window vault-changed event and the sidecar
+    // vault-close-failed event. These are external-system bindings with no
+    // triggering user event, so the effect stays.
+    // oxlint-disable-next-line react/set-state-in-effect
     void refresh();
     void getMachineInfo()
       .then(setMachine)
