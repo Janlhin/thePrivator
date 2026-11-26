@@ -197,6 +197,61 @@ builds and tests succeed. Version tags publish stable releases. The workflow als
 builds Arch packages and versioned PKGBUILDs; optional AUR publishing and platform
 signing are described in [the release setup guide](docs/releases.md).
 
+## Run it from a fresh clone（从零跑起来）
+
+Prerequisites match the CI matrix and `engines.node`:
+
+| Tool | Version | Notes |
+| --- | --- | --- |
+| Node.js | 22.18+, 24.11+ or 26+ | `engines.node`: `^22.18 \|\| ^24.11 \|\| >=26`; CI runs Node 24 |
+| Python | 3.11 or 3.12 | sidecar runtime and its test suite; CI matrix is 3.11 / 3.12 |
+| Rust | 1.77+ | only needed to build the Tauri bridge or run `cargo test` |
+| PowerShell | 7.4+ (`pwsh`) | every verify and hook entrypoint; no `.cmd` / `.bat` |
+| Chromium or Chrome | installed by you | the app launches your existing browser |
+| Deno | 2.9.8 | task runner, and the local fallback installer below |
+
+Then, from the repository root:
+
+```bash
+npm ci
+python -m venv .venv
+# Windows:  .venv\Scripts\python -m pip install -r requirements.txt -r requirements-dev.txt
+# Linux/macOS: .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+npm run verify
+```
+
+`npm run verify` chains format, lint, stylelint, typecheck, test with coverage,
+dead code, duplication and the docs gate, in that order, as defined in
+`scripts/verify.ps1`. It exits `0` only when every step passes; a failing check
+is fixed, never bypassed. Coverage gates are 80% statements and 70% branches.
+
+Local host caveats (not CI conditions):
+
+- The sidecar probes in the test suite find their interpreter through the
+  `PYTHON` environment variable, falling back to `python3`. On Windows, point
+  it at the venv before verifying: `$env:PYTHON = ".venv\Scripts\python.exe"`.
+- On the development host used for this lane, the bundled npm 12.2.2 crashes in
+  arborist against this lockfile, so `npm ci` cannot populate `node_modules`
+  there. The working local fallback is `deno install`, which reads
+  `package.json` and `deno.lock` and installs the same dependency set. CI and
+  other working npm installs use `npm ci`.
+
+## Opening a pull request（提 PR）
+
+- Branch off the target base and keep commits atomic: one change per commit,
+  with refactors split from behavior changes.
+- Commit messages follow Conventional Commits, enforced by the commit-msg hook
+  (commitlint, `@commitlint/config-conventional`):
+  `<type>(<scope>): <subject>`. Types in use: `feat`, `fix`, `docs`, `style`,
+  `refactor`, `perf`, `test`, `chore`, `build`, `ci`, `revert`.
+- Run `npm run verify` and get exit `0` before opening the PR. The pre-commit
+  hook already runs lint-staged (oxlint/oxfmt on staged `ts`, `tsx`, `css`,
+  `json`, `yml`, `yaml`; stylelint on `css`) and a typecheck; the commit-msg
+  hook validates the message. Do not skip hooks with `--no-verify`.
+- The PR description should state what changed and why, the verification
+  evidence (commands and exit codes), anything left unverified, and open
+  decisions — the delivery checklist is in [AGENTS.md](AGENTS.md) §10.
+
 ## Engineering baseline
 
 ### Stack and versions
