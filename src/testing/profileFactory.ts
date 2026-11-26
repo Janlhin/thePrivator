@@ -1,4 +1,4 @@
-import type { ProfileIdentity, ProfileRecord } from "../sidecar/types";
+import type { CookieHealthInfo, ProfileIdentity, ProfileRecord } from "../sidecar/types";
 
 /**
  * Profile records for tests.
@@ -51,6 +51,7 @@ export interface ProfileOverrides {
   proxyHost?: string;
   proxyPort?: number;
   fingerprintMode?: ProfileRecord["defaults"]["fingerprintMode"];
+  cookieHealth?: CookieHealthInfo | null;
 }
 
 export function makeProfile(overrides: ProfileOverrides = {}): ProfileRecord {
@@ -103,5 +104,6 @@ export function makeProfile(overrides: ProfileOverrides = {}): ProfileRecord {
       lastSyncedAt: null,
       lastSyncedRevision: null,
     },
+    ...(overrides.cookieHealth === undefined ? {} : { cookieHealth: overrides.cookieHealth }),
   };
 }

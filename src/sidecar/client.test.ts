@@ -1606,6 +1606,34 @@ describe("sidecar client", () => {
     expect(snapshot.profiles[0]!.organization).toEqual(organization);
   });
 
+  it("parses an optional cookie-health snapshot and drops a malformed one", async () => {
+    const healthy = profileRecord({
+      cookieHealth: {
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        probedAt: "2026-05-31T12:00:00.000Z",
+        probeStatus: 200,
+        probeFinalUrl: "https://example.com/account",
+        loginPageMarkers: ["Sign in"],
+      },
+    });
+    const broken = profileRecord({
+      id: "22222222-2222-2222-2222-222222222222",
+      cookieHealth: "not-an-object",
+    });
+    mockInvoke.mockResolvedValueOnce(profileEnvelope(profileResult({ profiles: [healthy, broken] })));
+
+    const snapshot = await listProfiles();
+
+    expect(snapshot.profiles[0]!.cookieHealth).toEqual({
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      probedAt: "2026-05-31T12:00:00.000Z",
+      probeStatus: 200,
+      probeFinalUrl: "https://example.com/account",
+      loginPageMarkers: ["Sign in"],
+    });
+    expect(snapshot.profiles[1]!.cookieHealth).toBeUndefined();
+  });
+
   it("derives profile defaults from the launch block and the identity surfaces", async () => {
     const launch = profileLaunch({
       startUrls: ["https://example.com/start", "http://intranet.example/", "about:blank"],

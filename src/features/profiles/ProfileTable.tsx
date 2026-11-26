@@ -19,6 +19,7 @@ import {
 import { type ProfileRow, type SelectionIntent, selectionKind } from "./tableModel";
 import styles from "./ProfileTable.module.css";
 import { ProxyExit, type ProxyCheckState } from "./ProxyExit";
+import { cookieHealthView, HEALTH_STATUS_LABELS, readCookieHealth, type CookieHealthStatus } from "./cookieHealth";
 import type { ProfileRecord } from "../../sidecar/types";
 
 interface ProfileTableProps {
@@ -83,6 +84,27 @@ function fingerprintLabel(profile: ProfileRecord, machine: MachineInfo | null): 
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+function healthPrimaryText(status: CookieHealthStatus, daysLeft: number | null): string {
+  switch (status) {
+    case "ok":
+      if (daysLeft === null) return t("Session cookie");
+      if (daysLeft === 0) return t("Expires today");
+      return daysLeft < 0 ? t("Expired") : t("{days} days left", { days: daysLeft });
+    case "expired":
+      return t("Expired");
+    case "unauthorized":
+      return t("Unauthorized (401)");
+    case "redirected-login":
+      return t("Redirected to login");
+    case "login-page":
+      return t("Login page detected");
+    case "error":
+      return t("Probe error");
+    case "unknown":
+      return t("Not probed");
+  }
 }
 
 /** Deterministic hue per tag, so a tag keeps its colour across profiles and sessions. */
@@ -201,6 +223,28 @@ function Cell({
           )}
         </div>
       );
+    case "cookieHealth": {
+      const info = readCookieHealth(profile);
+      const view = cookieHealthView(profile);
+      const statusLabel = t(HEALTH_STATUS_LABELS[view.status]);
+      const probeText =
+        info?.probedAt !== null && info?.probedAt !== undefined
+          ? t("Probed {time}", { time: formatTimestamp(info.probedAt) })
+          : view.status === "unknown"
+            ? t("Unknown")
+            : t("Not probed");
+      return (
+        <div className={styles.cell} role="gridcell" data-column="cookieHealth">
+          <span className={styles.healthBadge} data-status={view.status} role="img" aria-label={statusLabel} />
+          <span className={styles.healthLine}>
+            <span className={view.status === "ok" ? undefined : styles.healthMain}>
+              {healthPrimaryText(view.status, view.daysLeft)}
+            </span>
+            <span className={styles.healthMeta}>{probeText}</span>
+          </span>
+        </div>
+      );
+    }
     case "fingerprint":
       return (
         <div className={styles.cell} role="gridcell">

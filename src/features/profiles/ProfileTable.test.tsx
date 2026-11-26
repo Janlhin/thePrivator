@@ -274,6 +274,49 @@ describe("ProfileTable", () => {
   });
 });
 
+describe("cookie health column", () => {
+  it("renders the header for an empty dataset without any health cell", () => {
+    renderTable({ rows: [] });
+
+    expect(screen.getByRole("columnheader", { name: /cookie health/i })).toBeInTheDocument();
+    expect(screen.queryAllByRole("img", { name: /unknown|ok|expired|unauthorized|login|error/i })).toHaveLength(0);
+  });
+
+  it("renders one health cell for a single profile", () => {
+    renderTable({ rows: rowsFrom({ profile: makeProfile({ name: "Solo" }), running: false }) });
+
+    expect(screen.getByRole("columnheader", { name: /cookie health/i })).toBeInTheDocument();
+    const row = screen.getByRole("row", { name: /solo/i });
+    expect(within(row).getByRole("img", { name: "Unknown · not probed" })).toBeInTheDocument();
+    expect(within(row).getByText("Not probed")).toBeInTheDocument();
+  });
+
+  it("renders a health cell for every row in a multi-row table", () => {
+    const expired = makeProfile({
+      name: "Dying",
+      cookieHealth: {
+        expiresAt: "2000-01-01T00:00:00.000Z",
+        probedAt: "2026-05-31T12:00:00.000Z",
+        probeStatus: 200,
+        probeFinalUrl: "https://example.com/account",
+        loginPageMarkers: [],
+      },
+    });
+    renderTable({
+      rows: [
+        { profile: makeProfile({ name: "Alive" }), running: false },
+        { profile: expired, running: false },
+      ],
+    });
+
+    const rowCount = screen.getAllByRole("row").length - 1; // header excluded
+    expect(rowCount).toBe(2);
+    expect(screen.getAllByRole("img", { name: /Unknown · not probed|Expired/ })).toHaveLength(2);
+    const dying = screen.getByRole("row", { name: /dying/i });
+    expect(within(dying).getByRole("img", { name: "Expired" })).toBeInTheDocument();
+  });
+});
+
 describe("ProfileTable re-render cost", () => {
   it("re-renders only the row whose runtime changed", () => {
     // The status poll rewrites the runtime map several times a minute. If a tick
