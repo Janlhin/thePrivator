@@ -1,7 +1,7 @@
 #requires -Version 7.4
 [CmdletBinding()]
 param(
-  [ValidateSet('all', 'format', 'rootwhitelist', 'lint', 'stylelint', 'typecheck', 'test', 'deadcode', 'dupes', 'docs')]
+  [ValidateSet('all', 'format', 'rootwhitelist', 'lint', 'stylelint', 'typecheck', 'test', 'deadcode', 'dupes', 'docs', 'scriptbaseline')]
   [string]$Only = 'all'
 )
 
@@ -37,6 +37,7 @@ try {
   # after the whole suite has run.
   Invoke-Step 'format' { & $node $vp fmt src tests scripts --check }
   Invoke-Step 'rootwhitelist' { & $pwsh -NoLogo -NoProfile -File 'scripts/check-root-whitelist.ps1' }
+  Invoke-Step 'scriptbaseline' { & $pwsh -NoLogo -NoProfile -File 'scripts/check-script-baseline.ps1' }
   Invoke-Step 'lint' { & (Join-Path $bin 'oxlint.ps1') src --deny-warnings }
   Invoke-Step 'stylelint' { & (Join-Path $bin 'stylelint.ps1') 'src/**/*.css' }
   Invoke-Step 'typecheck' { & (Join-Path $bin 'tsc.ps1') --noEmit }
