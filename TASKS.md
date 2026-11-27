@@ -24,7 +24,7 @@
 | T-012 | 文档三层校验 | 接入 markdownlint、链接校验、代码块抽取实跑 | T-011 | 高 | 三条命令退出 0；断链数为 0 | TASK_REVIEW | 2026-11-17 | — |
 | T-016 | 消除 `set-state-in-effect` 告警 | 重构 10 处「在 effect 里同步派生状态」的组件，改为在事件处理或 reducer 中派生；完成后撤销 D-013 对该规则的豁免 | T-010 | 低 | `react/set-state-in-effect` 恢复为 error 后 `npm run lint` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-017 | `scripts/` 纳入 lint | 清掉 70 条历史告警（28 处多余转义、26 处未使用变量等）后，从 `.oxlintrc.json` 的 `ignorePatterns` 移除 `scripts/**` | T-006 | 中 | `npm run lint` 覆盖 `scripts/` 且退出 0 | TASK_BACKLOG | 2026-11-17 | — |
-| T-018 | E2E 通道 | 二选一：新建 `playwright.config.ts` 与 `test:e2e`，或把 `scripts/verify-s06.mjs` 的 WebDriver 路径登记为等价通道并写入 README | T-010 | 中 | 选定方案后 `npm run test:e2e` 或登记命令退出 0，README 有对应命令 | TASK_BACKLOG | 2026-11-17 | — |
+| T-018 | E2E 通道 | 二选一：新建 `playwright.config.ts` 与 `test:e2e`，或把 `scripts/verify-s06.mjs` 的 WebDriver 路径登记为等价通道并写入 README；已选 Playwright web-shell 冒烟（`@playwright/test` 1.60.0 + `e2e/`），verify:s06 保留为打包 WebDriver 通道，本机 preflight 缺 tauri-driver 与打包产物、不能跑绿 | T-010 | 中 | 选定方案后 `npm run test:e2e` 或登记命令退出 0，README 有对应命令 | TASK_REVIEW | 2026-11-17 | — |
 | T-019 | 根目录白名单比对脚本 | 新增 `scripts/check-root-whitelist.ps1`，用 `git ls-files` 与 README 顶层目录表逐条比对 | T-010 | 高 | 脚本退出 0；根级未登记项数为 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-020 | 脚本基线检查 | 新增 `scripts/check-script-baseline.ps1`：仓库内 `.cmd`/`.bat` 数为 0、项目自写代码中 `cmd.exe`/`powershell.exe` 调用数为 0、入口一律 `pwsh -File` | T-010 | 高 | 脚本退出 0；三项计数均为 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-021 | 双入口收敛 | `deno.json` 的 `deno task` 与 `package.json` 的 `npm run` 目前并存；选定一套为主、另一套降级为别名 | T-010 | 中 | 只保留一套执行 `node node_modules/vite-plus/dist/bin.js` 的定义；另一套为 `pwsh -File` 转发 | TASK_BACKLOG | 2026-11-17 | — |

@@ -264,6 +264,7 @@ Local host caveats (not CI conditions):
 | Rust bridge | `tauri` + `tauri-runtime-wry` | pinned by `src-tauri/Cargo.lock` |
 | Python sidecar | FastAPI + uvicorn | Python 3.11+ (development host: 3.12) |
 | Unit tests | Vitest | 5.1.0, v8 coverage provider |
+| E2E smoke | Playwright (`@playwright/test`) | 1.60, drives the host Chrome; no Playwright browser binary is downloaded |
 | Gates | oxlint, oxfmt, stylelint, knip, jscpd | oxlint 1.94, oxfmt 0.79, stylelint 18 (standard config), knip 6, jscpd 5 |
 | Git hooks | husky + lint-staged + commitlint | husky 9, lint-staged 17, commitlint 21 (conventional) |
 | Task runner | Deno | 2.9.8 |
@@ -279,6 +280,7 @@ Local host caveats (not CI conditions):
 | `theprivator_sidecar/` | Python sidecar: profile store, proxy runtime, fingerprint engine, browser lifecycle |
 | `src/styles/` | CSS layers plus `tokens.css`; business styles read tokens, never raw colours |
 | `tests/` | Python sidecar suite and release-tooling tests |
+| `e2e/` | Playwright web-shell smoke specs; `playwright.config.ts` holds the channel and dev-server settings |
 | `docs/` | Product notes, release records, verification write-ups |
 | `scripts/` | Sidecar build, release verification, platform probes |
 | `packaging/`, `public/`, `img/` | Packaging templates, static UI assets, images |
@@ -293,6 +295,7 @@ Run from the repository root; each command must exit `0`.
 npm ci               # lockfile is the only source of truth
 npm run verify       # format, lint, stylelint, typecheck, test+coverage, deadcode, dupes
 npm run build        # production frontend build
+npm run test:e2e     # Playwright web-shell smoke against the dev server (host Chrome)
 ```
 
 A change is not "done" until `npm run verify` exits `0`. A failing check is fixed, never bypassed.
@@ -318,7 +321,7 @@ single `exec pwsh` lines — no gate logic lives in shell or in `package.json`.
 
 - Tauri 3 is still on the alpha channel; a break in an alpha API is fixed forward, not pinned away.
 - One build produces one platform: PyInstaller bundles the host interpreter and has no cross-compilation mode.
-- There is no Playwright suite and no `test:e2e` command; the packaged-UI path is still covered by `scripts/verify-s06.mjs`, which drives Chromium over WebDriver and needs a real browser.
+- `npm run test:e2e` is the Playwright web-shell smoke: it boots the Vite dev server and mounts the frontend in the host Chrome, asserting the shell renders with no uncaught page error. The packaged Tauri window itself is still covered by `npm run verify:s06` (`scripts/verify-s06.mjs`), which drives Chromium over WebDriver; that channel needs `tauri-driver`, a packaged build and a platform WebDriver, and exits non-zero at preflight when any of them is missing.
 - Coverage is a necessary condition, not a proof of quality — it measures what executed, not what was asserted.
 - The local `pwsh` is the 7.7 preview channel while CI runs the stable channel; scripts must not rely on preview-only syntax.
 - `scripts/*.mjs` are not linted yet (`TASKS.md` T-017): they predate the oxlint profile and carry legacy warnings.

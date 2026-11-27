@@ -117,6 +117,8 @@ selenium_test.png
 playwright_test.png
 puppeteer_test.png
 *_screenshot.png
+test-results/
+playwright-report/
 
 # ── GSD baseline (auto-generated) ──
 .gsd

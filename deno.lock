@@ -3,6 +3,7 @@
   "specifiers": {
     "npm:@commitlint/cli@^21.2.4": "21.2.4_typescript@7.0.2",
     "npm:@commitlint/config-conventional@^21.2.4": "21.2.4",
+    "npm:@playwright/test@1.60.0": "1.60.0",
     "npm:@tauri-apps/api@3.0.0-alpha.3": "3.0.0-alpha.3",
     "npm:@tauri-apps/cli@3.0.0-alpha.6": "3.0.0-alpha.6",
     "npm:@tauri-apps/plugin-dialog@3.0.0-alpha.4": "3.0.0-alpha.4",
@@ -754,6 +755,13 @@
     "@oxlint/plugins@1.94.0": {
       "integrity": "sha512-YT6htikBOBQ00XDxZpRZLZ0anEDo7h9s4+YvjRU0/Ng/cLd0D6SZQ3tsms4g/GDer/z8UKlegC5iptEfyRXJcw=="
     },
+    "@playwright/test@1.60.0": {
+      "integrity": "sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==",
+      "dependencies": [
+        "playwright"
+      ],
+      "bin": true
+    },
     "@polka/url@1.0.0-next.29": {
       "integrity": "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww=="
     },
@@ -1292,7 +1300,7 @@
         "@voidzero-dev/vite-plus-linux-x64-musl",
         "@voidzero-dev/vite-plus-win32-arm64-msvc",
         "@voidzero-dev/vite-plus-win32-x64-msvc",
-        "fsevents"
+        "fsevents@2.3.3"
       ],
       "optionalPeers": [
         "typescript"
@@ -1661,6 +1669,11 @@
         "package-manager-detector"
       ],
       "bin": true
+    },
+    "fsevents@2.3.2": {
+      "integrity": "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==",
+      "os": ["darwin"],
+      "scripts": true
     },
     "fsevents@2.3.3": {
       "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
@@ -2329,7 +2342,7 @@
         "@oxc-resolver/binding-win32-x64-msvc"
       ]
     },
-    "oxfmt@0.79.0_vite-plus@1.7.0__jsdom@27.4.0__typescript@7.0.2": {
+    "oxfmt@0.79.0_vite-plus@1.7.0": {
       "integrity": "sha512-92iLHGxAgtYk6jLp/1ZBnEeABveNduHZgMDQj7tyqO9iafuJG3q+YHJq0R5Aa4YT+E6xswMQXdmPZYMwynS8ig==",
       "dependencies": [
         "tinypool",
@@ -2442,6 +2455,16 @@
     },
     "playwright-core@1.60.0": {
       "integrity": "sha512-9bW6zvX/m0lEbgTKJ6YppOKx8H3VOPBMOCFh2irXFOT4BbHgrx5hPjwJYLT40Lu+4qtD36qKc/Hn56StUW57IA==",
+      "bin": true
+    },
+    "playwright@1.60.0": {
+      "integrity": "sha512-hheHdokM8cdqCb0lcE3s+zT4t4W+vvjpGxsZlDnikarzx8tSzMebh3UiFtgqwFwnTnjYQcsyMF8ei2mCO/tpeA==",
+      "dependencies": [
+        "playwright-core"
+      ],
+      "optionalDependencies": [
+        "fsevents@2.3.2"
+      ],
       "bin": true
     },
     "pngjs@7.0.0": {
@@ -2784,7 +2807,7 @@
     "verkit@0.5.0": {
       "integrity": "sha512-u4J1hr6Y+C/hit34GwL3eIcUf3wngT8TlYUjK7tk0jxydKLAq3sYvifjdTDA6U3KCKRcQCQDGf/srjxfZF3l7g=="
     },
-    "vite-plus@1.7.0_@vitest+coverage-v8@5.1.0": {
+    "vite-plus@1.7.0_jsdom@27.4.0_typescript@7.0.2": {
       "integrity": "sha512-dWeTqWhRXZSIr9i45IjPXjiAuLtHOdiRrZNBCusyhb/06MxFHOSbVKqG5bq9svxsE494AMHmVocBvzem+a6qHw==",
       "dependencies": [
         "@oxc-project/runtime",
@@ -2856,7 +2879,7 @@
         "tinyglobby"
       ],
       "optionalDependencies": [
-        "fsevents"
+        "fsevents@2.3.3"
       ],
       "bin": true
     },
@@ -2996,6 +3019,7 @@
       "dependencies": [
         "npm:@commitlint/cli@^21.2.4",
         "npm:@commitlint/config-conventional@^21.2.4",
+        "npm:@playwright/test@1.60.0",
         "npm:@tauri-apps/api@3.0.0-alpha.3",
         "npm:@tauri-apps/cli@3.0.0-alpha.6",
         "npm:@tauri-apps/plugin-dialog@3.0.0-alpha.4",

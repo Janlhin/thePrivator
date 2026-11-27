@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["scripts/**/*.mjs", "tests/**/*.cjs"],
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "tests/**/*.{cjs,js}"],
+  "entry": ["scripts/**/*.mjs", "tests/**/*.cjs", "e2e/**/*.spec.ts"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "tests/**/*.{cjs,js}", "e2e/**/*.ts"],
   "ignoreExportsUsedInFile": true,
   "ignore": ["src/vite-env.d.ts"],
   "ignoreBinaries": ["pwsh", "rustc"],
