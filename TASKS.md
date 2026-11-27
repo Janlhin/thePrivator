@@ -24,12 +24,10 @@
 | T-012 | 文档三层校验 | 接入 markdownlint、链接校验、代码块抽取实跑 | T-011 | 高 | 三条命令退出 0；断链数为 0 | TASK_REVIEW | 2026-11-17 | — |
 | T-016 | 消除 `set-state-in-effect` 告警 | 重构 10 处「在 effect 里同步派生状态」的组件，改为在事件处理或 reducer 中派生；完成后撤销 D-013 对该规则的豁免 | T-010 | 低 | `react/set-state-in-effect` 恢复为 error 后 `npm run lint` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-017 | `scripts/` 纳入 lint | 清掉 70 条历史告警（28 处多余转义、26 处未使用变量等）后，从 `.oxlintrc.json` 的 `ignorePatterns` 移除 `scripts/**` | T-006 | 中 | `npm run lint` 覆盖 `scripts/` 且退出 0 | TASK_BACKLOG | 2026-11-17 | — |
-| T-018 | E2E 通道 | 二选一：新建 `playwright.config.ts` 与 `test:e2e`，或把 `scripts/verify-s06.mjs` 的 WebDriver 路径登记为等价通道并写入 README；已选 Playwright web-shell 冒烟（`@playwright/test` 1.60.0 + `e2e/`），verify:s06 保留为打包 WebDriver 通道，本机 preflight 缺 tauri-driver 与打包产物、不能跑绿 | T-010 | 中 | 选定方案后 `npm run test:e2e` 或登记命令退出 0，README 有对应命令 | TASK_REVIEW | 2026-11-17 | — |
+| T-018 | E2E 通道 | 二选一：新建 `playwright.config.ts` 与 `test:e2e`，或把 `scripts/verify-s06.mjs` 的 WebDriver 路径登记为等价通道并写入 README | T-010 | 中 | 选定方案后 `npm run test:e2e` 或登记命令退出 0，README 有对应命令 | TASK_BACKLOG | 2026-11-17 | — |
 | T-019 | 根目录白名单比对脚本 | 新增 `scripts/check-root-whitelist.ps1`，用 `git ls-files` 与 README 顶层目录表逐条比对 | T-010 | 高 | 脚本退出 0；根级未登记项数为 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-020 | 脚本基线检查 | 新增 `scripts/check-script-baseline.ps1`：仓库内 `.cmd`/`.bat` 数为 0、项目自写代码中 `cmd.exe`/`powershell.exe` 调用数为 0、入口一律 `pwsh -File` | T-010 | 高 | 脚本退出 0；三项计数均为 0 | TASK_BACKLOG | 2026-11-17 | — |
-| T-020 | 脚本基线检查 | 新增 `scripts/check-script-baseline.ps1`：仓库内 `.cmd`/`.bat` 数为 0、项目自写代码中 `cmd.exe`/`powershell.exe` 调用数为 0、入口一律 `pwsh -File` | T-010 | 高 | 脚本退出 0；三项计数均为 0 | TASK_REVIEW | 2026-11-17 | — |
->>>>>>> e8bcb6c (feat(scripts): add script baseline check gate)
-| T-021 | 双入口收敛 | `deno.json` 的 `deno task` 与 `package.json` 的 `npm run` 目前并存；选定一套为主、另一套降级为别名 | T-010 | 中 | 只保留一套执行 `node node_modules/vite-plus/dist/bin.js` 的定义；另一套为 `pwsh -File` 转发 | TASK_BACKLOG | 2026-11-17 | — |
+| T-021 | 双入口收敛 | `deno.json` 的 `deno task` 与 `package.json` 的 `npm run` 目前并存；选定一套为主、另一套降级为别名 | T-010 | 中 | 只保留一套执行 `node node_modules/vite-plus/dist/bin.js` 的定义；另一套为 `pwsh -File` 转发 | TASK_DONE | 2026-11-17 | 2026-11-27 |
 | T-022 | cookie 健康检查 | 档案表增一列：身份 cookie 距过期天数、上次探活时间与结果；判定抽成纯函数（401、重定向到登录页、登录页特征视为失效），默认只提示不自动重登。**账号数量不设上限**：列与筛选都必须支持任意行数，不得按固定账号清单设计 | T-010 | 中 | `npm run verify` 退出 0；新增判定函数有单测覆盖；组件测试断言该列在 0、1、多行三种数据下都渲染 | TASK_BACKLOG | 2026-11-17 | — |
 | T-023 | CI 工作流未被索引 | 三路排查：索引缓存、`ci.yml` 被判定无效、仓库设置；以 `gh api repos/Janlhin/thePrivator/actions/workflows` 的 `total_count` 为判据 | T-010 | 高 | `total_count` 大于 0，且新建 PR 上出现检查项 | TASK_REVIEW | 2026-11-17 | — |
 | T-024 | 开源入口文档 | README 增「从零跑起来」（工具链版本、`npm ci`、`npm run verify`）与「提 PR」（提交规范、提交前必过 verify）两节 | T-023 | 高 | README 含这两节；按文档从干净环境能走到 `verify passed` | TASK_REVIEW | 2026-11-17 | — |
@@ -37,16 +35,16 @@
 | T-026 | Chromium 系多品牌 | `discover_executable` 按优先级探测 Edge、Chrome、Brave 等同一引擎的浏览器，运行记录里写明实际使用的品牌；指纹与自动化通道保持不变 | T-025 | 高 | 用 Edge 启动一个档案退出码 0，且运行记录的品牌字段为 `edge`；`npm run verify` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-027 | Firefox 受限模式 | 接入 `-profile` 与 `-no-remote` 启动、原生带认证 SOCKS5（去掉中转依赖）、`cookies.sqlite` 的读写；指纹面与 CDP 自动化端点标为不可用，UI 上禁用并写明原因，而不是让用户填了不生效 | T-025 | 中 | Firefox 档案启动退出码 0；该档案下指纹面板全部控件为禁用态；README 能力差异表与代码能力矩阵一致 | TASK_BACKLOG | 2026-11-17 | — |
 | T-028 | Safari 不做 | 仅在 macOS 提供，且没有等价于 `-profile` 的独立启动方式，无法被本项目驱动；结论即本条，不再另立实现 | T-025 | 高 | 决策日志存在对应条目，且 `engine` 枚举中不含 `safari` | TASK_CANCELLED | 2026-11-17 | 2026-11-17 |
-| T-029 | 移除 Deno，回归 npm 单入口 | 上游已宣布运行时退出（2026-10，一年维护后停止独立开发），故删除 `deno.json` 与 `deno.lock`；依赖锁定统一为 `package-lock.json`，必要时先刷新以纳入近期新增的 devDependencies；`node_modules` 用 `npm ci` 重建；README、MANIFEST、DECISIONS 三处提及 Deno 的段落改为 npm。本条完成即关闭 T-021 | T-010 | 高 | `npm ci` 退出 0；`npm run verify` 退出 0；`git ls-files` 中 `deno.json` 与 `deno.lock` 计数为 0；跟踪文件中 `deno` 字样计数为 0 | TASK_READY | 2026-11-18 | — |
+| T-029 | 移除 Deno，回归 npm 单入口 | 上游已宣布运行时退出（2026-10，一年维护后停止独立开发），故删除 `deno.json` 与 `deno.lock`；依赖锁定统一为 `package-lock.json`，必要时先刷新以纳入近期新增的 devDependencies；`node_modules` 用 `npm ci` 重建；README、MANIFEST、DECISIONS 三处提及 Deno 的段落改为 npm。本条完成即关闭 T-021 | T-010 | 高 | `npm ci` 退出 0；`npm run verify` 退出 0；`git ls-files` 中 `deno.json` 与 `deno.lock` 计数为 0；跟踪文件中 `deno` 字样计数为 0 | TASK_REVIEW | 2026-11-18 | — |
+| T-030 | 合并后对齐堆叠线：根级白名单、脚本 lint 与锁文件刷新 | 四条线（CI/脚本/前端/引擎）全部合并后，在合并树上收尾四项：① README 根级白名单补登记 `.markdownlint.json`（T-012 新增）与 `playwright.config.ts`（T-018 新增），对齐 `scripts/check-root-whitelist.ps1`（实测白名单 29 项、跟踪根级 31 项，该脚本退出 1）；② 清掉 `scripts/docs-verify.mjs:204` 声明后未使用的变量 `lang`，使 `oxlint src scripts --deny-warnings` 纳入 scripts 后为零告警（T-012 落地时 lint 只覆盖 `src`，T-017 才纳入 `scripts`，两条线各自绿、合并后红）；③ 刷新 `package-lock.json`，纳入其它线新增的 devDependency：`markdownlint` ^0.42.2（T-012 只更新了独立锁文件，npm 锁文件缺条目）与 `@playwright/test`（T-018 手工补条目），消除锁文件与 `package.json` 的不一致；④ 复跑 `npm ci` 与 `npm run verify`。集成树已验备注：`tsc --noEmit` 退出 0；`vitest run --coverage` 48 文件 1100 passed + 3 skipped，语句 87.51%（4261/4869）、分支 82.09%（3044/3708）；`stylelint`/`knip`/`jscpd` 退出 0；`scripts/check-script-baseline.ps1` 三项计数 0/0/0 退出 0；`node scripts/e2e.mjs test` 1 passed 退出 0；docs 层当时未实跑（临时树未装 markdownlint） | T-029 | 高 | 合并树上 README 白名单登记后 `check-root-whitelist.ps1` 退出 0；`oxlint src scripts --deny-warnings` 输出 `Found 0 warnings and 0 errors.`；`npm ci` 退出 0 且锁文件含 `markdownlint` 与 `@playwright/test` 的真实条目；`npm run verify` 退出 0 | TASK_BACKLOG | 2026-11-27 | — |
 
 ## 待裁决清单
 
 | 提出时间 | 问题 | 备选与取舍 | 状态 |
 | --- | --- | --- | --- |
 | 2026-11-17 | `formatProxyCredentialMode`（`src/proxyControls.ts`）与 `preferenceLabel`（`src/i18n/language.ts`）没有任何调用者，已用 `@public` 标注保住 knip 绿灯 | A. 删除两函数（可逆，需确认没有外部复用）B. 继续保留 `@public` 标注（当前状态）C. 接到设置页与代理面板上 | 未裁决 |
-| 2026-11-17 | `deno.json` 与 `package.json` 各有一套 `dev`/`build`/`test` 定义，违反入口唯一 | A. 以 `npm run` 为唯一入口，`deno task` 改为 `pwsh -File` 转发 B. 以 `deno task` 为主，`package.json` 降级为别名 | 未裁决（T-021） |
+| 2026-11-17 | `deno.json` 与 `package.json` 各有一套 `dev`/`build`/`test` 定义，违反入口唯一 | A. 以 `npm run` 为唯一入口，`deno task` 改为 `pwsh -File` 转发 B. 以 `deno task` 为主，`package.json` 降级为别名 | 已由 T-029 关闭 |
 | 2026-11-17 | `src-tauri/icons/generated/`（16 文件）与 `src-tauri/icons/icon.ico` 始终未跟踪 | A. 提交入库（图标是构建输入）B. 加入 `.gitignore` 并在构建时生成 | 未裁决 |
 | 2026-11-17 | `install_chromium_helper.py` 位于根目录，不在白名单六类之内 | A. 移入 `scripts/` 并更新引用 B. 在白名单登记为「源码类」并加注释说明用途 | 未裁决 |
 | 2026-11-17 | 本机 `pwsh` 是 7.7 preview，CI 将用稳定通道；哪些语法属 preview 独有尚未逐条核验 | A. 只使用 7.4 起就稳定的语法，逐条核对三个脚本 B. 在 CI 用 preview 通道对齐本机 | 未裁决 |
 | 2026-11-17 | 界面逻辑的改动形态未定：加 cookie 健康列只动表格，换成卡片或树会重写 `tableModel`，按「站点→账号」两级导航则五个页面都要重挂 | A. 先只加列，观察真实使用再决定 B. 一并换成按站点分组的树 C. 连导航一起改成两级 | 未裁决（与 T-022、T-025 相关） |
-| 2026-11-27 | T-022 协议缺口：sidecar 现有协议（`profiles.py` / `cookies.py` / `identity_session.py`）尚未按档案产出探活结果，`ProfileRecord` 也没有「上次探活时间与结果」字段；前端已登记可选 `cookieHealth` 段，缺失或半成形时降级为「未知 · 未探活」，不伪造数据、不触发自动重登 | 待 sidecar 补产出方后接通真实探活；前端判定纯函数、列与筛选已就位 | 已记录（T-022） |
