@@ -146,3 +146,12 @@
 - 被否决的替代方案与理由：把 verify:s06 直接登记为等价 e2e 通道 —— 否决，本机实测 preflight 非零，登记命令无法退出 0，属于造绿；下载 Playwright 自带 Chromium —— 否决，宿主已有 Chrome，复用即可，避免约百兆二进制与额外网络依赖；用 plain `playwright-core` 自写驱动替代官方测试运行器 —— 否决，`playwright.config.ts` 与 `test:e2e` 的约定需要 `@playwright/test` 的配置与发现机制。
 - 影响面：新增 devDependency `@playwright/test` 1.60.0（传递 `playwright` 1.60.0，复用既有 `playwright-core` 1.60.0）；`e2e/`、`playwright.config.ts`、`scripts/e2e.mjs`；`vite.config.ts` 的 `test.exclude` 纳入 `e2e/**`；`knip.json` 入口与项目 glob 纳入 e2e。Node 选择：Playwright 1.60 通过 `node:module.register` 注册 ESM loader；本机默认 Node 28 nightly 已移除该 API（仅余 `registerHooks`），`scripts/e2e.mjs` 先探测 `module.register`，缺失时回退到 Vite+ 备用 Node 26.13.1 再启动 CLI。
 - 复核标准与复核时间：`npm run test:e2e` 退出 0 且规格全绿；`npm run verify` 退出 0；备用 Node 回退路径在默认 Node 恢复 `module.register` 后变为直连；2027-01-17 复核。
+
+## D-017 重建 npm 锁文件，并将 vitest 与 coverage-v8 钉到 5.1.1
+
+- 日期：2026-11-27
+- 决策：`vitest` 与 `@vitest/coverage-v8` 在 `package.json` 中精确钉到 `5.1.1`（不使用 `^` 范围）；删除旧锁文件，由 npm 11.21.3 重新生成 `package-lock.json`，依赖安装只走 `npm ci`。
+- 背景：旧 `package-lock.json` 由另一套任务运行器写出，连 `@vitest/coverage-v8` 条目都缺失，不是可用的 npm 锁文件。`@vitest/coverage-v8: ^5.1.0` 会解析到 5.1.2，其 peer 要求 `vitest@5.1.2`；而 `vite-plus@1.7.0` 内置的 runner 是 `vitest@5.1.1`，其 `define-config` 里的 `assertCoverageProviderVersionMatch` 又要求 coverage provider 必须等于这个内置版本。这个依赖集在 npm 里既解析不了（arborist 崩 `Cannot read properties of null (reading 'children')`）也跑不了（`vp test` 直接抛 provider 版本不匹配）。5.1.1 与 vite-plus 内置 runner 一致，peer 集闭合。
+- 被否决的替代方案与理由：保留 `^5.1.0` 范围让 npm 自行解析 —— 否决，会解析到 5.1.2，触发上述 peer 冲突与版本守卫；`--legacy-peer-deps` 强行安装 —— 否决，实测会缺 `vite`，`vp fmt` 报 `Cannot find package 'vite'`；在旧锁文件上手工补条目 —— 否决，旧锁文件缺条目且不是 npm 生成，补条目等于手工伪造锁文件。
+- 影响面：`package.json`、`package-lock.json`、`npm ci` 与 `npm run verify` 的安装和测试步骤；README 技术栈表的 Vitest 版本。
+- 复核标准与复核时间：`npm ci` 退出 0；`npm run verify` 退出 0；锁文件中 `node_modules/vitest` 与 `node_modules/@vitest/coverage-v8` 版本均为 5.1.1；2027-02-27 复核。
