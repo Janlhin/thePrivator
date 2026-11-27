@@ -99,7 +99,7 @@ describe("UI source guard", () => {
     const forbidden: Array<[string, RegExp]> = [
       [
         "PAC/system proxy vocabulary",
-        /value=\"pac\"|value='pac'|value=\"system\"|value='system'|value=\"directFallback\"|value='directFallback'/,
+        /value="pac"|value='pac'|value="system"|value='system'|value="directFallback"|value='directFallback'/,
       ],
       [
         "PAC/system proxy copy",
@@ -113,7 +113,7 @@ describe("UI source guard", () => {
         "browser storage or file bypass",
         /showOpenFilePicker|webkitdirectory|readTextFile|writeTextFile|localStorage|sessionStorage/,
       ],
-      ["DOM escape hatch", /type=\"file\"|type='file'|<iframe|window\.open|document\.querySelector|\.innerHTML/],
+      ["DOM escape hatch", /type="file"|type='file'|<iframe|window\.open|document\.querySelector|\.innerHTML/],
       ["direct network request", /\bfetch\s*\(/],
       [
         "internal artifact vocabulary",

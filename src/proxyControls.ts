@@ -209,6 +209,7 @@ export function isSupportedProxyProtocol(value: unknown): value is ProxyProtocol
   return typeof value === "string" && SUPPORTED_PROXY_PROTOCOLS.has(value as ProxyProtocol);
 }
 
+/** @public Not wired into the UI yet; kept as the documented formatter for saved-credential state. */
 export function formatProxyCredentialMode(mode: ProxyCredentialDraftMode): string {
   if (mode === "saved") {
     return "Saved credentials masked";

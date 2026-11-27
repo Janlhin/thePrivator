@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "react", "vitest"],
+  "categories": {
+    "correctness": "deny",
+    "suspicious": "off",
+    "perf": "off",
+    "pedantic": "off",
+    "restriction": "off",
+    "style": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "vitest/require-mock-type-parameters": "off",
+    "vitest/no-conditional-expect": "off",
+    "react/set-state-in-effect": "off",
+    "no-control-regex": "off"
+  },
+  "ignorePatterns": ["dist/**", "tmp/**", "coverage/**", "src-tauri/**", "theprivator_sidecar/**", "scripts/**"]
+}

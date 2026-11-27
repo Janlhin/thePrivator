@@ -261,8 +261,10 @@ it.each(["Edit tags…", "Move to folder…"])("applies bulk %s to every selecte
   });
   renderPage();
   await screen.findByText("Alpha");
+  await screen.findByText("Beta");
   fireEvent.click(screen.getByRole("checkbox", { name: "Select all profiles" }));
-  fireEvent.click(within(screen.getByRole("region", { name: "Bulk actions" })).getByRole("button", { name: action }));
+  const bulk = await screen.findByRole("region", { name: "Bulk actions" });
+  fireEvent.click(within(bulk).getByRole("button", { name: action }));
   const dialog = screen.getByRole("dialog");
   fireEvent.change(
     within(dialog).getByRole("textbox", { name: action === "Edit tags…" ? "Tags (comma separated)" : "New folder" }),

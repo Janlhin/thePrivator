@@ -21,11 +21,6 @@ import styles from "./ProfileTable.module.css";
 import { ProxyExit, type ProxyCheckState } from "./ProxyExit";
 import type { ProfileRecord } from "../../sidecar/types";
 
-export interface FolderName {
-  id: string;
-  name: string;
-}
-
 interface ProfileTableProps {
   rows: readonly ProfileRow[];
   layout: ColumnLayout;
