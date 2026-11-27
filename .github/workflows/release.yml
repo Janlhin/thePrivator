@@ -177,6 +177,10 @@ jobs:
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
         with:
+          # npm's script-shell is pwsh (D-015), which collapses "msi,nsis" into
+          # a single "msi nsis" argument. Call the CLI through node so the
+          # bundle list reaches Tauri intact on Windows.
+          tauriScript: node node_modules/@tauri-apps/cli/tauri.js
           args: --bundles ${{ matrix.bundles }} --config tmp/ci-bundle.json --ci
           # Publication happens only after every platform and Arch succeeds.
       - name: Verify the bundled macOS Python runtime
