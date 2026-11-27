@@ -16,6 +16,7 @@
     "deadcode": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only deadcode",
     "dupes": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only dupes",
     "docs": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only docs",
+    "rootwhitelist": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only rootwhitelist",
     "dev": "vp dev",
     "build": "tsc --noEmit && vp build",
     "test": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only test",

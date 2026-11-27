@@ -1,7 +1,7 @@
 #requires -Version 7.4
 [CmdletBinding()]
 param(
-  [ValidateSet('all', 'format', 'lint', 'stylelint', 'typecheck', 'test', 'deadcode', 'dupes', 'docs')]
+  [ValidateSet('all', 'format', 'rootwhitelist', 'lint', 'stylelint', 'typecheck', 'test', 'deadcode', 'dupes', 'docs')]
   [string]$Only = 'all'
 )
 
@@ -14,6 +14,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $repoRoot
 try {
   $node = (Get-Command node -ErrorAction Stop).Source
+  $pwsh = (Get-Command pwsh -ErrorAction Stop).Source
   $vp = Join-Path $repoRoot 'node_modules/vite-plus/dist/bin.js'
   $bin = Join-Path $repoRoot 'node_modules/.bin'
 
@@ -35,6 +36,7 @@ try {
   # Cheapest checks first, so a style or type slip fails in seconds rather than
   # after the whole suite has run.
   Invoke-Step 'format' { & $node $vp fmt src tests scripts --check }
+  Invoke-Step 'rootwhitelist' { & $pwsh -NoLogo -NoProfile -File 'scripts/check-root-whitelist.ps1' }
   Invoke-Step 'lint' { & (Join-Path $bin 'oxlint.ps1') src --deny-warnings }
   Invoke-Step 'stylelint' { & (Join-Path $bin 'stylelint.ps1') 'src/**/*.css' }
   Invoke-Step 'typecheck' { & (Join-Path $bin 'tsc.ps1') --noEmit }

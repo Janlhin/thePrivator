@@ -285,7 +285,16 @@ Local host caveats (not CI conditions):
 | `scripts/` | Sidecar build, release verification, platform probes |
 | `packaging/`, `public/`, `img/` | Packaging templates, static UI assets, images |
 | `.github/` | CI and release workflows |
-| `AGENTS.md`, `DECISIONS.md`, `TASKS.md`, `MANIFEST.md` | Rules carrier, decision log, task queue, provenance |
+| `AGENTS.md`, `DECISIONS.md`, `TASKS.md`, `MANIFEST.md`, `README.md` | Rules carrier, decision log, task queue, provenance, project readme |
+| `package.json`, `package-lock.json`, `deno.json`, `deno.lock` | npm/Deno manifest and lockfiles |
+| `tsconfig.json`, `vite.config.ts`, `vitest.setup.ts` | TypeScript, Vite and Vitest configuration |
+| `.gitattributes`, `.gitignore`, `.npmrc` | VCS and npm configuration |
+| `.oxlintrc.json`, `.stylelintrc.json`, `.jscpd.json`, `commitlint.config.js`, `knip.json` | Lint, duplication and commit-tool configuration |
+| `setup.py`, `MANIFEST.in`, `requirements.txt`, `requirements-dev.txt`, `requirements-automation.txt` | Python packaging metadata and dependency pins |
+| `index.html` | Vite HTML entry |
+| `LICENSE` | Licence text |
+| `CHANGELOG.md` | Release notes |
+| `install_chromium_helper.py` | Standalone Chromium availability probe; root placement pending a possible move under `scripts/` (TASKS.md pending list) |
 
 ### Acceptance (machine-decidable)
 
