@@ -51,6 +51,7 @@ def test_discovery_selects_brave_when_edge_and_chrome_absent(monkeypatch):
 def test_explicit_env_path_wins_and_brand_is_derived(monkeypatch, tmp_path):
     executable = tmp_path / "msedge-custom.exe"
     executable.write_text("", encoding="utf-8")
+    executable.chmod(0o755)
     monkeypatch.setenv("THEPRIVATOR_CHROMIUM_PATH", str(executable))
 
     path, brand = chromium.discover_executable_with_brand()
