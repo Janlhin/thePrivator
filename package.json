@@ -17,6 +17,7 @@
     "dupes": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only dupes",
     "docs": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only docs",
     "rootwhitelist": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only rootwhitelist",
+    "scriptbaseline": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only scriptbaseline",
     "dev": "vp dev",
     "build": "tsc --noEmit && vp build",
     "test": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only test",
