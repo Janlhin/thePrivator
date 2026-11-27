@@ -3834,12 +3834,15 @@ function parseChromiumRunningProfile(value: unknown, field: string): ChromiumRun
   const profileId = requireNonBlankString(record.profileId, `${field}.profileId`);
   requireLiteral(record.status, `${field}.status`, "running");
 
+  const brand = record.brand === undefined ? undefined : requireNonBlankString(record.brand, `${field}.brand`);
+
   return {
     profileId,
     status: "running",
     pid: requirePositiveInteger(record.pid, `${field}.pid`),
     startedAt: requireIsoTimestamp(record.startedAt, `${field}.startedAt`),
     userDataDir: requireChromiumUserDataDir(record.userDataDir, profileId, `${field}.userDataDir`),
+    ...(brand === undefined ? {} : { brand }),
   };
 }
 
