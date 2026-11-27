@@ -315,6 +315,7 @@ def test_launch_status_stop_round_trip_uses_relative_profile_storage_and_keeps_s
                 "pid": launch["pid"],
                 "startedAt": launch["startedAt"],
                 "userDataDir": profile["storage"]["userDataDir"],
+                "brand": chromium.BRAND_CHROMIUM,
             }
         ]
 
@@ -396,6 +397,7 @@ def test_launch_for_automation_direct_profile_forces_remote_debugging_and_return
             "pid": status["profiles"][0]["pid"],
             "startedAt": result["startedAt"],
             "userDataDir": profile["storage"]["userDataDir"],
+            "brand": chromium.BRAND_CHROMIUM,
         }
         registry_payload = json.loads(
             (tmp_path / "profile-store" / "runtime" / "chromium-processes.json").read_text(
@@ -912,7 +914,15 @@ def test_masked_identity_launch_generates_extension_and_applies_cdp_before_regis
         assert launch["profileId"] == profile["id"]
         assert launch["status"] == "running"
         assert launch["runningCount"] == 1
-        assert set(launch) == {"profileId", "status", "pid", "startedAt", "userDataDir", "runningCount"}
+        assert set(launch) == {
+            "profileId",
+            "status",
+            "pid",
+            "startedAt",
+            "userDataDir",
+            "runningCount",
+            "brand",
+        }
         assert str(tmp_path) not in json.dumps(launch)
         assert "ws://" not in json.dumps(launch)
         assert "--remote-debugging-port" not in json.dumps(launch)
@@ -949,6 +959,7 @@ def test_masked_identity_launch_generates_extension_and_applies_cdp_before_regis
             "pid": launch["pid"],
             "startedAt": launch["startedAt"],
             "userDataDir": profile["storage"]["userDataDir"],
+            "brand": chromium.BRAND_CHROMIUM,
         }
         registry_payload = json.dumps(
             json.loads(
