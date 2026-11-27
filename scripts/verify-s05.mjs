@@ -1,7 +1,7 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
@@ -369,10 +369,6 @@ function normalizeOutput(value, extra = []) {
     .join("\n");
 }
 
-function commandLabel(command, args, label) {
-  return label || [basename(command), ...args].join(" ");
-}
-
 async function runStep(name, action) {
   const started = performance.now();
   try {
@@ -395,40 +391,6 @@ async function runStep(name, action) {
     }
     throw error;
   }
-}
-
-function runCommand(name, command, args, timeoutMs, options = {}) {
-  return runStep(name, () => {
-    const label = commandLabel(command, args, options.label);
-    const result = spawnSync(executable(command), args, {
-      cwd: ROOT_DIR,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: timeoutMs,
-      maxBuffer: 20 * 1024 * 1024,
-    });
-    if (result.error) {
-      if (result.error.code === "ETIMEDOUT") {
-        fail(`${label} timed out.`, {
-          command: label,
-          timeoutMs,
-          stdoutTail: normalizeOutput(result.stdout),
-          stderrTail: normalizeOutput(result.stderr),
-        });
-      }
-      fail(`Failed to run ${label}.`, { command: label, error: result.error.message });
-    }
-    if (result.status !== 0) {
-      fail(`${label} exited with status ${result.status ?? "unknown"}.`, {
-        command: label,
-        exitCode: result.status,
-        stdoutTail: normalizeOutput(result.stdout),
-        stderrTail: normalizeOutput(result.stderr),
-      });
-    }
-    assertNoPublicLeaks(`${label} stdout/stderr`, `${result.stdout}\n${result.stderr}`);
-    return { command: label };
-  });
 }
 
 function readTargetTriple() {
@@ -501,7 +463,7 @@ function runSidecarRequest(binaryPath, request, options = {}) {
   const result = spawnSync(binaryPath, {
     cwd: ROOT_DIR,
     input: `${JSON.stringify(request)}\n`,
-    env: { ...process.env, ...(options.env ?? {}) },
+    env: { ...process.env, ...options.env },
     encoding: "utf8",
     stdio: ["pipe", "pipe", "pipe"],
     timeout: options.timeoutMs ?? SIDECAR_TIMEOUT_MS,
@@ -1613,20 +1575,6 @@ function assertInvalidMappingProof(caseConfig, navigation, observations) {
   };
 }
 
-function assertUnreachableProxyProof(caseConfig, navigation) {
-  assert(
-    navigation.ok === false || navigation.navigation?.marker !== "present",
-    "Unreachable proxy unexpectedly navigated to the proof target.",
-    { caseLabel: caseConfig.label, navigation },
-  );
-  return {
-    caseLabel: caseConfig.label,
-    errorCode: "PROXY_CONNECTIVITY_FAILED",
-    failureClass: "proxy-unreachable",
-    directFallbackDetected: false,
-  };
-}
-
 async function createProfileWithProxy(binaryPath, storeRoot, caseConfig, proxy, preset) {
   const profileName = `S05 ${caseConfig.label}`.slice(0, 95);
   const create = sidecarSuccess(binaryPath, makeRequestId(`${safeLabel(caseConfig.label)}-create`), "profiles.create", {
@@ -1748,7 +1696,7 @@ async function runFixtureBackedCase(binaryPath, preset, caseConfig) {
       launchEnv.THEPRIVATOR_ENABLE_PROXY_PROOF_TRUST = "1";
       launchEnv.THEPRIVATOR_PROXY_PROOF_SPKI_SHA256 = certificateTrust.spkiSha256;
     }
-    const launch = launchProfile(binaryPath, storeRoot, profile, caseConfig, launchEnv);
+    launchProfile(binaryPath, storeRoot, profile, caseConfig, launchEnv);
     launched = true;
     const dataPath = userDataPath(storeRoot, profile);
     emit({ phase: "launch", caseLabel: caseConfig.label, status: "running", fixtureKind: caseConfig.kind });
@@ -1890,65 +1838,6 @@ async function runFixtureBackedCase(binaryPath, preset, caseConfig) {
         await fixture.stop();
       } catch {
         // Cleanup failures are reported by the owning step when observable.
-      }
-    }
-    rmSync(storeRoot, { recursive: true, force: true });
-  }
-}
-
-async function runUnreachableProxyCase(binaryPath, preset) {
-  const caseConfig = {
-    label: "http-unreachable-proxy",
-    kind: "http",
-    expectation: "unreachable",
-  };
-  const storeRoot = makeTempRoot("theprivator-s05-unreachable-");
-  let profile = null;
-  let launched = false;
-  const transcriptsBefore = ALL_TRANSCRIPTS.length;
-  try {
-    emit({
-      phase: "case-start",
-      caseLabel: caseConfig.label,
-      fixtureKind: caseConfig.kind,
-      expectation: caseConfig.expectation,
-    });
-    const proxy = {
-      proxyVersion: 1,
-      mode: "fixedServer",
-      protocol: "http",
-      host: "127.0.0.1",
-      port: 9,
-    };
-    const created = await createProfileWithProxy(binaryPath, storeRoot, caseConfig, proxy, preset);
-    profile = created.profile;
-    launchProfile(binaryPath, storeRoot, profile, caseConfig);
-    launched = true;
-    const navigation = runProxyNavigation(
-      userDataPath(storeRoot, profile),
-      `http://${TARGET_HOST}${TARGET_PATH}?case=${safeLabel(caseConfig.label)}`,
-      caseConfig.label,
-    );
-    const proof = assertUnreachableProxyProof(caseConfig, navigation);
-    emit({ phase: "connectivity-failure-observed", ...proof, status: "pass" });
-    launched = false;
-    stopProfile(binaryPath, storeRoot, profile, caseConfig.label);
-    statusStopped(binaryPath, storeRoot, caseConfig.label);
-    assertRuntimeRegistryEmpty(storeRoot);
-    assertPrivateProfileStoreSafe(storeRoot, profile.id, proxy);
-    const diagnostics = parseDiagnosticsLog(storeRoot);
-    assertTranscriptRedaction(ALL_TRANSCRIPTS.slice(transcriptsBefore));
-    assertVerifierEventsRedacted();
-    assertNoPublicLeaks("diagnostics lookup", JSON.stringify(diagnostics));
-    emit({ phase: "case-result", caseLabel: caseConfig.label, fixtureKind: caseConfig.kind, status: "pass", proof });
-    return proof;
-  } finally {
-    if (launched && profile?.id) {
-      try {
-        stopProfile(binaryPath, storeRoot, profile, `${caseConfig.label}-cleanup`);
-        statusStopped(binaryPath, storeRoot, `${caseConfig.label}-cleanup`);
-      } catch {
-        // Do not mask the original failure.
       }
     }
     rmSync(storeRoot, { recursive: true, force: true });

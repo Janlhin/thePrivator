@@ -352,13 +352,14 @@ describe("verify-m004-s02 validator guardrails", () => {
     ];
 
     for (const body of unsafeBodies.slice(0, 4)) {
-      expectThrowsSafely(
+      const error = expectThrowsSafely(
         () => assertRuntimeStatusResponse({ statusCode: 200, body, requestId: headers(), context }),
         [storeRoot, fakeChromiumPath, "pid", "userDataDir", "debugPort", "webSocketDebuggerUrl"],
       );
+      expect(error).toBeInstanceOf(Error);
     }
     for (const body of unsafeBodies.slice(4)) {
-      expectThrowsSafely(
+      const error = expectThrowsSafely(
         () =>
           assertSelectedProfileStatusResponse({
             statusCode: 200,
@@ -369,6 +370,7 @@ describe("verify-m004-s02 validator guardrails", () => {
           }),
         [storeRoot, fakeChromiumPath, "ownerToken", "profileDir"],
       );
+      expect(error).toBeInstanceOf(Error);
     }
   });
 

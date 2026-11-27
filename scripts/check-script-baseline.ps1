@@ -15,7 +15,8 @@ param()
 #    Windows PowerShell host `powershell.exe`. Markdown files quote the
 #    prohibition itself (AGENTS.md/DECISIONS.md/TASKS.md/README.md); those are
 #    documentation mentions, not invocations, so the host regex scans code and
-#    config files only.
+#    config files only. Comment lines (`# ...`) are skipped: prose describing
+#    the prohibition is not a host call either.
 #
 # 3. pwsh -File entry convention:
 #    - every own `.ps1` referenced from `package.json` (scripts and
@@ -24,7 +25,8 @@ param()
 #      and must not call `sh`/`bash`/`cmd` directly;
 #    - every own `.ps1` that invokes another own `.ps1` (outside the
 #      `node_modules/.bin` vendor shims) must go through `pwsh`/`$pwsh` with
-#      `-File`.
+#      `-File`. Comment lines and a `\.ps1` token inside a regex literal are
+#      not launch references.
 #    CI workflow `shell:` settings are owned by T-011 and are not counted here.
 
 Set-StrictMode -Version Latest
@@ -55,6 +57,7 @@ try {
   foreach ($file in $ownFiles) {
     $lines = [IO.File]::ReadAllLines((Join-Path $repoRoot $file))
     for ($i = 0; $i -lt $lines.Count; $i++) {
+      if ($lines[$i].TrimStart().StartsWith('#')) { continue }
       if ($lines[$i] -match $cmdExePattern -or $lines[$i] -match $cmdFlagPattern -or $lines[$i] -match $psHostPattern) {
         $forbidden.Add("${file}:$($i + 1)")
       }
@@ -102,7 +105,10 @@ try {
     $lines = [IO.File]::ReadAllLines((Join-Path $repoRoot $file))
     for ($i = 0; $i -lt $lines.Count; $i++) {
       $line = $lines[$i]
-      if ($line -notmatch '\.ps1') { continue }
+      if ($line.TrimStart().StartsWith('#')) { continue }
+      # A real script path looks like `dir/name.ps1`; a `\.ps1` token inside a
+      # regex literal (e.g. `'\.ps1$'`) is not a launch reference.
+      if ($line -notmatch '[\w/.-]+\.ps1') { continue }
       if ($line -match 'node_modules[\\/]\.bin' -or $line -match '\$bin\b' -or $line -match '\.bin') { continue }
       if ($line -match 'Test-Path') { continue }
       if ($line -notmatch '(pwsh|\$pwsh)\b.*-File\b') {

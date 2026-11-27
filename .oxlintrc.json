@@ -17,5 +17,5 @@
     "react/set-state-in-effect": "error",
     "no-control-regex": "off"
   },
-  "ignorePatterns": ["dist/**", "tmp/**", "coverage/**", "src-tauri/**", "theprivator_sidecar/**", "scripts/**"]
+  "ignorePatterns": ["dist/**", "tmp/**", "coverage/**", "src-tauri/**", "theprivator_sidecar/**"]
 }

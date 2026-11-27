@@ -1280,7 +1280,7 @@ export function buildFinalSummary({
 
 async function cleanupAfterFailure({ processState, readiness, baseUrl, token, activeLeaseIds, storeRoot, cleanup }) {
   if (baseUrl && token && activeLeaseIds?.size) {
-    for (const leaseId of [...activeLeaseIds]) {
+    for (const leaseId of activeLeaseIds) {
       try {
         await requestJson(`${baseUrl}/v1/leases/${encodeURIComponent(leaseId)}`, {
           method: "DELETE",

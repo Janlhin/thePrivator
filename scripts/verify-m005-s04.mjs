@@ -14,7 +14,6 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
 import {
   basename,
   delimiter as hostPathDelimiter,
@@ -24,7 +23,6 @@ import {
   join,
   relative,
   resolve,
-  sep,
 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { By } from "selenium-webdriver";
@@ -48,7 +46,6 @@ import {
   createSmokeProfile as createS06SmokeProfile,
   createSmokeRunContext as createS06SmokeRunContext,
   createTauriWebDriverSession as createS06TauriWebDriverSession,
-  quitDriverSession as quitS06DriverSession,
   readMetricValue as readS06MetricValue,
   readProfileCardText as readS06ProfileCardText,
   readProfileSectionText as readS06ProfileSectionText,
@@ -171,7 +168,7 @@ const STATIC_FORBIDDEN_PATTERNS = Object.freeze([
   },
 ]);
 
-const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[\/"'`\s)]|$)/;
+const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[/"'`\s)]|$)/;
 const FRONTEND_FILESYSTEM_AUTHORITY_PATTERN =
   /@tauri-apps\/plugin-fs|\b(?:readTextFile|writeTextFile|readFile|writeFile)\s*\(/;
 const FRONTEND_SHELL_OPEN_AUTHORITY_PATTERN = /@tauri-apps\/plugin-(?:shell|opener)|\bopenUrl\s*\(/;
@@ -186,16 +183,6 @@ function assert(condition, message, details = {}) {
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function slashPath(value) {
-  return String(value ?? "")
-    .split(sep)
-    .join("/");
-}
-
-function repoRelative(rootDir, path) {
-  return slashPath(relative(rootDir, path)) || ".";
 }
 
 function pathDelimiterForPlatform(platform = process.platform) {
@@ -767,7 +754,7 @@ export function assertM005S04ChromiumExecutable({
 }
 
 export function discoverM005S04SourceProfile({
-  rootDir = ROOT_DIR,
+  rootDir: _rootDir = ROOT_DIR,
   smokeContext,
   profileName = smokeContext?.smokeProfileName,
 } = {}) {
@@ -1003,7 +990,7 @@ export function writeM005S04CookieImportFixtures(
     secondCookieName = "m005_s04_netscape",
     secondCookieValue = "m005-s04-netscape-value",
   } = {},
-  context = createM005S04PublicScanContext({
+  _context = createM005S04PublicScanContext({
     tempRoot: smokeRoot,
     cookieDomains: [cookieDomain],
     cookieNames: [cookieName, secondCookieName],
@@ -1067,7 +1054,7 @@ export function writeM005S04CookieImportFixtures(
 
 export function writeM005S04PayloadFixtures(
   { userDataRoot, appDataRoot, selectedPackagePath } = {},
-  context = createM005S04PublicScanContext({
+  _context = createM005S04PublicScanContext({
     appDataRoot,
     userDataRoot,
     selectedPaths: selectedPackagePath ? [selectedPackagePath] : [],
@@ -3638,15 +3625,6 @@ async function clickM005S04UiElement(driver, element, runtime, step, markerClass
   }
 }
 
-async function readM005S04VisibleBodyText(driver) {
-  try {
-    const body = await driver.findElement(By.css("body"));
-    return (await body.getText()).trim();
-  } catch {
-    return "";
-  }
-}
-
 async function readM005S04FirstVisibleText(driver, by) {
   try {
     const elements = await driver.findElements(by);
@@ -3874,7 +3852,7 @@ export async function driveM005S04PackageExportViaUi(
   {
     packagePath,
     strategyPlan,
-    readProfileCardText = readS06ProfileCardText,
+    readProfileCardText: _readProfileCardText = readS06ProfileCardText,
     waitForProfileButton = waitS06ProfileButton,
     waitForVisibleText = waitS06VisibleText,
     driveNativeDialogSelection = driveM005S04NativeDialogSelection,
@@ -4536,7 +4514,7 @@ export async function runM005S04CookiePortabilityLoop(
     exportPath = runtime?.fixtures?.cookieExportPath,
     importPath = runtime?.fixtures?.cookieImportJsonPath,
   } = {},
-  context = createM005S04PublicScanContext({
+  _context = createM005S04PublicScanContext({
     tempRoot: runtime?.smokeContext?.smokeRoot,
     appDataRoot: runtime?.profileStore?.appDataRoot,
     userDataRoot: runtime?.profileStore?.userDataRoot,
@@ -4655,7 +4633,7 @@ export async function runM005S04CookiePortabilityLoop(
 
 export async function runM005S04PackagePortabilityLoop(
   { driver, runtime, strategyPlan, packagePath = runtime?.fixtures?.selectedPackagePath } = {},
-  context = createM005S04PublicScanContext({
+  _context = createM005S04PublicScanContext({
     tempRoot: runtime?.smokeContext?.smokeRoot,
     appDataRoot: runtime?.profileStore?.appDataRoot,
     userDataRoot: runtime?.profileStore?.userDataRoot,

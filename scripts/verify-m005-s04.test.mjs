@@ -22,7 +22,6 @@ import {
   assertM005S04PublicEvidenceRedacted,
   assertM005S04RuntimeBookkeeping,
   assertM005S04SourceGuardrails,
-  assertM005S04VisibleTextRedacted,
   assertM005S04BusyGuardTranscript,
   assertNativeDialogAutomationPreflight,
   assertValidArgs,
@@ -47,7 +46,7 @@ import {
 
 const tempRoots = [];
 let consoleSpy;
-const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[\/"'`\s)]|$)/;
+const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[/"'`\s)]|$)/;
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "theprivator-m005-s04-test-"));
@@ -1183,7 +1182,7 @@ describe("verify-m005-s04 packaged UI and cleanup wrappers", () => {
         join(smokeContext.smokeRoot, "data", "theprivator-app-data", "profile-store", "profiles.json"),
         "utf8",
       ),
-    ).toThrow();
+    ).toThrow(/ENOENT|no such file|cannot find/i);
     expect(
       findM005S04ForbiddenPublicMarker(
         cleanup.log,
