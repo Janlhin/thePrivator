@@ -1,4 +1,5 @@
 import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
+import { t } from "../../i18n";
 import { fetchRandomUserAgent, inferUserAgentOs } from "../../userAgentApi";
 
 import {
@@ -54,7 +55,7 @@ export function FingerprintForm({
       <IdentityPresetPicker draft={draft} presets={presets ?? []} onChange={onChange} />
 
       <div className={styles.labelRow}>
-        <label htmlFor={labelId}>Identity label</label>
+        <label htmlFor={labelId}>{t("Identity label")}</label>
         <input
           id={labelId}
           type="text"
@@ -65,7 +66,7 @@ export function FingerprintForm({
         />
         {draft.errors.label === undefined ? null : (
           <p className={styles.error} id={`${labelId}-error`} role="alert">
-            {draft.errors.label}
+            {t(draft.errors.label)}
           </p>
         )}
       </div>
@@ -77,9 +78,9 @@ export function FingerprintForm({
         return (
           <section className={styles.surface} key={control.surface} aria-labelledby={`surface-${control.surface}`}>
             <div className={styles.surfaceHead}>
-              <h3 id={`surface-${control.surface}`}>{control.label}</h3>
+              <h3 id={`surface-${control.surface}`}>{t(control.label)}</h3>
               <label className={styles.modeSelect}>
-                <span className={styles.srOnly}>{control.label} mode</span>
+                <span className={styles.srOnly}>{t("{label} mode", { label: t(control.label) })}</span>
                 <select
                   value={control.mode}
                   aria-invalid={modeError !== undefined}
@@ -89,7 +90,7 @@ export function FingerprintForm({
                 >
                   {control.options.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.label)}
                     </option>
                   ))}
                 </select>
@@ -97,12 +98,12 @@ export function FingerprintForm({
             </div>
 
             <p className={styles.surfaceHint}>
-              {control.options.find((option) => option.value === control.mode)?.description ?? ""}
+              {t(control.options.find((option) => option.value === control.mode)?.description ?? "")}
             </p>
 
             {modeError === undefined ? null : (
               <p className={styles.error} role="alert">
-                {modeError}
+                {t(modeError)}
               </p>
             )}
 
@@ -148,7 +149,7 @@ function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "
   // the window before a queued network completion can overwrite that edit.
   useLayoutEffect(() => {
     setBusy(false);
-    setMessage((current) => current === "Fetching from randomapi.dev…" ? "" : current);
+    setMessage((current) => current === t("Fetching from randomapi.dev…") ? "" : current);
     return () => {
       request.current?.abort();
       request.current = null;
@@ -165,7 +166,7 @@ function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "
     request.current = controller;
     setBusy(true);
     setFailed(false);
-    setMessage("Fetching from randomapi.dev…");
+    setMessage(t("Fetching from randomapi.dev…"));
     try {
       const userAgent = await fetchRandomUserAgent(os, controller.signal);
       if (request.current !== controller || controller.signal.aborted || draft.identity.browser.mode === "real") return;
@@ -179,12 +180,12 @@ function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "
         values: { ...draft.values, "browser.userAgent": userAgent },
         errors,
       });
-      setMessage("User agent updated in draft. Review it, then Save to apply.");
+      setMessage(t("User agent updated in draft. Review it, then Save to apply."));
     } catch {
       if (request.current !== controller || controller.signal.aborted) return;
       // Never render network errors or provider response text (possibly hostile).
       setFailed(true);
-      setMessage("Could not fetch a valid user agent from randomapi.dev. Draft unchanged. Check your connection or try again.");
+      setMessage(t("Could not fetch a valid user agent from randomapi.dev. Draft unchanged. Check your connection or try again."));
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -199,11 +200,11 @@ function UserAgentField({ field, draft, onChange }: Pick<FingerprintFormProps, "
     error={draft.errors["browser.userAgent"]}
     onChange={(value) => onChange(updateIdentityDraftField(draft, "browser.userAgent", value))}
     action={<button type="button" className={styles.refreshButton} disabled={busy} aria-describedby={hintId} onClick={() => void refresh()}>
-      <span aria-hidden="true">↻</span> Refresh
+      <span aria-hidden="true">↻</span> {t("Refresh")}
     </button>}
     footer={<>
-      <p className={styles.hint} id={hintId}>randomapi.dev: direct app connection, not the profile proxy. Sends the OS filter ({os}), no profile cookies or configuration; the provider sees your connection IP. Chrome desktop only; explicit navigator.platform takes priority over the existing UA; unknown OS defaults to Linux.</p>
-      <p className={styles.hint}>Only the UA changes. It may mismatch the Chromium version and other UA-CH fields; review consistency warnings before saving.</p>
+      <p className={styles.hint} id={hintId}>{t("randomapi.dev: direct app connection, not the profile proxy. Sends the OS filter ({os}), no profile cookies or configuration; the provider sees your connection IP. Chrome desktop only; explicit navigator.platform takes priority over the existing UA; unknown OS defaults to Linux.", { os })}</p>
+      <p className={styles.hint}>{t("Only the UA changes. It may mismatch the Chromium version and other UA-CH fields; review consistency warnings before saving.")}</p>
       <p className={failed ? styles.error : styles.hint} role={failed ? "alert" : "status"}>{message}</p>
     </>}
   />;
@@ -246,7 +247,7 @@ function Field({ field, value, error, onChange, action, footer }: FieldProps) {
 
   return (
     <div className={styles.field}>
-      <label htmlFor={id}>{field.label}</label>
+      <label htmlFor={id}>{t(field.label)}</label>
 
       {field.kind === "boolean" ? (
         <input
@@ -265,7 +266,7 @@ function Field({ field, value, error, onChange, action, footer }: FieldProps) {
           {(field.kind === "webrtc-policy" ? WEBRTC_POLICY_OPTIONS : GEOLOCATION_PERMISSION_OPTIONS).map(
             (option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.label)}
               </option>
             ),
           )}
@@ -286,12 +287,12 @@ function Field({ field, value, error, onChange, action, footer }: FieldProps) {
       {footer}
       {field.description ? (
         <p className={styles.hint} id={hintId}>
-          {field.description}
+          {t(field.description)}
         </p>
       ) : null}
       {error === undefined ? null : (
         <p className={styles.error} id={errorId} role="alert">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>

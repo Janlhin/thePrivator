@@ -9,6 +9,7 @@ import {
 } from "../../sidecar/client";
 import type { AutomationApiStatusResult } from "../../sidecar/types";
 import { writeToClipboard } from "../../clipboard";
+import { t } from "../../i18n";
 import styles from "./AutomationPage.module.css";
 
 /**
@@ -67,13 +68,13 @@ export function AutomationPage() {
         const copied = await writeToClipboard(token);
         setCopyNote(
           copied
-            ? "The access token is on the clipboard. Paste it into your script now."
-            : "The clipboard is unavailable in this window.",
+            ? t("The access token is on the clipboard. Paste it into your script now.")
+            : t("The clipboard is unavailable in this window."),
         );
       } catch (caught) {
         // The message is replaced rather than forwarded: a clipboard failure can
         // quote the value it was asked to write, and that value is the token.
-        setError("The access token could not be copied.");
+        setError(t("The access token could not be copied."));
       } finally {
         setBusy(null);
       }
@@ -86,10 +87,9 @@ export function AutomationPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Automation</h1>
+        <h1>{t("Automation")}</h1>
         <p className={styles.lede}>
-          A small HTTP endpoint on this machine that lets Selenium, Playwright or Puppeteer drive your
-          profiles. It listens on loopback only and requires an access token.
+          {t("A small HTTP endpoint on this machine that lets Selenium, Playwright or Puppeteer drive your profiles. It listens on loopback only and requires an access token.")}
         </p>
       </header>
 
@@ -102,22 +102,22 @@ export function AutomationPage() {
       {/* Both labels are load-bearing: the packaged UI smoke test addresses this
           section and this list by name, so renaming either is a contract change
           rather than a cosmetic one. */}
-      <section className={styles.card} aria-label="Automation endpoint">
-        <dl className={styles.facts} aria-label="Automation endpoint status">
+      <section className={styles.card} aria-label={t("Automation endpoint")}>
+        <dl className={styles.facts} aria-label={t("Automation endpoint status")}>
           <div>
-            <dt>State</dt>
-            <dd>{status === null ? "Not checked" : running ? "Running" : "Stopped"}</dd>
+            <dt>{t("State")}</dt>
+            <dd>{status === null ? t("Not checked") : running ? t("Running") : t("Stopped")}</dd>
           </div>
           <div>
-            <dt>Address</dt>
-            <dd className={styles.mono}>{url ?? "Available once running"}</dd>
+            <dt>{t("Address")}</dt>
+            <dd className={styles.mono}>{url ?? t("Available once running")}</dd>
           </div>
           <div>
-            <dt>Reachable from</dt>
-            <dd>{status?.api?.scope ?? "This machine only"}</dd>
+            <dt>{t("Reachable from")}</dt>
+            <dd>{status?.api?.scope ?? t("This machine only")}</dd>
           </div>
           <div>
-            <dt>Started</dt>
+            <dt>{t("Started")}</dt>
             <dd>{formatMoment(status?.process?.startedAt ?? null)}</dd>
           </div>
         </dl>
@@ -128,7 +128,7 @@ export function AutomationPage() {
           </p>
         ) : null}
 
-        <div className={styles.actions} aria-label="Automation endpoint actions">
+        <div className={styles.actions} aria-label={t("Automation endpoint actions")}>
           {running ? (
             <button
               type="button"
@@ -136,7 +136,7 @@ export function AutomationPage() {
               disabled={busy !== null}
               onClick={() => act("stopping", stopAutomationApi)}
             >
-              {busy === "stopping" ? "Stopping…" : "Stop"}
+              {busy === "stopping" ? t("Stopping…") : t("Stop")}
             </button>
           ) : (
             <button
@@ -145,7 +145,7 @@ export function AutomationPage() {
               disabled={busy !== null}
               onClick={() => act("starting", startAutomationApi)}
             >
-              {busy === "starting" ? "Starting…" : "Start"}
+              {busy === "starting" ? t("Starting…") : t("Start")}
             </button>
           )}
 
@@ -155,7 +155,7 @@ export function AutomationPage() {
             disabled={busy !== null || !running || !(status?.copyAvailable ?? false)}
             onClick={copyToken}
           >
-            {busy === "copying" ? "Copying…" : "Copy access token"}
+            {busy === "copying" ? t("Copying…") : t("Copy access token")}
           </button>
 
           <button
@@ -164,7 +164,7 @@ export function AutomationPage() {
             disabled={busy !== null}
             onClick={() => act("refreshing", getAutomationApiStatus)}
           >
-            Refresh
+            {t("Refresh")}
           </button>
         </div>
 
@@ -175,7 +175,7 @@ export function AutomationPage() {
         ) : null}
 
         <p className={styles.hint}>
-          The token is never shown on screen. Copying it puts it on the clipboard and nowhere else.
+          {t("The token is never shown on screen. Copying it puts it on the clipboard and nowhere else.")}
         </p>
       </section>
     </div>
@@ -184,8 +184,8 @@ export function AutomationPage() {
 
 function formatMoment(value: string | null): string {
   if (value === null) {
-    return "Not running";
+    return t("Not running");
   }
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "Unknown" : parsed.toLocaleString();
+  return Number.isNaN(parsed.getTime()) ? t("Unknown") : parsed.toLocaleString();
 }

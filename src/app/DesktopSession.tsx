@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { getMachineInfo, getPreferences, vaultOperation, normalizeSidecarError, type MachineInfo, type VaultStatus, type Preferences, saveInterfacePreferences } from "../sidecar/client";
+import { useDocumentLanguage, useT } from "../i18n";
 import { subscribeToSidecarEvent } from "../sidecarEvents";
 import styles from "../features/settings/SettingsPage.module.css";
 
@@ -15,6 +16,8 @@ export function applyTheme(theme: "system" | "light" | "dark") {
 }
 
 export function DesktopSession({ children }: { children: ReactNode }) {
+  const t = useT();
+  useDocumentLanguage();
   const [preferences, setPreferences] = useState<Preferences>({ theme: "system" });
   const [vault, setVault] = useState<VaultStatus | null>(null);
   const [machine, setMachine] = useState<MachineInfo | null>(null);
@@ -35,7 +38,7 @@ export function DesktopSession({ children }: { children: ReactNode }) {
     const changed = () => { void refresh(); };
     window.addEventListener(VAULT_CHANGED, changed);
     const off = subscribeToSidecarEvent("theprivator://vault-close-failed", () => {
-      setError("The vault could not be locked. The app remains open. Check free space and retry locking.");
+      setError(t("The vault could not be locked. The app remains open. Check free space and retry locking."));
       void refresh();
     });
     return () => { window.removeEventListener(VAULT_CHANGED, changed); off(); };
@@ -45,19 +48,19 @@ export function DesktopSession({ children }: { children: ReactNode }) {
     void saveInterfacePreferences(patch).catch((caught) => setError(normalizeSidecarError(caught).message));
   }, []);
   if (vault && !vault.locked) return <PreferencesContext.Provider value={{ preferences, save }}><MachineContext.Provider value={machine}>
-    {error ? <p role="alert">{error} <button onClick={() => setError("")}>Dismiss</button></p> : null}{children}
+    {error ? <p role="alert">{error} <button onClick={() => setError("")}>{t("Dismiss")}</button></p> : null}{children}
   </MachineContext.Provider></PreferencesContext.Provider>;
   return <main className={styles.page} style={{ maxWidth: 480, margin: "12vh auto" }}>
-    <h1>{vault ? "Unlock ThePrivator" : "Opening ThePrivator…"}</h1>
+    <h1>{vault ? t("Unlock ThePrivator") : t("Opening ThePrivator…")}</h1>
     {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-    {vault?.recoveryRequired ? <p>The previous session did not finish locking. Enter your password to recover its latest data, then lock again to protect it.</p> : null}
+    {vault?.recoveryRequired ? <p>{t("The previous session did not finish locking. Enter your password to recover its latest data, then lock again to protect it.")}</p> : null}
     {vault ? <form onSubmit={(event) => {
       event.preventDefault(); setBusy(true); setError("");
       const value = password; setPassword("");
       void vaultOperation("unlock", value).then(setVault).catch((caught) => setError(normalizeSidecarError(caught).message)).finally(() => setBusy(false));
     }}>
-      <label>PIN or password <input autoFocus type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} /></label>
-      <button className={styles.primary} disabled={busy || !password}>{busy ? "Unlocking…" : "Unlock"}</button>
-    </form> : error ? <button onClick={() => { setError(""); void refresh(); }}>Retry</button> : null}
+      <label>{t("PIN or password")} <input autoFocus type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} /></label>
+      <button className={styles.primary} disabled={busy || !password}>{busy ? t("Unlocking…") : t("Unlock")}</button>
+    </form> : error ? <button onClick={() => { setError(""); void refresh(); }}>{t("Retry")}</button> : null}
   </main>;
 }

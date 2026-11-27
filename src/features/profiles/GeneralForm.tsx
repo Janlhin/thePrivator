@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 
+import { t } from "../../i18n";
 import type { ProfileOrganizationDraft } from "../../sidecar/types";
 import styles from "./ProfileEditor.module.css";
 
@@ -48,7 +49,7 @@ export function GeneralForm({
   return (
     <div className={styles.general}>
       <label className={styles.stacked} htmlFor={nameId}>
-        Name
+        {t("Name")}
       </label>
       <input
         id={nameId}
@@ -71,18 +72,18 @@ export function GeneralForm({
           checked={organization.favorite}
           onChange={(event) => onOrganizationChange({ ...organization, favorite: event.target.checked })}
         />
-        Keep in favorites
+        {t("Keep in favorites")}
       </label>
 
       <div className={styles.stacked}>
-        <label htmlFor={tagId}>Tags</label>
+        <label htmlFor={tagId}>{t("Tags")}</label>
         <ul className={styles.tagList}>
           {organization.tags.map((tag) => (
             <li key={tag} className={styles.tagChip}>
               {tag}
               <button
                 type="button"
-                aria-label={`Remove tag ${tag}`}
+                aria-label={t("Remove tag {tag}", { tag })}
                 onClick={() =>
                   onOrganizationChange({
                     ...organization,
@@ -112,16 +113,16 @@ export function GeneralForm({
             }}
           />
           <button type="button" onClick={addTag} disabled={organization.tags.length >= MAX_TAGS}>
-            Add tag
+            {t("Add tag")}
           </button>
         </div>
         <span className={styles.hint}>
-          {organization.tags.length} of {MAX_TAGS} tags used.
+          {t("{used} of {total} tags used.", { used: organization.tags.length, total: MAX_TAGS })}
         </span>
       </div>
 
       <div className={styles.stacked}>
-        <label htmlFor={notesId}>Notes</label>
+        <label htmlFor={notesId}>{t("Notes")}</label>
         <textarea
           id={notesId}
           rows={5}
@@ -130,7 +131,7 @@ export function GeneralForm({
           onChange={(event) => onOrganizationChange({ ...organization, notes: event.target.value })}
         />
         <span className={styles.hint}>
-          {organization.notes.length} of {MAX_NOTES} characters. Notes stay on this device unless you sync it.
+          {t("{used} of {total} characters. Notes stay on this device unless you sync it.", { used: organization.notes.length, total: MAX_NOTES })}
         </span>
       </div>
     </div>

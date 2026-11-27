@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { t } from "../../i18n";
 import { getCookieBotDefaults, getCookieBotStatus, startCookieBot, cancelCookieBot, normalizeSidecarError } from "../../sidecar/client";
 import type { CookieBotConfig, CookieBotJob } from "../../sidecar/types";
 import styles from "./ProfilesPage.module.css";
@@ -78,12 +79,12 @@ export function CookieBotDialog({ profileId, profileName, onClose, onRefresh, on
     try {
       normalized = [...new Set(urls.trim().split(/[\s,]+/).filter(Boolean).map((value) => {
         const url = new URL(/^[a-z][a-z\d+.-]*:/i.test(value) ? value : `https://${value}`);
-        if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) throw new Error("Use HTTP or HTTPS URLs without embedded credentials.");
+        if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) throw new Error(t("Use HTTP or HTTPS URLs without embedded credentials."));
         url.hash = "";
         return url.href;
       }))];
-      if (normalized.length > 25) throw new Error("Enter at most 25 URLs.");
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Check the URLs."); return; }
+      if (normalized.length > 25) throw new Error(t("Enter at most 25 URLs."));
+    } catch (caught) { setError(caught instanceof Error ? caught.message : t("Check the URLs.")); return; }
     lock.current = true; setPending(true);
     try { setJob((await startCookieBot(profileId, { ...config, urls: normalized.length ? normalized : defaultUrls })).job); onRefresh(); }
     catch (caught) { setError(normalizeSidecarError(caught).message); }
@@ -91,7 +92,7 @@ export function CookieBotDialog({ profileId, profileName, onClose, onRefresh, on
   };
 
   return <div className={styles.overlay} role="presentation">
-    <div ref={dialog} className={`${styles.dialog} ${fields.dialog}`} role="dialog" aria-modal="true" aria-label={`Run Cookie Bot — ${profileName}`} onKeyDown={(event) => {
+    <div ref={dialog} className={`${styles.dialog} ${fields.dialog}`} role="dialog" aria-modal="true" aria-label={t("Run Cookie Bot — {name}", { name: profileName })} onKeyDown={(event) => {
       if (event.key === "Escape") { event.stopPropagation(); if (!pending && !active) onClose(); }
       if (event.key === "Tab") {
         const nodes = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLTextAreaElement>("button, input, textarea")).filter((element) => !element.disabled);
@@ -99,25 +100,30 @@ export function CookieBotDialog({ profileId, profileName, onClose, onRefresh, on
         if ((event.shiftKey && document.activeElement === nodes[0]) || (!event.shiftKey && document.activeElement === nodes[nodes.length - 1])) { event.preventDefault(); target?.focus(); }
       }
     }}>
-      <h2>Run Cookie Bot</h2>
-      <p>Visit websites in {profileName} using its browser and configured proxy. Cookies set by those sites stay in this profile; sites may set no cookies. No login or consent buttons are clicked.</p>
+      <h2>{t("Run Cookie Bot")}</h2>
+      <p>{t("Visit websites in {name} using its browser and configured proxy. Cookies set by those sites stay in this profile; sites may set no cookies. No login or consent buttons are clicked.", { name: profileName })}</p>
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-      <label className={fields.field}>Links to crawl
+      <label className={fields.field}>{t("Links to crawl")}
         <textarea value={displayedUrls} onChange={(event) => setUrls(event.target.value)} disabled={pending || active} rows={6}
-          placeholder={'Separate URLs with line breaks, commas or spaces. https:// is optional. Leave empty for the default sites.'} />
+          placeholder={t("Separate URLs with line breaks, commas or spaces. https:// is optional. Leave empty for the default sites.")} />
       </label>
       {displayedConfig ? <>
-        <p className={fields.hint}>Default sites: {defaultUrls.join(", ")}</p>
-        <p className={fields.hint}>Only same-origin links are followed, up to depth {displayedConfig.maxDepth}. Browsing is limited to {displayedConfig.maxPages} pages and {displayedConfig.maxDurationSeconds} seconds, with {displayedConfig.dwellSeconds} seconds per page after the DOM is ready. Within the overall time limit, pages get up to 10 seconds for the DOM and 2 extra seconds for delayed links. Cross-origin redirect destinations are not crawled further. Browser startup and cleanup take additional time.</p>
+        <p className={fields.hint}>{t("Default sites: {sites}", { sites: defaultUrls.join(", ") })}</p>
+        <p className={fields.hint}>{t("Only same-origin links are followed, up to depth {depth}. Browsing is limited to {pages} pages and {seconds} seconds, with {dwell} seconds per page after the DOM is ready. Within the overall time limit, pages get up to 10 seconds for the DOM and 2 extra seconds for delayed links. Cross-origin redirect destinations are not crawled further. Browser startup and cleanup take additional time.", {
+          depth: displayedConfig.maxDepth,
+          pages: displayedConfig.maxPages,
+          seconds: displayedConfig.maxDurationSeconds,
+          dwell: displayedConfig.dwellSeconds,
+        })}</p>
         <label className={fields.toggle}><input type="checkbox" checked={displayedConfig.closeAfterCompletion} disabled={pending || active}
-          onChange={(event) => setConfig((current) => current ? { ...current, closeAfterCompletion: event.target.checked } : current)} />Close profile after all URLs are crawled</label>
-      </> : <p>Loading cookie bot settings…</p>}
-      {job ? <p role="status">{job.status}: {job.visitedPages} pages visited; {job.failedPages} failed.{job.stopReason ? ` ${job.stopReason}.` : ""}{job.currentUrl ? ` Current page: ${job.currentUrl}` : ""}</p> : null}
+          onChange={(event) => setConfig((current) => current ? { ...current, closeAfterCompletion: event.target.checked } : current)} />{t("Close profile after all URLs are crawled")}</label>
+      </> : <p>{t("Loading cookie bot settings…")}</p>}
+      {job ? <p role="status">{t("{status}: {visited} pages visited; {failed} failed.", { status: job.status, visited: job.visitedPages, failed: job.failedPages })}{job.stopReason ? ` ${job.stopReason}.` : ""}{job.currentUrl ? ` ${t("Current page: {url}", { url: job.currentUrl })}` : ""}</p> : null}
       {job && job.errors.length > 0 ? <p role="alert" className={styles.error}>{job.errors.join(" · ")}</p> : null}
       <div className={styles.dialogActions}>
-        <button type="button" className={styles.secondary} disabled={pending || active} onClick={onClose}>{job ? "Close" : "Cancel"}</button>
-        {active ? <button type="button" className={styles.danger} disabled={pending || job?.status === "cancelling"} onClick={() => void cancel()}>{job?.status === "cancelling" ? "Cancelling…" : "Cancel run"}</button> :
-          <button type="button" className={styles.primary} disabled={config === null || pending} onClick={() => void run()}>{pending ? "Starting…" : "Run"}</button>}
+        <button type="button" className={styles.secondary} disabled={pending || active} onClick={onClose}>{job ? t("Close") : t("Cancel")}</button>
+        {active ? <button type="button" className={styles.danger} disabled={pending || job?.status === "cancelling"} onClick={() => void cancel()}>{job?.status === "cancelling" ? t("Cancelling…") : t("Cancel run")}</button> :
+          <button type="button" className={styles.primary} disabled={config === null || pending} onClick={() => void run()}>{pending ? t("Starting…") : t("Run")}</button>}
       </div>
     </div>
   </div>;
