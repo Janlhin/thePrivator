@@ -110,6 +110,7 @@ import type {
   LegacyScanSnapshot,
   LegacyUserDataStatus,
   FingerprintMode,
+  EngineId,
   ProfileDefaults,
   ProfileListResult,
   ProfileListSnapshot,
@@ -140,6 +141,7 @@ import type {
   ProfileMutationSnapshot,
   ProfileRecord,
   ProfileStorage,
+  CookieHealthInfo,
   SidecarClientError,
   SidecarCommandErrorEnvelope,
   SidecarCommandSuccessEnvelope,
@@ -3832,12 +3834,15 @@ function parseChromiumRunningProfile(value: unknown, field: string): ChromiumRun
   const profileId = requireNonBlankString(record.profileId, `${field}.profileId`);
   requireLiteral(record.status, `${field}.status`, "running");
 
+  const brand = record.brand === undefined ? undefined : requireNonBlankString(record.brand, `${field}.brand`);
+
   return {
     profileId,
     status: "running",
     pid: requirePositiveInteger(record.pid, `${field}.pid`),
     startedAt: requireIsoTimestamp(record.startedAt, `${field}.startedAt`),
     userDataDir: requireChromiumUserDataDir(record.userDataDir, profileId, `${field}.userDataDir`),
+    ...(brand === undefined ? {} : { brand }),
   };
 }
 
@@ -3882,7 +3887,9 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
       "lifecycle",
       "sync",
       "metadata",
+      "cookieHealth",
       "proxyRevision",
+      "engine",
     ],
     [
       "id",
@@ -3910,6 +3917,9 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
 
   const metadata =
     record.metadata === undefined ? undefined : parseSafePublicMetadata(record.metadata, `${field}.metadata`);
+  const engine = parseProfileEngine(record.engine, `${field}.engine`);
+
+  const cookieHealth = record.cookieHealth === undefined ? undefined : parseProfileCookieHealth(record.cookieHealth);
 
   return {
     id,
@@ -3929,10 +3939,20 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
     lifecycle: parseProfileLifecycle(record.lifecycle, `${field}.lifecycle`),
     sync: parseProfileSync(record.sync, `${field}.sync`),
     ...(metadata === undefined ? {} : { metadata }),
+    ...(cookieHealth === undefined ? {} : { cookieHealth }),
     ...(record.proxyRevision === undefined
       ? {}
       : { proxyRevision: requireNonBlankString(record.proxyRevision, `${field}.proxyRevision`) }),
+    ...(engine === undefined ? {} : { engine }),
   };
+}
+
+function parseProfileEngine(value: unknown, field: string): EngineId | undefined {
+  if (value === undefined) return undefined;
+  if (value !== "chromium" && value !== "firefox") {
+    throw makeProtocolError(`The sidecar response field ${field} must be "chromium" or "firefox".`);
+  }
+  return value;
 }
 
 function parseProfileDefaults(
@@ -3947,7 +3967,10 @@ function parseProfileDefaults(
     ["browser", "startUrl", "proxyMode", "fingerprintMode"],
     field,
   );
-  requireLiteral(defaults.browser, `${field}.browser`, "chromium");
+  const browser = parseProfileEngine(defaults.browser, `${field}.browser`);
+  if (browser === undefined) {
+    throw makeProtocolError(`The sidecar response field ${field}.browser must be "chromium" or "firefox".`);
+  }
   const startUrl = requireProfileStartUrl(defaults.startUrl, `${field}.startUrl`);
   const proxyMode = requireProfileProxyMode(defaults.proxyMode, `${field}.proxyMode`);
   const fingerprintMode = requireFingerprintMode(defaults.fingerprintMode, `${field}.fingerprintMode`);
@@ -3967,7 +3990,7 @@ function parseProfileDefaults(
   }
 
   return {
-    browser: "chromium",
+    browser,
     startUrl,
     proxyMode,
     fingerprintMode,
@@ -5793,6 +5816,36 @@ function parseSafePublicMetadata(value: unknown, field: string): JsonObject {
   return parseSafeJsonObject(value, field);
 }
 
+function optionalPublicString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function optionalPublicNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Parse the optional cookie-health section.
+ *
+ * The sidecar does not produce this yet, and an older or half-formed payload
+ * must not fail the whole profile list: a missing, null or non-object section
+ * reads back as `undefined`, which the UI shows as "unknown / not probed".
+ */
+function parseProfileCookieHealth(value: unknown): CookieHealthInfo | undefined {
+  if (value === null || value === undefined || !isRecord(value)) {
+    return undefined;
+  }
+  return {
+    expiresAt: optionalPublicString(value.expiresAt),
+    probedAt: optionalPublicString(value.probedAt),
+    probeStatus: optionalPublicNumber(value.probeStatus),
+    probeFinalUrl: optionalPublicString(value.probeFinalUrl),
+    loginPageMarkers: Array.isArray(value.loginPageMarkers)
+      ? value.loginPageMarkers.filter((item): item is string => typeof item === "string")
+      : [],
+  };
+}
+
 function parseSafeJsonObject(value: unknown, field: string): JsonObject {
   const record = requireRecord(value, `The sidecar response field ${field} must be an object.`);
   const parsed: JsonObject = {};
@@ -5945,7 +5998,8 @@ function sameProfileRecord(left: ProfileRecord, right: ProfileRecord): boolean {
     JSON.stringify(left.launch) === JSON.stringify(right.launch) &&
     JSON.stringify(left.lifecycle) === JSON.stringify(right.lifecycle) &&
     JSON.stringify(left.sync) === JSON.stringify(right.sync) &&
-    JSON.stringify(left.metadata ?? null) === JSON.stringify(right.metadata ?? null)
+    JSON.stringify(left.metadata ?? null) === JSON.stringify(right.metadata ?? null) &&
+    JSON.stringify(left.cookieHealth ?? null) === JSON.stringify(right.cookieHealth ?? null)
   );
 }
 

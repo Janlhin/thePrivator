@@ -204,7 +204,7 @@ describe("verify-m004-s03 lease response validators", () => {
     ];
 
     for (const body of badBodies) {
-      expectThrowsSafely(
+      const error = expectThrowsSafely(
         () =>
           assertLeaseCreateResponse({
             statusCode: 201,
@@ -216,6 +216,7 @@ describe("verify-m004-s03 lease response validators", () => {
           }),
         [endpoint, leaseId, "ws://"],
       );
+      expect(error).toBeInstanceOf(Error);
     }
   });
 

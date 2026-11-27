@@ -17,6 +17,14 @@ export default defineConfig({
     globals: true,
     setupFiles: "./vitest.setup.ts",
     css: true,
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/cypress/**",
+      "**/.{idea,git,cache,output,temp}/**",
+      "**/{karma,rollup,webpack,vite,vitest,jest,playwright,nuxt,vue-*}/**",
+      "e2e/**",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text-summary", "lcov"],

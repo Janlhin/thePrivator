@@ -513,3 +513,48 @@ describe("FingerprintForm", () => {
     }
   });
 });
+
+describe("restricted engine fingerprint panel", () => {
+  it("disables every fingerprint control and explains why on Firefox", () => {
+    render(
+      <FingerprintForm
+        draft={createIdentityDraftState(realIdentity())}
+        warnings={[]}
+        engine="firefox"
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Firefox does not expose a channel/)).toBeInTheDocument();
+
+    for (const control of screen.queryAllByRole("combobox")) {
+      expect(control).toBeDisabled();
+    }
+    for (const control of screen.queryAllByRole("textbox")) {
+      expect(control).toBeDisabled();
+    }
+    for (const control of screen.queryAllByRole("checkbox")) {
+      expect(control).toBeDisabled();
+    }
+    for (const button of screen.getAllByRole("button", { name: /Refresh/ })) {
+      expect(button).toBeDisabled();
+    }
+  });
+
+  it("keeps the controls editable on Chromium", () => {
+    render(
+      <FingerprintForm
+        draft={createIdentityDraftState(realIdentity())}
+        warnings={[]}
+        engine="chromium"
+        onChange={vi.fn()}
+      />,
+    );
+
+    const comboboxes = screen.queryAllByRole("combobox");
+    expect(comboboxes.length).toBeGreaterThan(0);
+    for (const control of comboboxes) {
+      expect(control).not.toBeDisabled();
+    }
+  });
+});

@@ -1,6 +1,7 @@
 import type { ProfileRecord } from "../../sidecar/types";
 import type { ProfileView } from "../../app/routes";
 import { SORT_READERS, type SortState } from "./columns";
+import { classifyCookieHealth, readCookieHealth, type CookieHealthFilter } from "./cookieHealth";
 
 /**
  * The table's model, as pure functions.
@@ -22,6 +23,7 @@ export interface TableQuery {
   search: string;
   tags: readonly string[];
   sort: SortState;
+  health: CookieHealthFilter;
 }
 
 /**
@@ -77,6 +79,9 @@ export function filterRows(rows: readonly ProfileRow[], query: TableQuery): Prof
       return false;
     }
     if (query.tags.length > 0 && !query.tags.every((tag) => row.profile.organization.tags.includes(tag))) {
+      return false;
+    }
+    if (query.health !== "all" && classifyCookieHealth(readCookieHealth(row.profile)) !== query.health) {
       return false;
     }
     return matchesSearch(row.profile, terms);

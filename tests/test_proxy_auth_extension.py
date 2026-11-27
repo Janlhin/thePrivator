@@ -307,6 +307,7 @@ def test_identity_and_proxy_auth_extensions_compose_with_webrtc_and_cdp_flags(tm
                 "pid": launch["pid"],
                 "startedAt": launch["startedAt"],
                 "userDataDir": profile["storage"]["userDataDir"],
+                "brand": chromium.BRAND_CHROMIUM,
             }
         ]
         encoded_status = json.dumps(status, sort_keys=True)

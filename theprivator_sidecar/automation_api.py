@@ -1083,7 +1083,7 @@ def _automation_profile_summary(profile: ProfileRecord) -> JsonObject:
         "name": profile.name,
         "createdAt": profile.createdAt,
         "updatedAt": profile.updatedAt,
-        "defaults": asdict(derive_defaults(proxy=proxy, identity=profile.identity, launch=profile.launch)),
+        "defaults": asdict(derive_defaults(proxy=proxy, identity=profile.identity, launch=profile.launch, engine=profile.engine)),
         "identity": normalize_profile_identity(profile.identity),
         "proxy": _automation_proxy_summary(proxy),
     }

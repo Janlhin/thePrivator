@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { makeProfile } from "../../testing/profileFactory";
+import type { CookieHealthInfo } from "../../sidecar/types";
 import { DEFAULT_SORT, type SortState } from "./columns";
 import {
   EMPTY_SELECTION,
@@ -22,7 +23,7 @@ function row(profile: ReturnType<typeof makeProfile>, running = false): ProfileR
 }
 
 function query(overrides: Partial<TableQuery> = {}): TableQuery {
-  return { view: "all", folderId: null, search: "", tags: [], sort: DEFAULT_SORT, ...overrides };
+  return { view: "all", folderId: null, search: "", tags: [], sort: DEFAULT_SORT, health: "all", ...overrides };
 }
 
 describe("searchTerms", () => {
@@ -106,6 +107,47 @@ describe("filterRows", () => {
     // A filter that falls back to "show all" reads as though the filter silently
     // failed, which is worse than an empty table saying so.
     expect(filterRows(rows, query({ search: "nothing-matches-this" }))).toEqual([]);
+  });
+});
+
+describe("health filter", () => {
+  const probed = (overrides: Partial<CookieHealthInfo>): CookieHealthInfo => ({
+    expiresAt: null,
+    probedAt: "2026-05-31T12:00:00.000Z",
+    probeStatus: 200,
+    probeFinalUrl: "https://example.com/account",
+    loginPageMarkers: [],
+    ...overrides,
+  });
+  const active = makeProfile({
+    name: "Active",
+    cookieHealth: probed({ expiresAt: "2099-01-01T00:00:00.000Z" }),
+  });
+  const expired = makeProfile({
+    name: "Expired",
+    cookieHealth: probed({ expiresAt: "2000-01-01T00:00:00.000Z" }),
+  });
+  const denied = makeProfile({
+    name: "Denied",
+    cookieHealth: probed({ probeStatus: 401, probeFinalUrl: null }),
+  });
+  const unseen = makeProfile({ name: "Unseen" });
+  const rows = [row(active), row(expired), row(denied), row(unseen)];
+
+  it("shows every row when the filter is all", () => {
+    expect(filterRows(rows, query())).toHaveLength(4);
+  });
+
+  it("keeps only the expired rows", () => {
+    expect(filterRows(rows, query({ health: "expired" })).map((r) => r.profile.name)).toEqual(["Expired"]);
+  });
+
+  it("keeps only the unauthorized rows", () => {
+    expect(filterRows(rows, query({ health: "unauthorized" })).map((r) => r.profile.name)).toEqual(["Denied"]);
+  });
+
+  it("keeps rows with no probe record under unknown", () => {
+    expect(filterRows(rows, query({ health: "unknown" })).map((r) => r.profile.name)).toEqual(["Unseen"]);
   });
 });
 

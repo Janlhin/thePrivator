@@ -71,6 +71,15 @@ from .proxy_runtime import (
     is_rejected_launch_switch,
     validate_proxy_server_launch_arg,
 )
+from .engines import (
+    CHROMIUM_DISABLE_EXTENSIONS_EXCEPT_PREFIX,
+    CHROMIUM_EXECUTABLE_ENV,
+    CHROMIUM_LOAD_EXTENSION_PREFIX,
+    CHROMIUM_REMOTE_ALLOW_ORIGINS_ARG,
+    CHROMIUM_REMOTE_DEBUGGING_SWITCH,
+    DEFAULT_ENGINE,
+    describe_engine,
+)
 
 try:  # pragma: no cover - exercised through the available dependency in CI/dev.
     import psutil  # type: ignore
@@ -88,16 +97,11 @@ PROXY_BRIDGE_READY_TIMEOUT_SECONDS = 5.0
 GRACEFUL_STOP_TIMEOUT_SECONDS = 3.0
 FORCE_STOP_TIMEOUT_SECONDS = 2.0
 LAUNCH_LIVENESS_SETTLE_SECONDS = 0.05
-CHROMIUM_EXECUTABLE_ENV = "THEPRIVATOR_CHROMIUM_PATH"
+# Some brands exit their launcher stub right after handing off to the browser
+# main process; give that surviving main process a short window to appear.
+LAUNCH_DESCENDANT_MATCH_SECONDS = 1.5
 PROXY_PROOF_TRUST_ENABLED_ENV = "THEPRIVATOR_ENABLE_PROXY_PROOF_TRUST"
 PROXY_PROOF_SPKI_SHA256_ENV = "THEPRIVATOR_PROXY_PROOF_SPKI_SHA256"
-CHROMIUM_EXECUTABLE_NAMES = (
-    "chromium-browser",
-    "chromium",
-    "google-chrome",
-    "google-chrome-stable",
-    "chrome",
-)
 
 _SAFE_CHROMIUM_ARGS = (
     "--profile-directory=Default",
@@ -109,11 +113,8 @@ _SAFE_CHROMIUM_ARGS = (
     "--disable-translate",
     "--disable-features=TranslateUI",
 )
-_REMOTE_DEBUGGING_ARG = "--remote-debugging-port=0"
-_REMOTE_ALLOW_ORIGINS_ARG = "--remote-allow-origins=*"
+_REMOTE_DEBUGGING_ZERO_ARG = f"{CHROMIUM_REMOTE_DEBUGGING_SWITCH}0"
 _PROXY_PROOF_SPKI_ARG_PREFIX = "--ignore-certificate-errors-spki-list="
-_LOAD_EXTENSION_PREFIX = "--load-extension="
-_DISABLE_EXTENSIONS_EXCEPT_PREFIX = "--disable-extensions-except="
 _ALLOWED_IDENTITY_LAUNCH_FLAGS = {WEBRTC_DISABLE_NON_PROXIED_UDP_FLAG}
 _ALLOWED_IDENTITY_VALUE_ARG_PREFIXES = (
     "--user-agent=",
@@ -149,6 +150,8 @@ class RuntimeRecord:
     # exclusive lock on it for its lifetime, so it doubles as proof that the
     # recorded pid is still that bridge and not a process that reused it.
     proxy_bridge_ready_file: Optional[str] = None
+    # Chromium-family brand actually launched (edge/chrome/brave/chromium).
+    brand: Optional[str] = None
 
     @classmethod
     def from_dict(cls, payload: Any) -> Optional["RuntimeRecord"]:
@@ -178,6 +181,9 @@ class RuntimeRecord:
             or not _is_safe_relative_posix_path(proxy_bridge_ready_file)
         ):
             return None
+        brand = payload.get("brand")
+        if brand is not None and not isinstance(brand, str):
+            return None
         return cls(
             profile_id=profile_id,
             pid=pid,
@@ -186,6 +192,7 @@ class RuntimeRecord:
             owner_token=owner_token,
             proxy_bridge_pid=proxy_bridge_pid,
             proxy_bridge_ready_file=proxy_bridge_ready_file,
+            brand=brand,
         )
 
     def to_dict(self) -> JsonObject:
@@ -200,6 +207,8 @@ class RuntimeRecord:
             payload["proxyBridgePid"] = self.proxy_bridge_pid
         if self.proxy_bridge_ready_file is not None:
             payload["proxyBridgeReadyFile"] = self.proxy_bridge_ready_file
+        if self.brand is not None:
+            payload["brand"] = self.brand
         return payload
 
 @dataclass(frozen=True)
@@ -586,13 +595,77 @@ def stop(store_root: Union[str, Path], profile_id: str) -> JsonObject:
 
 
 
-def discover_executable() -> Path:
-    """Find Chromium without accepting frontend-provided command strings."""
-    configured_path = os.environ.get(CHROMIUM_EXECUTABLE_ENV, "").strip()
+BRAND_EDGE = "edge"
+BRAND_CHROME = "chrome"
+BRAND_BRAVE = "brave"
+BRAND_CHROMIUM = "chromium"
+
+
+@dataclass(frozen=True)
+class _BrandProbe:
+    brand: str
+    names: tuple[str, ...]
+    fixed_paths: tuple[str, ...]
+
+
+# Probe order within the Chromium engine: Edge first, then Chrome, Brave, and a
+# generic Chromium build. Each probe checks its fixed install paths before PATH.
+_BRAND_PROBES: tuple[_BrandProbe, ...] = (
+    _BrandProbe(
+        brand=BRAND_EDGE,
+        names=("microsoft-edge", "microsoft-edge-stable", "msedge"),
+        fixed_paths=(
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        ),
+    ),
+    _BrandProbe(
+        brand=BRAND_CHROME,
+        names=("google-chrome", "google-chrome-stable", "chrome"),
+        fixed_paths=(
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        ),
+    ),
+    _BrandProbe(
+        brand=BRAND_BRAVE,
+        names=("brave-browser", "brave"),
+        fixed_paths=(
+            r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+            r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        ),
+    ),
+    _BrandProbe(
+        brand=BRAND_CHROMIUM,
+        names=("chromium-browser", "chromium"),
+        fixed_paths=(),
+    ),
+)
+
+
+def _brand_for_executable(executable: Path) -> str:
+    """Best-effort brand label for an explicitly configured executable path."""
+    stem = executable.name.lower()
+    if "msedge" in stem:
+        return BRAND_EDGE
+    if "brave" in stem:
+        return BRAND_BRAVE
+    if "chrome" in stem:
+        return BRAND_CHROME
+    return BRAND_CHROMIUM
+
+
+def discover_executable_with_brand() -> tuple[Path, str]:
+    """Find a Chromium-family browser and report the brand that was selected."""
+    description = describe_engine(DEFAULT_ENGINE)
+    configured_path = os.environ.get(description.executable_env, "").strip()
     if configured_path:
         candidate = Path(configured_path).expanduser()
         if _is_executable_file(candidate):
-            return candidate
+            return candidate, _brand_for_executable(candidate)
         raise SidecarError(
             code=CHROMIUM_EXECUTABLE_NOT_FOUND,
             message=(
@@ -601,15 +674,26 @@ def discover_executable() -> Path:
             ),
         )
 
-    for executable_name in CHROMIUM_EXECUTABLE_NAMES:
-        found = shutil.which(executable_name)
-        if found:
-            return Path(found)
+    for probe in _BRAND_PROBES:
+        for fixed_path in probe.fixed_paths:
+            candidate = Path(fixed_path)
+            if _is_executable_file(candidate):
+                return candidate, probe.brand
+        for executable_name in probe.names:
+            found = shutil.which(executable_name)
+            if found:
+                return Path(found), probe.brand
 
     raise SidecarError(
         code=CHROMIUM_EXECUTABLE_NOT_FOUND,
         message="Chromium executable was not found. Install Chromium/Chrome or set THEPRIVATOR_CHROMIUM_PATH.",
     )
+
+
+def discover_executable() -> Path:
+    """Find the configured Chromium-family browser without accepting frontend-provided command strings."""
+    executable, _brand = discover_executable_with_brand()
+    return executable
 
 
 
@@ -618,16 +702,22 @@ def build_launch_args(
     user_data_dir: Path,
     start_urls: Union[str, Sequence[str]],
     *,
+    engine: str = DEFAULT_ENGINE,
     extra_args: Sequence[str] = (),
     restore_session: bool = False,
 ) -> list[str]:
-    """Build safe Chromium arguments from sidecar-owned values only.
+    """Build safe launch arguments from sidecar-owned values only.
 
     Start URLs are trailing positionals. They are safe there only because the
     store already refused anything that does not begin with an http(s) scheme --
     a value starting with a dash would be read as a switch, so the validation
     that makes that impossible lives at the point of persistence, not here.
+
+    The profile-directory switch and its value come from the engine description's
+    launch template; this function does not spell any engine-specific switch
+    itself.
     """
+    description = describe_engine(engine)
     if isinstance(start_urls, str):
         positional = [start_urls or "about:blank"]
     else:
@@ -636,7 +726,7 @@ def build_launch_args(
     session_args = ["--restore-last-session"] if restore_session else []
     return [
         str(executable),
-        f"--user-data-dir={user_data_dir}",
+        *description.profile_dir_arguments(user_data_dir),
         *_SAFE_CHROMIUM_ARGS,
         *session_args,
         *_validate_extra_launch_args(extra_args),
@@ -893,7 +983,7 @@ def _runtime_launch_args(
         )
     )
     if force_remote_debugging or identity_plan.requires_cdp:
-        args.extend([f"--remote-debugging-port={debugging_port}", _REMOTE_ALLOW_ORIGINS_ARG])
+        args.extend([f"{CHROMIUM_REMOTE_DEBUGGING_SWITCH}{debugging_port}", CHROMIUM_REMOTE_ALLOW_ORIGINS_ARG])
     args.extend(identity_plan.launch_flags)
     return _validate_extra_launch_args(args)
 
@@ -908,8 +998,8 @@ def _extension_launch_args(extension_dirs: Sequence[Union[str, Path]]) -> list[s
         return []
     value = ",".join(safe_paths)
     return [
-        f"{_LOAD_EXTENSION_PREFIX}{value}",
-        f"{_DISABLE_EXTENSIONS_EXCEPT_PREFIX}{value}",
+        f"{CHROMIUM_LOAD_EXTENSION_PREFIX}{value}",
+        f"{CHROMIUM_DISABLE_EXTENSIONS_EXCEPT_PREFIX}{value}",
     ]
 
 
@@ -932,10 +1022,10 @@ def _validate_extra_launch_args(args: Sequence[str]) -> list[str]:
                 code=CHROMIUM_LAUNCH_FAILED,
                 message="Chromium launch arguments could not be prepared.",
             )
-        if arg in {_REMOTE_DEBUGGING_ARG, _REMOTE_ALLOW_ORIGINS_ARG} or arg in _ALLOWED_IDENTITY_LAUNCH_FLAGS:
+        if arg in {_REMOTE_DEBUGGING_ZERO_ARG, CHROMIUM_REMOTE_ALLOW_ORIGINS_ARG} or arg in _ALLOWED_IDENTITY_LAUNCH_FLAGS:
             safe_args.append(arg)
             continue
-        if re.fullmatch(r"--remote-debugging-port=[1-9][0-9]{0,4}", arg):
+        if re.fullmatch(rf"{CHROMIUM_REMOTE_DEBUGGING_SWITCH}[1-9][0-9]{{0,4}}", arg):
             if int(arg.split("=", 1)[1]) <= 65535:
                 safe_args.append(arg)
                 continue
@@ -960,7 +1050,7 @@ def _validate_extra_launch_args(args: Sequence[str]) -> list[str]:
             # append a switch without passing both layers.
             safe_args.append(arg)
             continue
-        if arg.startswith(_LOAD_EXTENSION_PREFIX) or arg.startswith(_DISABLE_EXTENSIONS_EXCEPT_PREFIX):
+        if arg.startswith(CHROMIUM_LOAD_EXTENSION_PREFIX) or arg.startswith(CHROMIUM_DISABLE_EXTENSIONS_EXCEPT_PREFIX):
             _validate_extension_arg_paths(arg.split("=", 1)[1])
             safe_args.append(arg)
             continue
@@ -1174,7 +1264,7 @@ def _launch_registered(
     labels a failure, whether DevTools is forced on, how long endpoint discovery
     may take, and what to do with the endpoint once it exists.
     """
-    executable = discover_executable()
+    executable, brand = discover_executable_with_brand()
     # Port zero is Chromium's automation-launch convention. Human-operated
     # managed profiles need DevTools for identity emulation, but are not an
     # automation session. Explicit automation/audit launches retain port zero.
@@ -1231,12 +1321,22 @@ def _launch_registered(
     try:
         process = _spawn_chromium(args, owner_token=owner_token)
         time.sleep(LAUNCH_LIVENESS_SETTLE_SECONDS)
+        tracked_pid = process.pid
         if process.poll() is not None or not is_process_alive(process.pid):
-            _reap_if_child(process.pid)
-            raise SidecarError(
-                code=CHROMIUM_LAUNCH_FAILED,
-                message="Chromium exited before it could be registered as running.",
-            )
+            surviving_pid: Optional[int] = None
+            descendant_deadline = time.monotonic() + LAUNCH_DESCENDANT_MATCH_SECONDS
+            while time.monotonic() < descendant_deadline:
+                surviving_pid = _find_launched_browser_pid(user_data_path)
+                if surviving_pid is not None:
+                    break
+                time.sleep(0.1)
+            if surviving_pid is None:
+                _reap_if_child(process.pid)
+                raise SidecarError(
+                    code=CHROMIUM_LAUNCH_FAILED,
+                    message="Chromium exited before it could be registered as running.",
+                )
+            tracked_pid = surviving_pid
 
         endpoint_result: Any = None
         if needs_endpoint:
@@ -1251,12 +1351,13 @@ def _launch_registered(
 
         record = RuntimeRecord(
             profile_id=profile.id,
-            pid=process.pid,
+            pid=tracked_pid,
             started_at=utc_now_iso(),
             user_data_dir=profile.storage.userDataDir,
             owner_token=owner_token,
             proxy_bridge_pid=proxy_runtime.proxy_bridge_pid,
             proxy_bridge_ready_file=proxy_runtime.proxy_bridge_ready_file,
+            brand=brand,
         )
         updated = dict(active)
         updated[profile.id] = record
@@ -2106,13 +2207,16 @@ def _status_payload(records: Mapping[str, RuntimeRecord], reconciled: list[JsonO
 
 
 def _running_payload(record: RuntimeRecord) -> JsonObject:
-    return {
+    payload: JsonObject = {
         "profileId": record.profile_id,
         "status": "running",
         "pid": record.pid,
         "startedAt": record.started_at,
         "userDataDir": record.user_data_dir,
     }
+    if record.brand is not None:
+        payload["brand"] = record.brand
+    return payload
 
 
 
@@ -2176,6 +2280,30 @@ def _psutil_process_alive(process: Any) -> bool:
         return False
 
 
+def _find_launched_browser_pid(user_data_dir: Path) -> Optional[int]:
+    """Locate the main browser process for a just-launched profile.
+
+    On Windows some Chromium-family builds (notably Edge) exit their launcher
+    stub almost immediately after handing off to the browser main process, so
+    the stub pid is gone before the liveness check runs. The surviving browser
+    still carries this profile's user-data-dir on its command line; match that
+    instead of walking a process tree whose root already exited.
+    """
+    if not HAS_PSUTIL:
+        return None
+    needle = os.path.normcase(str(user_data_dir))
+    for process in psutil.process_iter(["cmdline"]):
+        try:
+            cmdline = process.cmdline()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        if not any(needle in os.path.normcase(argument) for argument in cmdline):
+            continue
+        # The main browser process is the one without a --type= helper flag.
+        if not any(argument.startswith("--type=") for argument in cmdline):
+            return process.pid
+    return None
+
 
 def _wait_until_dead(pid: int, timeout_seconds: float) -> bool:
     deadline = time.monotonic() + max(timeout_seconds, 0)
@@ -2202,7 +2330,6 @@ def _reap_if_child(pid: int) -> bool:
 
 
 __all__ = [
-    "CHROMIUM_EXECUTABLE_NAMES",
     "PROXY_PROOF_SPKI_SHA256_ENV",
     "PROXY_PROOF_TRUST_ENABLED_ENV",
     "GRACEFUL_STOP_TIMEOUT_SECONDS",

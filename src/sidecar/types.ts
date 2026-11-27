@@ -717,8 +717,11 @@ export interface IdentitySurfacesDescribeSnapshot extends IdentitySurfacesDescri
   receivedAt: string;
 }
 
+/** Browser engine a profile runs under. Mirrors the sidecar engine registry. */
+export type EngineId = "chromium" | "firefox";
+
 export interface ProfileDefaults {
-  browser: "chromium";
+  browser: EngineId;
   startUrl: string;
   proxyMode: ProfileProxyMode;
   fingerprintMode: FingerprintMode;
@@ -760,8 +763,31 @@ export interface ProfileSync {
   lastSyncedRevision: number | null;
 }
 
+/**
+ * Optional identity-cookie health snapshot the sidecar may attach to a profile.
+ *
+ * The sidecar does not produce this section yet: when it is absent the UI shows
+ * "unknown / not probed" instead of inventing a result. Classification from these
+ * raw observations lives in `features/profiles/cookieHealth.ts` and stays a pure
+ * function with no DOM or network dependency.
+ */
+export interface CookieHealthInfo {
+  /** ISO timestamp (UTC) the identity cookie expires at; null for a session cookie or when unknown. */
+  expiresAt: string | null;
+  /** ISO timestamp (UTC) of the last health probe; null when never probed. */
+  probedAt: string | null;
+  /** HTTP status recorded by the last probe; null when the probe never reached a page. */
+  probeStatus: number | null;
+  /** Final URL after redirects recorded by the last probe; null when unknown. */
+  probeFinalUrl: string | null;
+  /** Login-page markers found on the final page (title text, form action, keywords). */
+  loginPageMarkers: string[];
+}
+
 export interface ProfileRecord {
   proxyRevision?: string;
+  /** Browser engine; absent on older records and reads back as Chromium. */
+  engine?: EngineId | undefined;
   id: string;
   name: string;
   createdAt: string;
@@ -775,6 +801,7 @@ export interface ProfileRecord {
   lifecycle: ProfileLifecycle;
   sync: ProfileSync;
   metadata?: JsonObject;
+  cookieHealth?: CookieHealthInfo | null;
 }
 
 export interface ProfileListResult {
@@ -1141,6 +1168,8 @@ export interface ChromiumRunningProfileState {
   pid: number;
   startedAt: string;
   userDataDir: string;
+  /** Chromium-family brand actually launched: edge/chrome/brave/chromium. */
+  brand?: string | undefined;
 }
 
 export interface ChromiumStoppedProfileState {

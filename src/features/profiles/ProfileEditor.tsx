@@ -117,6 +117,10 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
 
   useEffect(() => {
     if (profileId === null) {
+      // Route-param-driven loader: going to the create flow resets the editor to
+      // its fresh defaults here, and the same effect owns cancelling the in-flight
+      // fetch below. The reset follows the param, not a derived render value.
+      // oxlint-disable-next-line react/set-state-in-effect
       setProfile(null);
       setDraft(draftFrom(null));
       setLoading(false);
@@ -374,6 +378,7 @@ export function ProfileEditor({ profileId, running: runningProp, onClose, onSave
             draft={draft.identity}
             warnings={warnings}
             presets={presets ?? undefined}
+            engine={profile?.engine}
             onChange={(identity) => setDraft((current) => ({ ...current, identity }))}
             onApplyPreset={applyPreset}
           />

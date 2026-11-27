@@ -26,12 +26,6 @@ export function useProxyChecks(rows: readonly ProfileRow[]) {
   }, [scopes]);
   const [cache, setCache] = useState(new Map<string, { scope: string; state: ProxyCheckState }>());
   const inFlight = useRef(new Set<string>());
-  useEffect(() => {
-    setCache((current) => {
-      const next = new Map([...current].filter(([id, entry]) => scopes.get(id) === entry.scope));
-      return next.size === current.size ? current : next;
-    });
-  }, [scopes]);
   const check = useCallback(async (id: string) => {
     const key = latest.current.get(id);
     if (!key || inFlight.current.has(id)) return;

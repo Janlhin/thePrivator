@@ -111,14 +111,14 @@
 - 影响面：`vite.config.ts` 的 `test.coverage`、`npm test`、CI。
 - 复核标准与复核时间：`npm test` 在语句覆盖率低于 80% 或分支低于 70% 时退出非零；2027-02-17 复核。
 
-## D-013 四条 oxlint 规则长期关闭并写明理由
+## D-013 三条 oxlint 规则长期关闭并写明理由
 
-- 日期：2026-11-17
-- 决策：关闭 `vitest/require-mock-type-parameters`、`vitest/no-conditional-expect`、`react/set-state-in-effect`、`no-control-regex` 四条规则，理由写在 `.oxlintrc.json` 与提交正文里。
-- 背景：四条规则在本仓库的告警分别是 174、39、10、1 条。前两条要求的是测试写法与类型标注，而类型已由 tsc 强制、断言在参数化循环里本就写在循环内；set-state-in-effect 指向一次用户可见的交互重构，硬改会把行为变更混进格式提交；no-control-regex 的命中是剪贴板清洗正则，匹配控制字符是它的目的。
-- 被否决的替代方案与理由：为清零而重写 174 处测试类型标注 —— 否决，收益是消除噪声而非发现缺陷，且会与 tsc 重复；把 set-state-in-effect 的 10 处硬改 —— 否决，属于功能变更，需单独提交与评审（见 T-016）。
+- 日期：2026-11-17（2026-11-27 复核：移出 `react/set-state-in-effect`）
+- 决策：关闭 `vitest/require-mock-type-parameters`、`vitest/no-conditional-expect`、`no-control-regex` 三条规则，理由写在 `.oxlintrc.json` 与提交正文里。`react/set-state-in-effect` 已于 2026-11-27 随 T-016 恢复为 `error`，不再列入长期关闭清单。
+- 背景：这三条规则在本仓库的告警分别是 174、39、1 条。前两条要求的是测试写法与类型标注，而类型已由 tsc 强制、断言在参数化循环里本就写在循环内；no-control-regex 的命中是剪贴板清洗正则，匹配控制字符是它的目的。`react/set-state-in-effect` 关闭时记为 10 处；T-016 实测为 11 处：5 处改为渲染期派生状态或删除冗余 effect（`ColumnManager` 草稿对齐、`useProxyChecks` 缓存裁剪、`AppearanceSettings` 挂载重读、`FingerprintForm` 抓取状态复位、`ProfilesPage` 选择裁剪），其余 6 处是 sidecar 初始加载或窗口/sidecar 事件订阅，属外部系统同步，保留带理由的单行豁免。
+- 被否决的替代方案与理由：为清零而重写 174 处测试类型标注 —— 否决，收益是消除噪声而非发现缺陷，且会与 tsc 重复；把 set-state-in-effect 的命中硬改 —— 已在 T-016 逐条处置，外部加载/订阅处不强行事件化。
 - 影响面：`.oxlintrc.json`、`npm run lint` 的告警预算。
-- 复核标准与复核时间：`npm run lint` 输出 `Found 0 warnings and 0 errors.`；T-016 完成后重新评估该条；2027-01-17 复核。
+- 复核标准与复核时间：`npm run lint` 输出 `Found 0 warnings and 0 errors.`；剩余三条 2027-01-17 复核。
 
 ## D-014 knip 与 jscpd 的排除项写进配置文件
 
@@ -137,6 +137,15 @@
 - 被否决的替代方案与理由：脚本里直接写 `npx` 命令链 —— 否决，Windows 上 `npx` 经 `cmd.exe` 启动，与「禁 cmd」冲突且不可控；把逻辑写在 `.husky` 的 sh 里 —— 否决，sh 无法调用 pwsh 之外的判定，且跨平台行为不一致。
 - 影响面：`package.json`、`.husky/`、`scripts/hooks/`、CI。
 - 复核标准与复核时间：`grep -c "pwsh -NoLogo -NoProfile -File" package.json` 等于校验脚本条数；`.husky/pre-commit` 与 `.husky/commit-msg` 各自只有一行 `exec pwsh`；2027-01-17 复核。
+
+## D-016 E2E 通道选 Playwright web-shell 冒烟，verify:s06 保留为打包 WebDriver 通道
+
+- 日期：2026-11-27
+- 决策：T-018 采用 Playwright 通道：`@playwright/test` 1.60.0、根目录 `playwright.config.ts`、`e2e/` 冒烟规格，入口 `npm run test:e2e`。该通道只在 Vite dev server 上挂载前端、断言 shell 渲染且无未捕获页面错误；打包后的 Tauri 窗口仍由 `npm run verify:s06`（`scripts/verify-s06.mjs`）经 WebDriver 驱动，两条通道不互相替代。
+- 背景：本机实测 `node scripts/verify-s06.mjs --preflight-only` 退出 1，缺 `tauri-driver` 与可解析的 Chromium（Chrome 已装但不在 PATH），且无 `src-tauri/target/release/bundle` 打包产物；全量冒烟还需要平台 WebDriver 与会话。Playwright 侧：既有 `playwright-core` 1.60.0，系统 Chrome 可经 `channel: "chrome"` 直接启动，无需下载 Playwright 浏览器二进制；dev server 可启动，前端在普通浏览器中挂载且 `pageerror` 为空。
+- 被否决的替代方案与理由：把 verify:s06 直接登记为等价 e2e 通道 —— 否决，本机实测 preflight 非零，登记命令无法退出 0，属于造绿；下载 Playwright 自带 Chromium —— 否决，宿主已有 Chrome，复用即可，避免约百兆二进制与额外网络依赖；用 plain `playwright-core` 自写驱动替代官方测试运行器 —— 否决，`playwright.config.ts` 与 `test:e2e` 的约定需要 `@playwright/test` 的配置与发现机制。
+- 影响面：新增 devDependency `@playwright/test` 1.60.0（传递 `playwright` 1.60.0，复用既有 `playwright-core` 1.60.0）；`e2e/`、`playwright.config.ts`、`scripts/e2e.mjs`；`vite.config.ts` 的 `test.exclude` 纳入 `e2e/**`；`knip.json` 入口与项目 glob 纳入 e2e。Node 选择：Playwright 1.60 通过 `node:module.register` 注册 ESM loader；本机默认 Node 28 nightly 已移除该 API（仅余 `registerHooks`），`scripts/e2e.mjs` 先探测 `module.register`，缺失时回退到 Vite+ 备用 Node 26.13.1 再启动 CLI。
+- 复核标准与复核时间：`npm run test:e2e` 退出 0 且规格全绿；`npm run verify` 退出 0；备用 Node 回退路径在默认 Node 恢复 `module.register` 后变为直连；2027-01-17 复核。
 
 ## D-017 重建 npm 锁文件，并将 vitest 与 coverage-v8 钉到 5.1.1
 

@@ -1,5 +1,6 @@
 import { t as translate } from "../../i18n";
 import type { ProfileRecord } from "../../sidecar/types";
+import { cookieHealthView } from "./cookieHealth";
 
 /**
  * Columns are data, not markup.
@@ -16,6 +17,7 @@ export type ColumnKey =
   | "folder"
   | "tags"
   | "proxy"
+  | "cookieHealth"
   | "fingerprint"
   | "notes"
   | "lastLaunchedAt"
@@ -49,6 +51,7 @@ export const COLUMNS: readonly ColumnDescriptor[] = [
   { key: "folder", label: "Folder", defaultWidth: 140, minWidth: 80, sortable: true },
   { key: "tags", label: "Tags", defaultWidth: 180, minWidth: 80, sortable: false },
   { key: "proxy", label: "Proxy", defaultWidth: 200, minWidth: 100, sortable: true },
+  { key: "cookieHealth", label: "Cookie health", defaultWidth: 180, minWidth: 130, sortable: true },
   { key: "fingerprint", label: "Platform", defaultWidth: 220, minWidth: 90, sortable: true },
   { key: "notes", label: "Notes", defaultWidth: 220, minWidth: 100, sortable: false },
   { key: "lastLaunchedAt", label: "Last launched", defaultWidth: 150, minWidth: 110, sortable: true },
@@ -248,6 +251,7 @@ export const SORT_READERS: Partial<Record<ColumnKey, ProfileFieldReader>> = {
   name: (profile) => profile.name.toLocaleLowerCase(),
   folder: (profile) => profile.organization.folderId ?? "",
   proxy: (profile) => profile.proxy.mode,
+  cookieHealth: (profile) => cookieHealthView(profile).daysLeft ?? Number.POSITIVE_INFINITY,
   fingerprint: (profile) => profile.defaults.fingerprintMode,
   lastLaunchedAt: (profile) => profile.lifecycle.lastLaunchedAt ?? "",
   launchCount: (profile) => profile.lifecycle.launchCount,

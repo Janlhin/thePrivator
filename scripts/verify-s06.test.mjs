@@ -351,9 +351,7 @@ describe("verify-s06 guard helpers", () => {
       "fixtureObservationCounts",
     ];
 
-    for (const name of helperNames) {
-      expect(packagedVerifier[name], name).toBeTypeOf("function");
-    }
+    expect(packagedVerifier).toMatchObject(Object.fromEntries(helperNames.map((name) => [name, expect.any(Function)])));
     expect(Object.keys(packagedVerifier)).not.toEqual(
       expect.arrayContaining([
         "PACKAGED_SMOKE_PROXY_USERNAME",
@@ -474,9 +472,7 @@ describe("verify-s06 guard helpers", () => {
       "core:window:allow-set-title",
     ]) {
       seedTauriGuardrails(root, { permissions: [forbiddenPermission] });
-      expect(() => assertTauriGuardrails({ rootDir: root, platform: "linux" }), forbiddenPermission).toThrow(
-        /widened/i,
-      );
+      expect(() => assertTauriGuardrails({ rootDir: root, platform: "linux" })).toThrow(/widened/i);
     }
 
     seedTauriGuardrails(root, {
@@ -929,9 +925,7 @@ describe("verify-s06 guard helpers", () => {
       Array.from({ length: 11 }, (_, index) => `https://example.invalid/${index}`),
     ]) {
       seed({ startUrls });
-      expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context }), String(startUrls[0])).toThrow(
-        /startUrls/i,
-      );
+      expect(() => assertPostSmokeProfileStore({ rootDir: root, smokeContext: context })).toThrow(/startUrls/i);
     }
 
     seed({ startupBehavior: "openLastSession" });
@@ -1114,8 +1108,8 @@ describe("verify-s06 guard helpers", () => {
     for (const missingMethod of ["profiles.proxy.update", "profiles.proxy.check", "chromium.launch", "chromium.stop"]) {
       writeFileSync(
         diagnosticsPath,
-        [
-          ...REQUIRED_DIAGNOSTIC_METHODS.filter((method) => method !== missingMethod).map((method, index) =>
+        REQUIRED_DIAGNOSTIC_METHODS.filter((method) => method !== missingMethod)
+          .map((method, index) =>
             JSON.stringify({
               schemaVersion: 1,
               ts: `2026-05-09T10:12:${String(index).padStart(2, "0")}.000Z`,
@@ -1127,8 +1121,8 @@ describe("verify-s06 guard helpers", () => {
               durationMs: index,
               logPath: "profile-store/diagnostics/events.jsonl",
             }),
-          ),
-        ].join("\n"),
+          )
+          .join("\n"),
         "utf8",
       );
       try {
@@ -1156,7 +1150,7 @@ describe("verify-s06 guard helpers", () => {
     );
     expect(() => assertPostSmokeDiagnostics({ rootDir: root, smokeContext: context })).toThrow(/unsafe logPath/i);
 
-    for (const [field, override, message] of [
+    for (const [_field, override, message] of [
       ["params", { params: { profileId } }, /forbidden raw diagnostic fields/i],
       ["source", { source: "tauri-bridge" }, /unsafe source/i],
       ["event", { event: "raw.command" }, /unsafe event/i],
@@ -1178,7 +1172,7 @@ describe("verify-s06 guard helpers", () => {
         })}\n`,
         "utf8",
       );
-      expect(() => assertPostSmokeDiagnostics({ rootDir: root, smokeContext: context }), field).toThrow(message);
+      expect(() => assertPostSmokeDiagnostics({ rootDir: root, smokeContext: context })).toThrow(message);
     }
   });
 

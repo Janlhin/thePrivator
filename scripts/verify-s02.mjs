@@ -1,7 +1,7 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
@@ -361,10 +361,6 @@ function normalizeOutput(value, extra = []) {
     .join("\n");
 }
 
-function commandLabel(command, args, label) {
-  return label || [basename(command), ...args].join(" ");
-}
-
 async function runStep(name, action) {
   const started = performance.now();
   try {
@@ -387,40 +383,6 @@ async function runStep(name, action) {
     }
     throw error;
   }
-}
-
-function runCommand(name, command, args, timeoutMs, options = {}) {
-  return runStep(name, () => {
-    const label = commandLabel(command, args, options.label);
-    const result = spawnSync(executable(command), args, {
-      cwd: ROOT_DIR,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: timeoutMs,
-      maxBuffer: 20 * 1024 * 1024,
-    });
-    if (result.error) {
-      if (result.error.code === "ETIMEDOUT") {
-        fail(`${label} timed out.`, {
-          command: label,
-          timeoutMs,
-          stdoutTail: normalizeOutput(result.stdout),
-          stderrTail: normalizeOutput(result.stderr),
-        });
-      }
-      fail(`Failed to run ${label}.`, { command: label, error: result.error.message });
-    }
-    if (result.status !== 0) {
-      fail(`${label} exited with status ${result.status ?? "unknown"}.`, {
-        command: label,
-        exitCode: result.status,
-        stdoutTail: normalizeOutput(result.stdout),
-        stderrTail: normalizeOutput(result.stderr),
-      });
-    }
-    assertNoPublicLeaks(`${label} stdout/stderr`, `${result.stdout}\n${result.stderr}`);
-    return { command: label };
-  });
 }
 
 function readTargetTriple() {
@@ -493,7 +455,7 @@ function runSidecarRequest(binaryPath, request, options = {}) {
   const result = spawnSync(binaryPath, {
     cwd: ROOT_DIR,
     input: `${JSON.stringify(request)}\n`,
-    env: { ...process.env, ...(options.env ?? {}) },
+    env: { ...process.env, ...options.env },
     encoding: "utf8",
     stdio: ["pipe", "pipe", "pipe"],
     timeout: options.timeoutMs ?? SIDECAR_TIMEOUT_MS,

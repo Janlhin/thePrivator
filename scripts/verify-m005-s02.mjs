@@ -128,7 +128,7 @@ const RUNTIME_MEMBER_PATTERNS = Object.freeze([
   { markerClass: "raw_cookie_db", pattern: /(?:^|\/)Default\/(?:Network\/)?Cookies(?:-journal)?$/i },
 ]);
 
-const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[\/"'`\s)]|$)/;
+const IGNORED_ARTIFACT_REFERENCE_PATTERN = /(?:^|["'`\s/(])(?:\.gsd|\.planning|\.audits)(?:[/"'`\s)]|$)/;
 const FRONTEND_FILESYSTEM_AUTHORITY_PATTERN =
   /@tauri-apps\/plugin-fs|\b(?:readTextFile|writeTextFile|readFile|writeFile)\s*\(/;
 

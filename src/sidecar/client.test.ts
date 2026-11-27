@@ -1562,6 +1562,15 @@ describe("sidecar client", () => {
     });
   });
 
+  it("carries the optional engine field through when present", async () => {
+    const profile = profileRecord({ engine: "firefox" });
+    mockInvoke.mockResolvedValueOnce(profileEnvelope(profileResult({ profiles: [profile] })));
+
+    const snapshot = await listProfiles();
+
+    expect(snapshot.profiles[0]!.engine).toBe("firefox");
+  });
+
   it("wraps create, update, and delete with fixed profile command params only", async () => {
     const original = profileRecord({ name: "Research" });
     const renamed = profileRecord({ name: "Renamed", updatedAt: "2026-05-04T18:02:00.000Z" });
@@ -1604,6 +1613,34 @@ describe("sidecar client", () => {
     const snapshot = await listProfiles();
 
     expect(snapshot.profiles[0]!.organization).toEqual(organization);
+  });
+
+  it("parses an optional cookie-health snapshot and drops a malformed one", async () => {
+    const healthy = profileRecord({
+      cookieHealth: {
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        probedAt: "2026-05-31T12:00:00.000Z",
+        probeStatus: 200,
+        probeFinalUrl: "https://example.com/account",
+        loginPageMarkers: ["Sign in"],
+      },
+    });
+    const broken = profileRecord({
+      id: "22222222-2222-2222-2222-222222222222",
+      cookieHealth: "not-an-object",
+    });
+    mockInvoke.mockResolvedValueOnce(profileEnvelope(profileResult({ profiles: [healthy, broken] })));
+
+    const snapshot = await listProfiles();
+
+    expect(snapshot.profiles[0]!.cookieHealth).toEqual({
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      probedAt: "2026-05-31T12:00:00.000Z",
+      probeStatus: 200,
+      probeFinalUrl: "https://example.com/account",
+      loginPageMarkers: ["Sign in"],
+    });
+    expect(snapshot.profiles[1]!.cookieHealth).toBeUndefined();
   });
 
   it("derives profile defaults from the launch block and the identity surfaces", async () => {
@@ -3635,6 +3672,7 @@ describe("sidecar client", () => {
     ["missing defaults", profileEnvelope(profileResult({ profiles: [profileRecord({ defaults: undefined })] }))],
     ["missing identity", profileEnvelope(profileResult({ profiles: [profileRecord({ identity: undefined })] }))],
     ["missing proxy", profileEnvelope(profileResult({ profiles: [profileRecord({ proxy: undefined })] }))],
+    ["invalid engine", profileEnvelope(profileResult({ profiles: [profileRecord({ engine: "safari" })] }))],
     [
       "invalid proxy credential state",
       profileEnvelope(

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "prepare": "husky",
+    "test:e2e": "node scripts/e2e.mjs test",
     "verify": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1",
     "format": "pwsh -NoLogo -NoProfile -File scripts/format.ps1",
     "format:check": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only format",
@@ -15,6 +16,8 @@
     "deadcode": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only deadcode",
     "dupes": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only dupes",
     "docs": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only docs",
+    "rootwhitelist": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only rootwhitelist",
+    "scriptbaseline": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only scriptbaseline",
     "dev": "vp dev",
     "build": "tsc --noEmit && vp build",
     "test": "pwsh -NoLogo -NoProfile -File scripts/verify.ps1 -Only test",
@@ -48,6 +51,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
+    "@playwright/test": "1.60.0",
     "@tauri-apps/cli": "3.0.0-alpha.6",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "6.9.1",

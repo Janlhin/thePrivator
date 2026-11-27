@@ -10,7 +10,8 @@ import {
   updateIdentityDraftLabel,
   updateIdentityDraftSurfaceMode,
 } from "../../identityControls";
-import type { IdentityWarning, ProfileIdentity } from "../../sidecar/types";
+import { fingerprintChannelAvailable } from "../../sidecar/engineCapabilities";
+import type { EngineId, IdentityWarning, ProfileIdentity } from "../../sidecar/types";
 import styles from "./FingerprintForm.module.css";
 import { IdentityPresetPicker } from "./IdentityPresetPicker";
 
@@ -19,6 +20,8 @@ interface FingerprintFormProps {
   warnings: readonly IdentityWarning[];
   /** Internal OS-matched templates for fresh API choices; never listed directly. */
   presets?: readonly ProfileIdentity[] | undefined;
+  /** Browser engine this profile runs under; absent reads back as Chromium. */
+  engine?: EngineId | undefined;
   onChange: (draft: IdentityDraftState) => void;
   onApplyPreset?: (presetId: string) => void;
 }
@@ -31,8 +34,9 @@ interface FingerprintFormProps {
  * edits in six places, and forgetting any of them shipped a surface the user
  * could not see or set.
  */
-export function FingerprintForm({ draft, warnings, presets, onChange }: FingerprintFormProps) {
+export function FingerprintForm({ draft, warnings, presets, engine, onChange }: FingerprintFormProps) {
   const controls = getIdentitySurfaceControls(draft.identity);
+  const fingerprintDisabled = !fingerprintChannelAvailable(engine);
   const labelId = useId();
 
   const warningsBySurface = new Map<string, IdentityWarning[]>();
@@ -47,7 +51,15 @@ export function FingerprintForm({ draft, warnings, presets, onChange }: Fingerpr
 
   return (
     <div className={styles.form}>
-      <IdentityPresetPicker draft={draft} presets={presets ?? []} onChange={onChange} />
+      {fingerprintDisabled ? (
+        <p className={styles.warning} role="status">
+          {t(
+            "Firefox does not expose a channel for ThePrivator's fingerprint injection; identity surfaces stay on the real host values.",
+          )}
+        </p>
+      ) : null}
+
+      <IdentityPresetPicker draft={draft} presets={presets ?? []} disabled={fingerprintDisabled} onChange={onChange} />
 
       <div className={styles.labelRow}>
         <label htmlFor={labelId}>{t("Identity label")}</label>
@@ -55,6 +67,7 @@ export function FingerprintForm({ draft, warnings, presets, onChange }: Fingerpr
           id={labelId}
           type="text"
           value={draft.values.label}
+          disabled={fingerprintDisabled}
           aria-invalid={draft.errors.label !== undefined}
           aria-describedby={draft.errors.label === undefined ? undefined : `${labelId}-error`}
           onChange={(event) => onChange(updateIdentityDraftLabel(draft, event.target.value))}
@@ -78,6 +91,7 @@ export function FingerprintForm({ draft, warnings, presets, onChange }: Fingerpr
                 <span className={styles.srOnly}>{t("{label} mode", { label: t(control.label) })}</span>
                 <select
                   value={control.mode}
+                  disabled={fingerprintDisabled}
                   aria-invalid={modeError !== undefined}
                   onChange={(event) =>
                     onChange(updateIdentityDraftSurfaceMode(draft, control.surface, event.target.value))
@@ -115,13 +129,20 @@ export function FingerprintForm({ draft, warnings, presets, onChange }: Fingerpr
               <div className={styles.fields}>
                 {control.fields.map((field) =>
                   field.path === "browser.userAgent" && control.mode === "custom" ? (
-                    <UserAgentField key={field.path} field={field} draft={draft} onChange={onChange} />
+                    <UserAgentField
+                      key={field.path}
+                      field={field}
+                      draft={draft}
+                      disabled={fingerprintDisabled}
+                      onChange={onChange}
+                    />
                   ) : (
                     <Field
                       key={field.path}
                       field={field}
                       value={draft.values[field.path] ?? ""}
                       error={draft.errors[field.path]}
+                      disabled={fingerprintDisabled}
                       onChange={(value) => onChange(updateIdentityDraftField(draft, field.path, value))}
                     />
                   ),
@@ -138,19 +159,28 @@ export function FingerprintForm({ draft, warnings, presets, onChange }: Fingerpr
 function UserAgentField({
   field,
   draft,
+  disabled,
   onChange,
-}: Pick<FingerprintFormProps, "draft" | "onChange"> & { field: IdentityDraftFieldDescriptor }) {
+}: Pick<FingerprintFormProps, "draft" | "onChange"> & {
+  field: IdentityDraftFieldDescriptor;
+  disabled?: boolean;
+}) {
   const hintId = useId();
   const request = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
+  const [lastDraft, setLastDraft] = useState(draft);
   // Any controlled draft replacement invalidates the snapshot, including edits
-  // to unrelated fields, presets, and profile switches. Layout cleanup closes
-  // the window before a queued network completion can overwrite that edit.
-  useLayoutEffect(() => {
+  // to unrelated fields, presets, and profile switches. Reset the fetch status
+  // during render; the cleanup-only effect below aborts the queued request
+  // before its completion can overwrite that edit.
+  if (lastDraft !== draft) {
+    setLastDraft(draft);
     setBusy(false);
     setMessage((current) => (current === t("Fetching from randomapi.dev…") ? "" : current));
+  }
+  useLayoutEffect(() => {
     return () => {
       request.current?.abort();
       request.current = null;
@@ -204,12 +234,13 @@ function UserAgentField({
       field={field}
       value={draft.values["browser.userAgent"] ?? ""}
       error={draft.errors["browser.userAgent"]}
+      disabled={disabled}
       onChange={(value) => onChange(updateIdentityDraftField(draft, "browser.userAgent", value))}
       action={
         <button
           type="button"
           className={styles.refreshButton}
-          disabled={busy}
+          disabled={busy || disabled}
           aria-describedby={hintId}
           onClick={() => void refresh()}
         >
@@ -244,6 +275,7 @@ interface FieldProps {
   field: IdentityDraftFieldDescriptor;
   value: string;
   error: string | undefined;
+  disabled?: boolean | undefined;
   onChange: (value: string) => void;
 }
 
@@ -259,7 +291,7 @@ const GEOLOCATION_PERMISSION_OPTIONS = [
   { value: "block", label: "Always block" },
 ];
 
-function Field({ field, value, error, onChange, action, footer }: FieldProps) {
+function Field({ field, value, error, disabled, onChange, action, footer }: FieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
@@ -269,6 +301,7 @@ function Field({ field, value, error, onChange, action, footer }: FieldProps) {
 
   const shared = {
     id,
+    disabled,
     "aria-invalid": error !== undefined,
     "aria-describedby": describedBy.length > 0 ? describedBy : undefined,
   };

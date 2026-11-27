@@ -366,10 +366,6 @@ function createHttpValidationContext(tracker) {
   });
 }
 
-function slashPath(value) {
-  return String(value ?? "").replace(/\\/g, "/");
-}
-
 function summarizePackageProofForPublic(proof = {}, { buildFresh = false, preflightStatus = "pass" } = {}) {
   return {
     buildFresh,
@@ -2583,7 +2579,7 @@ async function runPackagedLifecycleProof({ rootDir, proof, tracker, fullRuntime 
           "lease-cleanup-release",
           async () => {
             let releasedCount = 0;
-            for (const leaseId of [...activeLeaseIds]) {
+            for (const leaseId of activeLeaseIds) {
               try {
                 await requestJson(`${apiBaseUrl}/v1/leases/${encodeURIComponent(leaseId)}`, {
                   method: "DELETE",
