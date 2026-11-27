@@ -46,6 +46,11 @@ const NEGATIVE_RULE_EXEMPTIONS: Record<string, readonly string[]> = {
   // The single module allowed to subscribe to bridge events, for the same reason
   // windowControls owns the window API: one seam, dynamically imported, mockable.
   "../sidecarEvents.ts": ["direct event API"],
+  // The interface language has to be known before the sidecar answers -- the
+  // unlock screen renders while the vault is still sealed -- so it is stored in
+  // the webview's own storage. The module writes one of three literals and reads
+  // that literal back; nothing about profiles or credentials passes through it.
+  "../i18n/language.ts": ["browser storage or file bypass"],
 };
 
 const uiSourceEntries = () =>
