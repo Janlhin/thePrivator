@@ -30,6 +30,7 @@ from .profile_sections import (
     normalize_sync,
     start_urls_for_launch,
 )
+from .engines import DEFAULT_ENGINE, normalize_engine
 from .launch_args import validate_user_launch_args
 from .proxy import default_proxy_config, is_proxy_secret_key, normalize_proxy_config, public_proxy_summary
 from .protocol import (
@@ -122,6 +123,9 @@ class ProfileRecord:
     launch: JsonObject = field(default_factory=default_launch)
     lifecycle: JsonObject = field(default_factory=default_lifecycle)
     sync: JsonObject = field(default_factory=lambda: default_sync(local_device_id()))
+    # Browser engine this profile runs under. Records written before the field
+    # existed read back as the default Chromium engine.
+    engine: str = DEFAULT_ENGINE
 
 
     @classmethod
@@ -219,6 +223,7 @@ class ProfileRecord:
             "storage",
             "metadata",
             "proxyRevision",
+            "engine",
         }
         if store_version >= 2:
             allowed_fields.add("identity")
@@ -294,13 +299,19 @@ class ProfileRecord:
         if not isinstance(revision, str) or len(revision) > 64:
             raise_corrupt_store()
 
+        try:
+            engine = normalize_engine(data.get("engine"))
+        except SidecarError:
+            raise_corrupt_store()
+
         return cls(
             proxyRevision=revision,
             id=profile_id,
             name=name,
             createdAt=created_at,
             updatedAt=updated_at,
-            defaults=derive_defaults(proxy=proxy, identity=identity, launch=launch),
+            defaults=derive_defaults(proxy=proxy, identity=identity, launch=launch, engine=engine),
+            engine=engine,
             storage=storage_for_profile(profile_id),
             identity=identity,
             proxy=proxy,
@@ -341,7 +352,7 @@ class ProfileRecord:
             lifecycle=lifecycle,
             sync=sync,
             updatedAt=utc_now_iso(),
-            defaults=derive_defaults(proxy=proxy, identity=identity, launch=launch),
+            defaults=derive_defaults(proxy=proxy, identity=identity, launch=launch, engine=self.engine),
             **changes,
         )
 
@@ -381,7 +392,7 @@ class ProfileRecord:
             "name": self.name,
             "createdAt": self.createdAt,
             "updatedAt": self.updatedAt,
-            "defaults": asdict(derive_defaults(proxy=proxy, identity=self.identity, launch=self.launch)),
+            "defaults": asdict(derive_defaults(proxy=proxy, identity=self.identity, launch=self.launch, engine=self.engine)),
             "storage": asdict(self.storage),
             "identity": normalize_profile_identity(self.identity),
             "proxy": proxy,
@@ -390,6 +401,7 @@ class ProfileRecord:
             "launch": normalize_profile_launch(self.launch),
             "lifecycle": normalize_lifecycle(self.lifecycle),
             "sync": normalize_sync(self.sync, device_id=local_device_id()),
+            "engine": self.engine,
         }
         if self.metadata is not None:
             payload["metadata"] = normalize_profile_metadata(self.metadata)
@@ -403,7 +415,8 @@ class ProfileRecord:
             "name": self.name,
             "createdAt": self.createdAt,
             "updatedAt": self.updatedAt,
-            "defaults": asdict(derive_defaults(proxy=proxy, identity=self.identity, launch=self.launch)),
+            "defaults": asdict(derive_defaults(proxy=proxy, identity=self.identity, launch=self.launch, engine=self.engine)),
+            "engine": self.engine,
             "storage": asdict(self.storage),
             "identity": normalize_profile_identity(self.identity),
             "proxy": public_proxy_summary(proxy),
@@ -1083,7 +1096,7 @@ def proxy_for_store_version(data: Mapping[str, Any], store_version: int) -> Json
     raise_corrupt_store()
 
 
-def derive_defaults(*, proxy: Any, identity: Any, launch: Any) -> ProfileDefaults:
+def derive_defaults(*, proxy: Any, identity: Any, launch: Any, engine: str = DEFAULT_ENGINE) -> ProfileDefaults:
     """Derive the non-authoritative defaults block from canonical truth.
 
     ``defaults`` is a summary, never a source. from_dict re-derives it and rejects
@@ -1094,7 +1107,7 @@ def derive_defaults(*, proxy: Any, identity: Any, launch: Any) -> ProfileDefault
     normalized_proxy = normalize_proxy_config(proxy)
     start_urls = start_urls_for_launch(normalize_profile_launch(launch))
     return ProfileDefaults(
-        browser="chromium",
+        browser=engine,
         startUrl=start_urls[0] if start_urls else "about:blank",
         proxyMode=normalized_proxy["mode"],
         # v3 froze this at "disabled" even for a fully masked preset, so it lied.
@@ -1111,7 +1124,7 @@ def defaults_for_store_version(store_version: int, *, proxy: Any, identity: Any,
     version instead of being switched off for the ones being migrated.
     """
     if store_version >= 4:
-        return derive_defaults(proxy=proxy, identity=identity, launch=launch)
+        return derive_defaults(proxy=proxy, identity=identity, launch=launch, engine=DEFAULT_ENGINE)
     return ProfileDefaults(proxyMode=normalize_proxy_config(proxy)["mode"])
 
 

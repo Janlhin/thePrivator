@@ -1562,6 +1562,15 @@ describe("sidecar client", () => {
     });
   });
 
+  it("carries the optional engine field through when present", async () => {
+    const profile = profileRecord({ engine: "firefox" });
+    mockInvoke.mockResolvedValueOnce(profileEnvelope(profileResult({ profiles: [profile] })));
+
+    const snapshot = await listProfiles();
+
+    expect(snapshot.profiles[0]!.engine).toBe("firefox");
+  });
+
   it("wraps create, update, and delete with fixed profile command params only", async () => {
     const original = profileRecord({ name: "Research" });
     const renamed = profileRecord({ name: "Renamed", updatedAt: "2026-05-04T18:02:00.000Z" });
@@ -3663,6 +3672,7 @@ describe("sidecar client", () => {
     ["missing defaults", profileEnvelope(profileResult({ profiles: [profileRecord({ defaults: undefined })] }))],
     ["missing identity", profileEnvelope(profileResult({ profiles: [profileRecord({ identity: undefined })] }))],
     ["missing proxy", profileEnvelope(profileResult({ profiles: [profileRecord({ proxy: undefined })] }))],
+    ["invalid engine", profileEnvelope(profileResult({ profiles: [profileRecord({ engine: "safari" })] }))],
     [
       "invalid proxy credential state",
       profileEnvelope(

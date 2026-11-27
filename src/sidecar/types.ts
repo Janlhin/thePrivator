@@ -717,8 +717,11 @@ export interface IdentitySurfacesDescribeSnapshot extends IdentitySurfacesDescri
   receivedAt: string;
 }
 
+/** Browser engine a profile runs under. Mirrors the sidecar engine registry. */
+export type EngineId = "chromium" | "firefox";
+
 export interface ProfileDefaults {
-  browser: "chromium";
+  browser: EngineId;
   startUrl: string;
   proxyMode: ProfileProxyMode;
   fingerprintMode: FingerprintMode;
@@ -783,6 +786,8 @@ export interface CookieHealthInfo {
 
 export interface ProfileRecord {
   proxyRevision?: string;
+  /** Browser engine; absent on older records and reads back as Chromium. */
+  engine?: EngineId | undefined;
   id: string;
   name: string;
   createdAt: string;
