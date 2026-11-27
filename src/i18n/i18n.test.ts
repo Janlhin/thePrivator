@@ -5,7 +5,7 @@ import { t } from "./index";
 import { ZH } from "./messages/zh";
 
 function placeholders(value: string): string[] {
-  return [...value.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();
+  return [...value.matchAll(/\{(\w+)\}/g)].map((match) => match[1] ?? "").sort();
 }
 
 describe("the Chinese dictionary", () => {

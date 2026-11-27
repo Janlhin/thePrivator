@@ -35,7 +35,7 @@ const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 
 export function parseRoute(hash: string): Route {
   const raw = hash.startsWith("#") ? hash.slice(1) : hash;
-  const [pathPart, queryPart] = raw.split("?", 2);
+  const [pathPart = "", queryPart] = raw.split("?", 2);
   const segments = pathPart.split("/").filter(Boolean);
   const query = new URLSearchParams(queryPart ?? "");
 

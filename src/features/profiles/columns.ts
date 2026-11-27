@@ -209,6 +209,9 @@ export function moveColumn(layout: ColumnLayout, key: ColumnKey, toIndex: number
   }
   const next = [...layout];
   const [moved] = next.splice(fromIndex, 1);
+  if (moved === undefined) {
+    return layout;
+  }
   next.splice(target, 0, moved);
   return next;
 }

@@ -1348,14 +1348,14 @@ describe("sidecar client", () => {
     const snapshot = await listProfiles();
 
     expect(snapshot.profiles).toEqual([profile]);
-    expect(snapshot.profiles[0].defaults).toEqual({
+    expect(snapshot.profiles[0]!.defaults).toEqual({
       browser: "chromium",
       startUrl: "about:blank",
       proxyMode: "direct",
       fingerprintMode: "disabled",
     });
-    expect(snapshot.profiles[0].proxy).toEqual(directProxySummary());
-    expect(snapshot.profiles[0].storage).toEqual({
+    expect(snapshot.profiles[0]!.proxy).toEqual(directProxySummary());
+    expect(snapshot.profiles[0]!.storage).toEqual({
       profileDir: `profile-store/profiles/${profile.id}`,
       userDataDir: `profile-store/profiles/${profile.id}/user-data`,
     });
@@ -1402,7 +1402,7 @@ describe("sidecar client", () => {
 
     const snapshot = await listProfiles();
 
-    expect(snapshot.profiles[0].organization).toEqual(organization);
+    expect(snapshot.profiles[0]!.organization).toEqual(organization);
   });
 
   it("derives profile defaults from the launch block and the identity surfaces", async () => {
@@ -1415,8 +1415,8 @@ describe("sidecar client", () => {
 
     const snapshot = await listProfiles();
 
-    expect(snapshot.profiles[0].launch).toEqual(launch);
-    expect(snapshot.profiles[0].defaults).toEqual({
+    expect(snapshot.profiles[0]!.launch).toEqual(launch);
+    expect(snapshot.profiles[0]!.defaults).toEqual({
       browser: "chromium",
       startUrl: "https://example.com/start",
       proxyMode: "direct",
@@ -1534,12 +1534,12 @@ describe("sidecar client", () => {
     ["malformed WebRTC warning", proxyCheckEnvelope(proxyCheckResult({ webRtc: proxyCheckWebRtcRestricted({ policy: "block", localIpExposure: "non-proxied-udp-disabled" }) }))],
     ["HTTP checker URL", () => {
       const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
-      result.publicCheckers.pages[0].url = "http://www.cloudflare.com/cdn-cgi/trace";
+      result.publicCheckers.pages[0]!.url = "http://www.cloudflare.com/cdn-cgi/trace";
       return proxyCheckEnvelope(result);
     }],
     ["duplicate checker ids", () => {
       const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
-      result.publicCheckers.pages[1].id = result.publicCheckers.pages[0].id;
+      result.publicCheckers.pages[1]!.id = result.publicCheckers.pages[0]!.id;
       return proxyCheckEnvelope(result);
     }],
     ["missing checker id", () => {
@@ -1549,7 +1549,7 @@ describe("sidecar client", () => {
     }],
     ["raw checker transcript field", () => {
       const result = cloneJson(proxyCheckResult()) as { publicCheckers: { pages: Array<Record<string, unknown>> } };
-      result.publicCheckers.pages[0].rawTranscript = "HTTP/2 200 raw checker body";
+      result.publicCheckers.pages[0]!.rawTranscript = "HTTP/2 200 raw checker body";
       return proxyCheckEnvelope(result);
     }],
   ] as Array<[string, unknown | (() => unknown)]>)("maps malformed proxy-check payloads to protocol errors: %s", async (_caseName, envelopeOrFactory) => {
@@ -2132,8 +2132,8 @@ describe("sidecar client", () => {
 
     const snapshot = await listProfiles();
 
-    expect(snapshot.profiles[0].proxy).toEqual(proxy);
-    expect(snapshot.profiles[0].defaults.proxyMode).toBe((proxy as { mode: string }).mode);
+    expect(snapshot.profiles[0]!.proxy).toEqual(proxy);
+    expect(snapshot.profiles[0]!.defaults.proxyMode).toBe((proxy as { mode: string }).mode);
   });
 
   it("wraps identity commands with fixed command params and parses structured warnings", async () => {
@@ -2195,12 +2195,12 @@ describe("sidecar client", () => {
     expect(validation.identityVersion).toBe(2);
     expect(validation.identity).toEqual(identity);
     expect(validation.warnings).toEqual(warnings);
-    expect(listed.profiles[0].identity.geolocation).toEqual(identity.geolocation);
-    expect(listed.profiles[0].identity.mediaDevices).toEqual(identity.mediaDevices);
-    expect(listed.profiles[0].identity.ports).toEqual(identity.ports);
+    expect(listed.profiles[0]!.identity.geolocation).toEqual(identity.geolocation);
+    expect(listed.profiles[0]!.identity.mediaDevices).toEqual(identity.mediaDevices);
+    expect(listed.profiles[0]!.identity.ports).toEqual(identity.ports);
     // A profile whose only non-real surface is one of the new ones must still be
     // derived as managed, or every profiles response fails the defaults check.
-    expect(listed.profiles[1].defaults.fingerprintMode).toBe("managed");
+    expect(listed.profiles[1]!.defaults.fingerprintMode).toBe("managed");
   });
 
   it.each([
@@ -2230,10 +2230,10 @@ describe("sidecar client", () => {
     expect(described.requestId).toBe("bridge-identity-1");
     expect(described.identityVersion).toBe(2);
     expect(described.surfaces.map((surface) => surface.id)).toEqual(["browser", "geolocation", "mediaDevices", "ports"]);
-    expect(described.surfaces[1].modes).toEqual(["custom", "real"]);
-    expect(described.surfaces[1].fields[0]).toEqual({ name: "permission", type: "enum", options: ["allow", "block", "prompt"], required: true });
-    expect(described.surfaces[1].fields[4]).toEqual({ name: "altitude", type: "number", min: -1000, max: 100000, required: false });
-    expect(described.surfaces[3].fields[0]).toEqual({ name: "allowedPorts", type: "list", maxItems: 50, required: true });
+    expect(described.surfaces[1]!.modes).toEqual(["custom", "real"]);
+    expect(described.surfaces[1]!.fields[0]).toEqual({ name: "permission", type: "enum", options: ["allow", "block", "prompt"], required: true });
+    expect(described.surfaces[1]!.fields[4]).toEqual({ name: "altitude", type: "number", min: -1000, max: 100000, required: false });
+    expect(described.surfaces[3]!.fields[0]).toEqual({ name: "allowedPorts", type: "list", maxItems: 50, required: true });
   });
 
   it.each([
@@ -2272,7 +2272,7 @@ describe("sidecar client", () => {
     expect(snapshot.scanVersion).toBe(1);
     expect(snapshot.count).toBe(1);
     expect(snapshot.candidates[0]).toEqual(candidate);
-    expect(snapshot.candidates[0].issues[0]).toMatchObject({
+    expect(snapshot.candidates[0]!.issues[0]).toMatchObject({
       code: "LEGACY_CONFIG_MISSING",
       detailRef: "sidecar-legacy-issue",
     });
@@ -2662,7 +2662,7 @@ describe("sidecar client", () => {
     });
     expect(snapshot.pages).toHaveLength(9);
     expect(snapshot.pages.find((page) => page.id === "cover-your-tracks")?.status).toBe("needs-user-action");
-    expect(snapshot.pages[0].extractedRows[0]).toMatchObject({ label: "Observed", value: "Public checker value" });
+    expect(snapshot.pages[0]!.extractedRows[0]).toMatchObject({ label: "Observed", value: "Public checker value" });
     expect(JSON.stringify(snapshot)).not.toMatch(/pid|userDataDir|targetId|debugPort|webSocketDebuggerUrl|storeRoot|command|extensionDir|ws:\/\//i);
   });
 
@@ -2675,12 +2675,12 @@ describe("sidecar client", () => {
     ["plan page count mismatch", () => auditEnvelope(auditPlanResult({ pages: (auditPlanResult().pages as unknown[]).slice(0, 8) })), () => getIdentityAuditPlan(AUDIT_PROFILE_ID)],
     ["duplicate catalog ids", () => {
       const plan = cloneJson(auditPlanResult()) as unknown as { pages: Array<Record<string, unknown>> };
-      plan.pages[1].id = plan.pages[0].id;
+      plan.pages[1]!.id = plan.pages[0]!.id;
       return auditEnvelope(plan);
     }, () => getIdentityAuditPlan(AUDIT_PROFILE_ID)],
     ["invalid audit URL protocol", () => {
       const plan = cloneJson(auditPlanResult()) as unknown as { pages: Array<Record<string, unknown>> };
-      plan.pages[3].url = "http://browserleaks.com/webgl";
+      plan.pages[3]!.url = "http://browserleaks.com/webgl";
       return auditEnvelope(plan);
     }, () => getIdentityAuditPlan(AUDIT_PROFILE_ID)],
     ["unknown audit page field", () => auditEnvelope(auditOpenResult({ targetId: "page-target" })), () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
@@ -2688,12 +2688,12 @@ describe("sidecar client", () => {
     ["mismatched collect profile id", () => auditEnvelope(auditCollectResult({ profileId: "22222222-2222-2222-2222-222222222222" })), () => collectIdentityAuditResults(AUDIT_PROFILE_ID)],
     ["unsafe audit result string", () => {
       const result = cloneJson(auditCollectResult()) as unknown as { pages: Array<{ summary: string }> };
-      result.pages[0].summary = "Open ws://127.0.0.1:9222/json for details.";
+      result.pages[0]!.summary = "Open ws://127.0.0.1:9222/json for details.";
       return auditEnvelope(result);
     }, () => collectIdentityAuditResults(AUDIT_PROFILE_ID)],
     ["unsafe audit guidance string", () => {
       const result = cloneJson(auditOpenResult()) as { page: { expectedRows: Array<Record<string, unknown>> } };
-      result.page.expectedRows[0].guidance = "Open ws://127.0.0.1:9222/json for details.";
+      result.page.expectedRows[0]!.guidance = "Open ws://127.0.0.1:9222/json for details.";
       return auditEnvelope(result);
     }, () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
     ["negative running count", () => auditEnvelope(auditOpenResult({ runningCount: -1 })), () => openIdentityAuditPage(AUDIT_PROFILE_ID, "browserleaks-webgl")],
@@ -3445,7 +3445,7 @@ describe("sync commands", () => {
 
     const snapshot = await planSync();
 
-    expect(snapshot.plans[0].action).toBe("push");
+    expect(snapshot.plans[0]!.action).toBe("push");
     expect(snapshot.counts.push).toBe(1);
     expect(snapshot.counts.conflict).toBe(0);
   });
@@ -3479,9 +3479,9 @@ describe("sync commands", () => {
 
     const snapshot = await runSync();
 
-    expect(snapshot.applied[0].action).toBe("uploaded");
-    expect(snapshot.conflicts[0].action).toBe("conflict");
-    expect(snapshot.failures[0].code).toBe("SYNC_PROFILE_BUSY");
+    expect(snapshot.applied[0]!.action).toBe("uploaded");
+    expect(snapshot.conflicts[0]!.action).toBe("conflict");
+    expect(snapshot.failures[0]!.code).toBe("SYNC_PROFILE_BUSY");
   });
 
   it("rejects a kept copy reported as a path rather than a name", async () => {

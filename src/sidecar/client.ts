@@ -2467,7 +2467,7 @@ function parseIdentitySurfaceModeArray(value: unknown, field: string): string[] 
   const modes = value.map((item, index) => requireIdentityDescribedMode(item, `${field}[${index}]`));
   // The sidecar emits sorted(...), so a repeated or out-of-order entry is a shape
   // no sidecar produced.
-  if (modes.some((mode, index) => index > 0 && mode <= modes[index - 1])) {
+  if (modes.some((mode, index) => index > 0 && mode <= (modes[index - 1] ?? ""))) {
     throw makeProtocolError(`The sidecar identity field ${field} must be sorted ascending without duplicates.`);
   }
 
@@ -3729,7 +3729,8 @@ function deriveProfileStartUrl(launch: ProfileLaunch): string {
     return "about:blank";
   }
 
-  return launch.startUrls[0];
+  const [firstUrl] = launch.startUrls;
+  return firstUrl ?? "about:blank";
 }
 
 function deriveFingerprintMode(identity: ProfileIdentity): FingerprintMode {
@@ -4236,7 +4237,7 @@ function parseIdentityAllowedPortArray(value: unknown, field: string): number[] 
   const ports = value.map((item, index) => requireIdentityInteger(item, `${field}[${index}]`, 1, 65535));
   // The sidecar deduplicates and sorts before it persists, so a repeated or
   // out-of-order entry is a shape no sidecar produced.
-  if (ports.some((port, index) => index > 0 && port <= ports[index - 1])) {
+  if (ports.some((port, index) => index > 0 && port <= (ports[index - 1] ?? Number.NEGATIVE_INFINITY))) {
     throw makeProtocolError(`The sidecar identity field ${field} must be sorted ascending without duplicates.`);
   }
 
