@@ -37,7 +37,10 @@ export const VERIFY_EVENT = "verify.m005.s03";
 export const DIAGNOSTIC_RELATIVE_LOG_PATH = "profile-store/diagnostics/events.jsonl";
 export const PACKAGE_TEMP_PREFIX = "theprivator-profile-package-";
 
-const PYTHON = process.env.PYTHON ?? "python";
+const VENV_PYTHON = process.platform === "win32"
+  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+  : join(ROOT_DIR, ".venv", "bin", "python");
+const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === "win32" ? "python" : "python3"));
 const STEP_RESULTS = [];
 const VERIFIER_EVENTS = [];
 const SAFE_DIAGNOSTIC_KEYS = new Set(["event", "requestId", "method", "status", "durationMs", "errorCode", "detailRef"]);

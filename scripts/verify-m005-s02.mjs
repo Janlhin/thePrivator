@@ -26,7 +26,10 @@ export const COOKIE_MEMBER = "cookies/theprivator-cookies.json";
 export const PAYLOAD_PREFIX = "payload/";
 export const DIAGNOSTIC_RELATIVE_LOG_PATH = "profile-store/diagnostics/events.jsonl";
 
-const PYTHON = process.env.PYTHON ?? "python3";
+const VENV_PYTHON = process.platform === "win32"
+  ? join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+  : join(ROOT_DIR, ".venv", "bin", "python");
+const PYTHON = process.env.PYTHON ?? (existsSync(VENV_PYTHON) ? VENV_PYTHON : (process.platform === "win32" ? "python" : "python3"));
 const SIDECAR_EXTERNAL_BIN = "binaries/theprivator-sidecar";
 const REDACTED_VALUE = "<redacted>";
 const STEP_RESULTS = [];
