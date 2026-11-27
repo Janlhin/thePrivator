@@ -44,7 +44,7 @@ interface ProfileTableProps {
   emptyMessage: string;
   onSaveNotes?: (id: string, notes: string) => Promise<boolean>;
   proxyChecks?: ReadonlyMap<string, ProxyCheckState>;
-  onCheckProxy?: (id: string) => void;
+  onCheckProxy?: ((id: string) => void) | undefined;
 }
 
 function formatTimestamp(value: string | null): string {
@@ -85,8 +85,8 @@ function tagHue(tag: string): number {
 }
 
 interface CellProps {
-  proxyCheck?: ProxyCheckState;
-  onCheckProxy?: (id: string) => void;
+  proxyCheck?: ProxyCheckState | undefined;
+  onCheckProxy?: ((id: string) => void) | undefined;
   row: ProfileRow;
   column: ColumnDescriptor;
   folderNames: ReadonlyMap<string, string>;

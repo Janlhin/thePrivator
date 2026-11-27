@@ -9,7 +9,7 @@ export interface ProxyCheckState {
   checkedAt?: number;
 }
 
-export function ProxyExit({ direct, state, onCheck }: { direct: boolean; state?: ProxyCheckState; onCheck?: () => void }) {
+export function ProxyExit({ direct, state, onCheck }: { direct: boolean; state?: ProxyCheckState | undefined; onCheck?: (() => void) | undefined }) {
   const ip = state?.status === "done" ? state.result?.ipHiding.publicExitIp : null;
   const location = state?.result?.ipHiding.publicExitLocation;
   const code = location?.countryCode;

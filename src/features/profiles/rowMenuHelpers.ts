@@ -48,7 +48,7 @@ export interface MenuItem {
   /** Renders the entry as the destructive one, and puts it behind a confirmation. */
   danger?: boolean;
   /** Present but unavailable, with the reason spoken -- a missing entry teaches nothing. */
-  disabledReason?: string;
+  disabledReason?: string | undefined;
   /** Starts a visual group. */
   separatorBefore?: boolean;
 }
