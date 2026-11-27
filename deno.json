@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "dev": "deno run -A npm:vite --host 127.0.0.1",
+    "build": "deno run -A npm:typescript/tsc --noEmit && deno run -A npm:vite build",
+    "test": "deno run -A npm:vitest run",
+    "tauri": "deno run -A npm:@tauri-apps/cli/tauri",
+    "bundle": "deno run -A npm:@tauri-apps/cli/tauri build --bundles msi,nsis --config tmp/ci-deno-bundle.json",
+    "sidecar:build": "deno run -A scripts/build-sidecar.mjs",
+    "verify:sidecar": "deno run -A scripts/verify-sidecar.mjs"
+  }
+}
