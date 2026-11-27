@@ -4004,8 +4004,8 @@ function parseProfileIdentity(value: unknown, field: string): ProfileIdentity {
     navigator: parseNavigatorIdentitySurface(record.navigator, `${field}.navigator`),
     screen: parseScreenIdentitySurface(record.screen, `${field}.screen`),
     locale: parseLocaleIdentitySurface(record.locale, `${field}.locale`),
-    canvas: parseNoiseIdentitySurface(record.canvas, `${field}.canvas`, "canvas"),
-    audio: parseNoiseIdentitySurface(record.audio, `${field}.audio`, "audio"),
+    canvas: parseNoiseIdentitySurface(record.canvas, `${field}.canvas`),
+    audio: parseNoiseIdentitySurface(record.audio, `${field}.audio`),
     webgl: parseWebGlIdentitySurface(record.webgl, `${field}.webgl`),
     webrtc: parseWebRtcIdentitySurface(record.webrtc, `${field}.webrtc`),
     geolocation: parseGeolocationIdentitySurface(record.geolocation, `${field}.geolocation`),
@@ -4119,7 +4119,7 @@ function parseLocaleIdentitySurface(value: unknown, field: string): ProfileIdent
   };
 }
 
-function parseNoiseIdentitySurface(value: unknown, field: string, surface: "canvas" | "audio"): ProfileIdentity["canvas"] {
+function parseNoiseIdentitySurface(value: unknown, field: string): ProfileIdentity["canvas"] {
   const record = requireRecord(value, `The sidecar identity field ${field} must be an object.`);
   const mode = requireIdentityNoiseMode(record.mode, `${field}.mode`);
   if (mode === "real") {

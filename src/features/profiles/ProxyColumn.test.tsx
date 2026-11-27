@@ -86,17 +86,6 @@ function proxyCheckWebRtcBaseline(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function proxyCheckWebRtcRestricted(overrides: Record<string, unknown> = {}) {
-  return {
-    status: "restricted",
-    basis: "profile-identity-policy",
-    mode: "masked",
-    policy: "disableNonProxiedUdp",
-    localIpExposure: "non-proxied-udp-disabled",
-    ...overrides,
-  };
-}
-
 function proxyCheckPublicCheckers(overrides: Record<string, unknown> = {}) {
   return {
     status: "advisory-only",

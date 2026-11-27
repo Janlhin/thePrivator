@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { DesktopSession } from "./DesktopSession";
 const api = vi.hoisted(() => ({ getMachineInfo: vi.fn(), getPreferences: vi.fn(), vaultOperation: vi.fn(), saveInterfacePreferences: vi.fn(), normalizeSidecarError: (e: Error) => ({ message: e.message }) }));

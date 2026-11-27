@@ -186,14 +186,6 @@ export function ProfilesPage({
     [refresh],
   );
 
-  const onSaveNotes = useCallback(async (id: string, notes: string) => {
-    return (await runFor([id], async () => {
-      const profile = rows.find((row) => row.profile.id === id)?.profile;
-      if (!profile) throw new Error(t("That profile no longer exists."));
-      await updateProfileOrganization(id, { ...profile.organization, notes });
-    })) === true;
-  }, [rows, runFor]);
-
   const onLaunch = useCallback(
     (id: string) => void runFor([id], () => launchChromiumProfile(id)),
     [runFor],
@@ -420,7 +412,6 @@ export function ProfilesPage({
         onLaunch={onLaunch}
         onStop={onStop}
         onRowMenu={onRowMenu}
-        onSaveNotes={onSaveNotes}
         emptyMessage={loading ? t("Loading profiles…") : t(EMPTY_MESSAGES[view])}
       />
 
