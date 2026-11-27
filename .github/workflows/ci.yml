@@ -35,10 +35,10 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: "24"
-          cache: npm
 
-      - shell: pwsh
-        run: npm ci
+      - shell: bash
+        run: |
+          npm ci || { echo "=== npm debug tail ==="; tail -n 150 /home/runner/.npm/_logs/*debug-0.log; exit 1; }
 
       - shell: pwsh
         run: npm run verify:release
@@ -66,11 +66,11 @@ jobs:
       # Type errors alone do not fail the render tree, so both gates matter:
       # tsc caught nothing when the redesign broke, vitest caught everything.
       - name: Type check
-        shell: pwsh
+        shell: bash
         run: npx tsc --noEmit
 
       - name: Unit and component tests
-        shell: pwsh
+        shell: bash
         run: npx vitest run --testTimeout=15000
 
   sidecar:
