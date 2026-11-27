@@ -67,11 +67,11 @@ jobs:
       # tsc caught nothing when the redesign broke, vitest caught everything.
       - name: Type check
         shell: bash
-        run: npx tsc --noEmit
+        run: node node_modules/typescript/bin/tsc --noEmit
 
       - name: Unit and component tests
         shell: bash
-        run: npx vitest run --testTimeout=15000
+        run: node node_modules/vitest/vitest.mjs run --testTimeout=15000
 
   sidecar:
     name: Python sidecar
