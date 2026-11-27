@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/**/*.mjs", "tests/**/*.cjs"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "tests/**/*.{cjs,js}"],
+  "ignoreExportsUsedInFile": true,
+  "ignore": ["src/vite-env.d.ts"],
+  "ignoreBinaries": ["pwsh", "rustc"],
+  "ignoreDependencies": ["vite", "@commitlint/cli", "jscpd", "lint-staged"]
+}

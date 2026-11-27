@@ -1,0 +1,5 @@
+{
+  "threshold": 3,
+  "minTokens": 70,
+  "ignore": ["**/tokens.css", "**/*.test.ts", "**/*.test.tsx", "**/i18n/messages/**"]
+}
