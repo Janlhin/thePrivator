@@ -41,6 +41,9 @@ export function SyncSettings() {
   }, []);
 
   useEffect(() => {
+    // Mount loads the sync status from the sidecar; later refreshes are triggered
+    // by user actions, so this effect is the initial external-system read.
+    // oxlint-disable-next-line react/set-state-in-effect
     void refresh();
   }, [refresh]);
 

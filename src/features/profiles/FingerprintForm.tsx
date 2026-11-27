@@ -145,12 +145,17 @@ function UserAgentField({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
+  const [lastDraft, setLastDraft] = useState(draft);
   // Any controlled draft replacement invalidates the snapshot, including edits
-  // to unrelated fields, presets, and profile switches. Layout cleanup closes
-  // the window before a queued network completion can overwrite that edit.
-  useLayoutEffect(() => {
+  // to unrelated fields, presets, and profile switches. Reset the fetch status
+  // during render; the cleanup-only effect below aborts the queued request
+  // before its completion can overwrite that edit.
+  if (lastDraft !== draft) {
+    setLastDraft(draft);
     setBusy(false);
     setMessage((current) => (current === t("Fetching from randomapi.dev…") ? "" : current));
+  }
+  useLayoutEffect(() => {
     return () => {
       request.current?.abort();
       request.current = null;

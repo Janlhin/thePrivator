@@ -138,7 +138,7 @@ export function ProfilesPage({
     return () => window.clearTimeout(timer);
   }, [layout, savePreferences]);
   const [sort, setSort] = useState(DEFAULT_SORT);
-  const [selection, setSelection] = useState<SelectionState>(EMPTY_SELECTION);
+  const [rawSelection, setRawSelection] = useState<SelectionState>(EMPTY_SELECTION);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [organizationEdit, setOrganizationEdit] = useState<{
@@ -165,15 +165,14 @@ export function ProfilesPage({
     [sourceRows, view, folderId, search, sort, healthFilter],
   );
 
-  // A selection that outlives its rows would let a bulk action reach a profile
-  // the user filtered away and can no longer see.
   const firstVisible = shown[0];
-  useEffect(() => {
-    setSelection((current) => {
-      const pruned = pruneSelection(current.ids, shown);
-      return pruned.size === current.ids.size ? current : { ids: pruned, anchorId: current.anchorId };
-    });
-  }, [shown]);
+  // A selection that outlives its rows would let a bulk action reach a profile
+  // the user filtered away and can no longer see. Prune against the visible
+  // rows during render instead of writing the pruned set back in an effect.
+  const selection = useMemo(() => {
+    const pruned = pruneSelection(rawSelection.ids, shown);
+    return pruned.size === rawSelection.ids.size ? rawSelection : { ids: pruned, anchorId: rawSelection.anchorId };
+  }, [rawSelection, shown]);
 
   const runFor = useCallback(
     async (ids: string[], work: () => Promise<unknown>) => {
@@ -200,7 +199,7 @@ export function ProfilesPage({
   const onLaunch = useCallback((id: string) => void runFor([id], () => launchChromiumProfile(id)), [runFor]);
   const onStop = useCallback((id: string) => void runFor([id], () => stopChromiumProfile(id)), [runFor]);
   const onSelect = useCallback(
-    (intent: SelectionIntent) => setSelection((current) => applySelection(current, intent, shown)),
+    (intent: SelectionIntent) => setRawSelection((current) => applySelection(current, intent, shown)),
     [shown],
   );
   const onSort = useCallback((key: ColumnKey) => setSort((current) => nextSort(current, key)), []);
@@ -504,7 +503,7 @@ export function ProfilesPage({
               {item.label}
             </button>
           ))}
-          <button type="button" className={styles.bulkAction} onClick={() => setSelection(EMPTY_SELECTION)}>
+          <button type="button" className={styles.bulkAction} onClick={() => setRawSelection(EMPTY_SELECTION)}>
             {t("Clear selection")}
           </button>
         </div>

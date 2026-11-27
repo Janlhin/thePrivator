@@ -14,7 +14,7 @@
     "react/react-in-jsx-scope": "off",
     "vitest/require-mock-type-parameters": "off",
     "vitest/no-conditional-expect": "off",
-    "react/set-state-in-effect": "off",
+    "react/set-state-in-effect": "error",
     "no-control-regex": "off"
   },
   "ignorePatterns": ["dist/**", "tmp/**", "coverage/**", "src-tauri/**", "theprivator_sidecar/**", "scripts/**"]

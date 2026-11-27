@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { t, useLanguagePreference } from "../../i18n";
 import type { LanguagePreference } from "../../i18n/language";
@@ -47,10 +47,6 @@ export function AppearanceSettings() {
   const [saving, setSaving] = useState(false);
   const [theme, setTheme] = useState<ThemeChoice>(currentTheme);
   const { preference, choose } = useLanguagePreference();
-
-  useEffect(() => {
-    setTheme(currentTheme());
-  }, []);
 
   const selectTheme = useCallback(async (choice: ThemeChoice) => {
     setSaving(true);

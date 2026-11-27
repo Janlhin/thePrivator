@@ -29,10 +29,16 @@ interface ColumnManagerProps {
 export function ColumnManager({ layout, onApply, onClose }: ColumnManagerProps) {
   const t = useT();
   const [draft, setDraft] = useState<ColumnLayout>(layout);
+  const [committedLayout, setCommittedLayout] = useState(layout);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Reopening on a layout changed elsewhere should not resurrect an old draft.
-  useEffect(() => setDraft(layout), [layout]);
+  // Reopening on a layout changed elsewhere should not resurrect an old draft:
+  // when the prop layout moves, realign the draft during render instead of
+  // writing state back from an effect.
+  if (committedLayout !== layout) {
+    setCommittedLayout(layout);
+    setDraft(layout);
+  }
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

@@ -23,6 +23,9 @@ export function StorageSettings() {
     }
   }
   useEffect(() => {
+    // Mount reads storage usage from the sidecar; no user event can trigger this
+    // initial load, so the effect stays as the external-system synchronization.
+    // oxlint-disable-next-line react/set-state-in-effect
     void refresh();
   }, []);
   return (
