@@ -91,7 +91,7 @@ on:
 | #25 | 2026-11-26 11:06:10 | gov/2026-11-26-skeleton | 11/26 | 3 条 run |
 | #26 | 2026-11-26 18:03:46 | 563363c | 11/26 | 2 条 workflow run，14 个 check-run |
 
-#24 的 issue timeline 只有 1 条 `committed`（开 PR 时的分支推送）和 1 条后续的 `cross-referenced`（#26 引用它）；11/25 索引之后没有任何 `synchronize` 事件。
+PR #24 的 issue timeline 只有 1 条 `committed`（开 PR 时的分支推送）和 1 条后续的 `cross-referenced`（#26 引用它）；11/25 索引之后没有任何 `synchronize` 事件。
 
 ## 3. 归因结论
 

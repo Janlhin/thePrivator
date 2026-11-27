@@ -21,7 +21,7 @@
 | T-009 | 死代码与重复检查 | 装 `knip`、`jscpd`，排除项写进 `knip.json` 与 `.jscpd.json`（D-014）；`knip --fix` 不开 `--allow-remove-files` | T-008 | 高 | `npm run deadcode` 与 `npm run dupes` 均退出 0；`knip.json` 无 `--allow-remove-files` | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-010 | PowerShell 单入口 | 新增 `scripts/verify.ps1`、`scripts/format.ps1`、`scripts/hooks/*.ps1`、husky 薄壳（LF）、`commitlint.config.js`、`lint-staged` 配置、`.npmrc` | T-006 | 中 | `npm run verify` 退出 0；`git commit` 触发两条钩子；两个 husky 文件行尾为 LF | TASK_DONE | 2026-11-17 | 2026-11-17 |
 | T-011 | CI 统一 pwsh | 工作流加 `defaults.run.shell: pwsh`，全部步骤 `shell: pwsh`，保留 `npm ci` | T-010 | 中 | 工作流文件无 `shell: cmd` / `shell: powershell`；`npm ci` 出现且无 `npm install` | TASK_REVIEW | 2026-11-17 | — |
-| T-012 | 文档三层校验 | 接入 markdownlint、链接校验、代码块抽取实跑 | T-011 | 高 | 三条命令退出 0；断链数为 0 | TASK_BACKLOG | 2026-11-17 | — |
+| T-012 | 文档三层校验 | 接入 markdownlint、链接校验、代码块抽取实跑 | T-011 | 高 | 三条命令退出 0；断链数为 0 | TASK_REVIEW | 2026-11-17 | — |
 | T-016 | 消除 `set-state-in-effect` 告警 | 重构 10 处「在 effect 里同步派生状态」的组件，改为在事件处理或 reducer 中派生；完成后撤销 D-013 对该规则的豁免 | T-010 | 低 | `react/set-state-in-effect` 恢复为 error 后 `npm run lint` 退出 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-017 | `scripts/` 纳入 lint | 清掉 70 条历史告警（28 处多余转义、26 处未使用变量等）后，从 `.oxlintrc.json` 的 `ignorePatterns` 移除 `scripts/**` | T-006 | 中 | `npm run lint` 覆盖 `scripts/` 且退出 0 | TASK_BACKLOG | 2026-11-17 | — |
 | T-018 | E2E 通道 | 二选一：新建 `playwright.config.ts` 与 `test:e2e`，或把 `scripts/verify-s06.mjs` 的 WebDriver 路径登记为等价通道并写入 README | T-010 | 中 | 选定方案后 `npm run test:e2e` 或登记命令退出 0，README 有对应命令 | TASK_BACKLOG | 2026-11-17 | — |

@@ -1,7 +1,7 @@
 #requires -Version 7.4
 [CmdletBinding()]
 param(
-  [ValidateSet('all', 'format', 'lint', 'stylelint', 'typecheck', 'test', 'deadcode', 'dupes')]
+  [ValidateSet('all', 'format', 'lint', 'stylelint', 'typecheck', 'test', 'deadcode', 'dupes', 'docs')]
   [string]$Only = 'all'
 )
 
@@ -41,6 +41,7 @@ try {
   Invoke-Step 'test' { & $node $vp test --coverage }
   Invoke-Step 'deadcode' { & (Join-Path $bin 'knip.ps1') }
   Invoke-Step 'dupes' { & (Join-Path $bin 'jscpd.ps1') src }
+  Invoke-Step 'docs' { & $node (Join-Path $PSScriptRoot 'docs-verify.mjs') all }
 
   Write-Host 'verify passed' -ForegroundColor Green
 }

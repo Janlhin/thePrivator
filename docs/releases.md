@@ -98,8 +98,11 @@ An older stable build finishing late cannot downgrade the current AUR version.
 
 ```sh
 python -m unittest discover -s tests/release -p 'test_*.py'
-node --test tests/release/publish.node.cjs
 bash scripts/release/check-workflows.sh
+```
+
+```sh runnable
+node --test tests/release/publish.node.cjs
 ```
 
 The workflow checker downloads a pinned actionlint binary and checks its SHA-256
