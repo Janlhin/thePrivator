@@ -35,6 +35,7 @@ import {
   setColumnWidth,
 } from "./columns";
 import { type RowAction, buildRowMenu, requiresConfirmation } from "./rowMenuHelpers";
+import { COOKIE_HEALTH_STATUSES, HEALTH_STATUS_LABELS, type CookieHealthFilter } from "./cookieHealth";
 import {
   EMPTY_SELECTION,
   type ProfileRow,
@@ -147,6 +148,7 @@ export function ProfilesPage({
     newFolder?: string;
   } | null>(null);
   const [cookieBot, setCookieBot] = useState<{ id: string; name: string } | null>(null);
+  const [healthFilter, setHealthFilter] = useState<CookieHealthFilter>("all");
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [busyIds, dispatchBusy] = useReducer(busyReducer, new Set<string>() as ReadonlySet<string>);
   const [actionNote, setActionNote] = useState<string | null>(null);
@@ -159,8 +161,8 @@ export function ProfilesPage({
   );
 
   const shown = useMemo(
-    () => visibleRows(sourceRows, { view, folderId, search, tags: [], sort }),
-    [sourceRows, view, folderId, search, sort],
+    () => visibleRows(sourceRows, { view, folderId, search, tags: [], sort, health: healthFilter }),
+    [sourceRows, view, folderId, search, sort, healthFilter],
   );
 
   // A selection that outlives its rows would let a bulk action reach a profile
@@ -414,6 +416,20 @@ export function ProfilesPage({
         </span>
 
         <span className={styles.spacer} />
+
+        <select
+          className={styles.healthFilter}
+          aria-label={t("Filter by cookie health")}
+          value={healthFilter}
+          onChange={(event) => setHealthFilter(event.target.value as CookieHealthFilter)}
+        >
+          <option value="all">{t("Any health")}</option>
+          {COOKIE_HEALTH_STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {t(HEALTH_STATUS_LABELS[status])}
+            </option>
+          ))}
+        </select>
 
         <div className={styles.columnsAnchor}>
           <button

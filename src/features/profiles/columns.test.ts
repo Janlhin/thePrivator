@@ -65,6 +65,7 @@ describe("defaultLayout", () => {
       "folder",
       "tags",
       "proxy",
+      "cookieHealth",
       "fingerprint",
       "notes",
       "lastLaunchedAt",

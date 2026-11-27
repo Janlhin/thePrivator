@@ -140,6 +140,7 @@ import type {
   ProfileMutationSnapshot,
   ProfileRecord,
   ProfileStorage,
+  CookieHealthInfo,
   SidecarClientError,
   SidecarCommandErrorEnvelope,
   SidecarCommandSuccessEnvelope,
@@ -3882,6 +3883,7 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
       "lifecycle",
       "sync",
       "metadata",
+      "cookieHealth",
       "proxyRevision",
     ],
     [
@@ -3911,6 +3913,8 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
   const metadata =
     record.metadata === undefined ? undefined : parseSafePublicMetadata(record.metadata, `${field}.metadata`);
 
+  const cookieHealth = record.cookieHealth === undefined ? undefined : parseProfileCookieHealth(record.cookieHealth);
+
   return {
     id,
     name,
@@ -3929,6 +3933,7 @@ function parseProfileRecord(value: unknown, field = "profile"): ProfileRecord {
     lifecycle: parseProfileLifecycle(record.lifecycle, `${field}.lifecycle`),
     sync: parseProfileSync(record.sync, `${field}.sync`),
     ...(metadata === undefined ? {} : { metadata }),
+    ...(cookieHealth === undefined ? {} : { cookieHealth }),
     ...(record.proxyRevision === undefined
       ? {}
       : { proxyRevision: requireNonBlankString(record.proxyRevision, `${field}.proxyRevision`) }),
@@ -5793,6 +5798,36 @@ function parseSafePublicMetadata(value: unknown, field: string): JsonObject {
   return parseSafeJsonObject(value, field);
 }
 
+function optionalPublicString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function optionalPublicNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Parse the optional cookie-health section.
+ *
+ * The sidecar does not produce this yet, and an older or half-formed payload
+ * must not fail the whole profile list: a missing, null or non-object section
+ * reads back as `undefined`, which the UI shows as "unknown / not probed".
+ */
+function parseProfileCookieHealth(value: unknown): CookieHealthInfo | undefined {
+  if (value === null || value === undefined || !isRecord(value)) {
+    return undefined;
+  }
+  return {
+    expiresAt: optionalPublicString(value.expiresAt),
+    probedAt: optionalPublicString(value.probedAt),
+    probeStatus: optionalPublicNumber(value.probeStatus),
+    probeFinalUrl: optionalPublicString(value.probeFinalUrl),
+    loginPageMarkers: Array.isArray(value.loginPageMarkers)
+      ? value.loginPageMarkers.filter((item): item is string => typeof item === "string")
+      : [],
+  };
+}
+
 function parseSafeJsonObject(value: unknown, field: string): JsonObject {
   const record = requireRecord(value, `The sidecar response field ${field} must be an object.`);
   const parsed: JsonObject = {};
@@ -5945,7 +5980,8 @@ function sameProfileRecord(left: ProfileRecord, right: ProfileRecord): boolean {
     JSON.stringify(left.launch) === JSON.stringify(right.launch) &&
     JSON.stringify(left.lifecycle) === JSON.stringify(right.lifecycle) &&
     JSON.stringify(left.sync) === JSON.stringify(right.sync) &&
-    JSON.stringify(left.metadata ?? null) === JSON.stringify(right.metadata ?? null)
+    JSON.stringify(left.metadata ?? null) === JSON.stringify(right.metadata ?? null) &&
+    JSON.stringify(left.cookieHealth ?? null) === JSON.stringify(right.cookieHealth ?? null)
   );
 }
 
